@@ -1,13 +1,13 @@
 import { redirect } from '@sveltejs/kit';
-import { getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
 
 export async function GET({ url, cookies }) {
-        const yf = getYahooClient();
+        const appKey = process.env.VITE_YAHOO_APP_KEY || import.meta.env.VITE_YAHOO_APP_KEY;
+        const redirectUri = process.env.VITE_YAHOO_REDIRECT_URI || 
+                                                import.meta.env.VITE_YAHOO_REDIRECT_URI || 
+                                                `${url.origin}/auth/yahoo/callback`;
         
-        if (!yf) {
-                return new Response('Yahoo API credentials not configured. Set VITE_YAHOO_APP_KEY and VITE_YAHOO_APP_SECRET environment variables.', {
-                        status: 500
-                });
+        if (!appKey) {
+                return new Response('Yahoo API credentials not configured', { status: 500 });
         }
         
         const state = crypto.randomUUID();
@@ -20,23 +20,11 @@ export async function GET({ url, cookies }) {
                 maxAge: 10 * 60
         });
         
-        // Create a mock Express-style response to capture the redirect URL
-        let capturedUrl = null;
-        const mockRes = {
-                redirect: (url) => {
-                        capturedUrl = url;
-                }
-        };
+        const authUrl = new URL('https://api.login.yahoo.com/oauth2/request_auth');
+        authUrl.searchParams.set('client_id', appKey);
+        authUrl.searchParams.set('redirect_uri', redirectUri);
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('state', state);
         
-        // Call auth() with mock response object
-        yf.auth(mockRes);
-        
-        if (!capturedUrl) {
-                return new Response('Failed to generate OAuth URL', { status: 500 });
-        }
-        
-        // Add state parameter for CSRF protection
-        const finalAuthUrl = `${capturedUrl}&state=${state}`;
-        
-        throw redirect(302, finalAuthUrl);
+        throw redirect(302, authUrl.toString());
 }
