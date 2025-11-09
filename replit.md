@@ -14,12 +14,31 @@ This is a SvelteKit-based web application for creating custom fantasy football l
 - **Optional Features**: Contentful CMS for blog functionality (requires API keys)
 
 ## Recent Changes (November 9, 2025)
+
+### Initial Replit Setup
 - ✅ Configured Vite to run on port 5000 with 0.0.0.0 host
 - ✅ Updated SvelteKit config to use Node adapter and disable CSRF origin checking for Replit proxy
 - ✅ Created workflow for development server
 - ✅ Configured deployment settings for autoscale deployment
 - ✅ Updated jsconfig.json to extend SvelteKit's generated config
 - ✅ All dependencies installed successfully
+
+### Yahoo Fantasy API Migration (In Progress)
+- ✅ Installed yahoo-fantasy npm package
+- ✅ Created Yahoo API adapter layer in `src/lib/yahoo-adapter/`
+  - yahooClient.js - Yahoo API client wrapper
+  - leagueAdapter.js - League metadata conversion
+  - rosterAdapter.js - Roster/user data conversion
+  - matchupAdapter.js - Matchup/scoreboard conversion
+  - transactionAdapter.js - Transaction data conversion
+  - draftAdapter.js - Draft data conversion
+  - playerAdapter.js - Player data conversion
+- ✅ Created unified platformApi.js wrapper for platform-agnostic API calls
+- ✅ Updated leagueInfo.js to support platform selection (yahoo/sleeper)
+- ✅ Fixed critical array unwrapping bugs in all adapters
+- 🚧 In Progress: Updating helper functions to use platformApi
+- ⏳ Pending: Update API server endpoints
+- ⏳ Pending: Test with real Yahoo league
 
 ## Configuration
 
