@@ -1,7 +1,7 @@
 import { getYahooClient } from './yahooClient.js';
 
-export async function getYahooLeagueTransactions(leagueKey, week = null) {
-        const yf = getYahooClient();
+export async function getYahooLeagueTransactions(leagueKey, week = null, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const transactions = await yf.league.transactions(leagueKey);

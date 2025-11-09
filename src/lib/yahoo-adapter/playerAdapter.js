@@ -1,7 +1,7 @@
 import { getYahooClient } from './yahooClient.js';
 
-export async function getYahooPlayers(leagueKey, playerKeys = null) {
-        const yf = getYahooClient();
+export async function getYahooPlayers(leagueKey, playerKeys = null, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         if (playerKeys && playerKeys.length > 0) {
@@ -22,8 +22,8 @@ export async function getYahooPlayers(leagueKey, playerKeys = null) {
         return playersArray.map(p => convertPlayerToSleeperFormat(p));
 }
 
-export async function getYahooPlayerStats(leagueKey, playerKey, week = null) {
-        const yf = getYahooClient();
+export async function getYahooPlayerStats(leagueKey, playerKey, week = null, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         try {

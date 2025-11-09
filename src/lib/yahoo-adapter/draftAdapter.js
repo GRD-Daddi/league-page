@@ -1,7 +1,7 @@
 import { getYahooClient } from './yahooClient.js';
 
-export async function getYahooDraftResults(leagueKey) {
-        const yf = getYahooClient();
+export async function getYahooDraftResults(leagueKey, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const draftResults = await yf.league.draft_results(leagueKey);
@@ -9,8 +9,8 @@ export async function getYahooDraftResults(leagueKey) {
         return convertDraftResultsToSleeperFormat(draftResults, leagueKey);
 }
 
-export async function getYahooDraftData(leagueKey) {
-        const yf = getYahooClient();
+export async function getYahooDraftData(leagueKey, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const [draftResults, leagueMeta] = await Promise.all([
@@ -120,6 +120,6 @@ function convertDraftResultsToSleeperFormat(draftResults, leagueKey) {
         }
 }
 
-export async function getYahooTradedPicks(leagueKey) {
+export async function getYahooTradedPicks(leagueKey, yahooClient = null) {
         return [];
 }
