@@ -1,0 +1,66 @@
+  userTokenPreview: 'eWmS7gKYpQApPxDEg4L....',
+  refreshTokenPreview: 'ANn0EGk0pHXZAmuwxMP_...'
+}
+[getYahooLeagueData] Received yahooClient: { wasProvided: true, hasUserToken: true, tokenLength: 936 }
+[getYahooLeagueData] Using client: {
+  hasUserToken: true,
+  hasRefreshToken: true,
+  tokenLength: 936,
+  tokenPreview: 'eWmS7gKYpQApPxDEg4L....'
+}
+Error: {"xml:lang":"en-us","yahoo:uri":"/fantasy/v2/league/449.l.744586/metadata?format=json","description":"You are not allowed to view this page because you are not in this league.","detail":""}
+    at coalesce_to_error (/home/runner/workspace/node_modules/@sveltejs/kit/src/utils/error.js:11:5)
+    at handle_fatal_error (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/utils.js:73:47)
+    at resolve (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/respond.js:550:35)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async respond (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/respond.js:330:20)
+    at async file:///home/runner/workspace/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:521:22
+[hooks.server] Request to: / Session cookie: 359a0c74-e...
+[hooks.server] Session found: true
+[createAuthenticatedClient] Creating client with tokens: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  accessTokenLength: 936,
+  refreshTokenLength: 61,
+  accessTokenPreview: 'eWmS7gKYpQApPxDEg4L....'
+}
+[createAuthenticatedClient] AFTER setUserToken, client.yahooUserToken = eWmS7gKYpQApPxDEg4L....
+[createAuthenticatedClient] AFTER setRefreshToken, client.yahooRefreshToken = ANn0EGk0pHXZAmuwxMP_...
+[createAuthenticatedClient] FINAL Client token status: {
+  hasUserToken: true,
+  hasRefreshToken: true,
+  userTokenPreview: 'eWmS7gKYpQApPxDEg4L....',
+  refreshTokenPreview: 'ANn0EGk0pHXZAmuwxMP_...'
+}
+[+page.server] Unauthenticated - league data requires login
+[hooks.server] Request to: /api/fetch_players_info Session cookie: 359a0c74-e...
+[hooks.server] Session found: true
+[createAuthenticatedClient] Creating client with tokens: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  accessTokenLength: 936,
+  refreshTokenLength: 61,
+  accessTokenPreview: 'eWmS7gKYpQApPxDEg4L....'
+}
+[createAuthenticatedClient] AFTER setUserToken, client.yahooUserToken = eWmS7gKYpQApPxDEg4L....
+[createAuthenticatedClient] AFTER setRefreshToken, client.yahooRefreshToken = ANn0EGk0pHXZAmuwxMP_...
+[createAuthenticatedClient] FINAL Client token status: {
+  hasUserToken: true,
+  hasRefreshToken: true,
+  userTokenPreview: 'eWmS7gKYpQApPxDEg4L....',
+  refreshTokenPreview: 'ANn0EGk0pHXZAmuwxMP_...'
+}
+[getYahooLeagueData] Received yahooClient: { wasProvided: true, hasUserToken: true, tokenLength: 936 }
+[getYahooLeagueData] Using client: {
+  hasUserToken: true,
+  hasRefreshToken: true,
+  tokenLength: 936,
+  tokenPreview: 'eWmS7gKYpQApPxDEg4L....'
+}
+Error: {"xml:lang":"en-us","yahoo:uri":"/fantasy/v2/league/449.l.744586/metadata?format=json","description":"You are not allowed to view this page because you are not in this league.","detail":""}
+    at coalesce_to_error (/home/runner/workspace/node_modules/@sveltejs/kit/src/utils/error.js:11:5)
+    at handle_fatal_error (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/utils.js:73:47)
+    at resolve (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/respond.js:550:35)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async respond (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/respond.js:330:20)
+    at async file:///home/runner/workspace/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:521:22
