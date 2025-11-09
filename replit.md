@@ -89,6 +89,67 @@ Simply change the `platform` value in `leagueInfo.js`:
 - `platform = 'yahoo'` - Use Yahoo Fantasy API
 - `platform = 'sleeper'` - Use Sleeper API (default)
 
+### Yahoo OAuth Authentication ✅ **COMPLETE**
+
+The application now includes a complete Yahoo OAuth 2.0 authentication system that allows users to log in with their Yahoo account and identifies which manager/team they own in the league.
+
+#### Architecture
+
+**Session Management** (`src/lib/server/sessionStore.js`):
+- In-memory session store with automatic cleanup
+- Stores user ID, access/refresh tokens, expiration time, and manager info
+- Sessions expire after 7 days
+- Hourly cleanup of expired sessions
+
+**OAuth Routes** (`src/routes/auth/`):
+- `/auth/login` - Initiates Yahoo OAuth flow with CSRF state token protection
+- `/auth/callback` - Handles OAuth callback, exchanges code for tokens, identifies manager
+- `/auth/logout` - Clears session and removes cookies
+- `/auth/session` - Returns current session data as JSON
+
+**Hooks** (`src/hooks.server.js`):
+- Loads session data from cookies on every request
+- Automatically refreshes expired tokens (5-minute buffer)
+- Injects session and authenticated Yahoo client into `event.locals`
+- Clears invalid sessions on refresh failure
+
+**User Identification**:
+- Fetches authenticated user's Yahoo GUID via `/fantasy/v2/users;use_login=1`
+- Cross-references with league users to find manager/team ownership
+- Stores manager info (team name, roster ID, etc.) in session
+
+**UI Components** (`src/lib/Nav/AuthButton.svelte`):
+- "LOGIN" button when not authenticated
+- Displays team name and "LOGOUT" button when authenticated
+- Responsive design (hides team name on mobile)
+- Integrated into main navigation bar
+
+#### Security Features
+
+- **HttpOnly Cookies**: Session ID stored in secure HttpOnly cookie
+- **CSRF Protection**: State tokens validate OAuth callback authenticity
+- **Isolated Clients**: Each authenticated request gets its own Yahoo client instance
+- **Token Isolation**: No token leakage between users
+- **Auto-Refresh**: Tokens refresh automatically before expiration
+- **Secure Session Storage**: Tokens stored server-side, never exposed to browser
+- **Cookie Settings**: SameSite=Lax, Secure in production, 7-day expiration
+
+#### Optional Configuration
+
+Set `VITE_YAHOO_REDIRECT_URI` environment variable to customize the OAuth redirect URL (defaults to current domain + `/auth/callback`).
+
+#### How It Works
+
+1. User clicks "LOGIN" button in navigation
+2. Redirected to Yahoo login page
+3. After authentication, Yahoo redirects back to `/auth/callback`
+4. App exchanges auth code for access/refresh tokens
+5. App identifies which manager/team the user owns
+6. Session created and stored server-side
+7. User sees their team name and logout option
+8. Tokens automatically refresh when needed
+9. Session persists across page refreshes for 7 days
+
 ## Configuration
 
 ### Required Setup
