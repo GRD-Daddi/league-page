@@ -13,7 +13,8 @@ export async function getYahooLeagueData(leagueKey, yahooClient = null) {
         console.log('[getYahooLeagueData] Using client:', {
                 hasUserToken: !!yf.yahooUserToken,
                 hasRefreshToken: !!yf.yahooRefreshToken,
-                tokenLength: yf.yahooUserToken?.length || 0
+                tokenLength: yf.yahooUserToken?.length || 0,
+                tokenPreview: yf.yahooUserToken ? `${yf.yahooUserToken.substring(0, 20)}...` : 'NONE!'
         });
         
         if (!yf.yahooUserToken) {

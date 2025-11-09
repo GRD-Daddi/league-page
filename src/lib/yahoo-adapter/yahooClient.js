@@ -3,7 +3,10 @@ import YahooFantasy from 'yahoo-fantasy';
 let yahooClient = null;
 
 export function initializeYahooClient(appKey, appSecret, tokenCallback = null, redirectUri = null) {
-        yahooClient = new YahooFantasy(appKey, appSecret, tokenCallback, redirectUri);
+        if (!yahooClient) {
+                yahooClient = new YahooFantasy(appKey, appSecret, tokenCallback, redirectUri);
+                console.log('[Yahoo Client] Initialized with redirectUri:', redirectUri);
+        }
         return yahooClient;
 }
 
@@ -32,6 +35,7 @@ export function getYahooClient() {
         if (!yahooClient) {
                 const appKey = getEnvVar('VITE_YAHOO_APP_KEY');
                 const appSecret = getEnvVar('VITE_YAHOO_APP_SECRET');
+                const redirectUri = getEnvVar('VITE_YAHOO_REDIRECT_URI') || 'http://localhost:5000/auth/yahoo/callback';
                 
                 if (!appKey || !appSecret) {
                         console.warn('Yahoo API credentials not configured. Set VITE_YAHOO_APP_KEY and VITE_YAHOO_APP_SECRET environment variables.');
@@ -39,8 +43,14 @@ export function getYahooClient() {
                         return null;
                 }
                 
-                yahooClient = new YahooFantasy(appKey, appSecret);
-                console.log('[Yahoo Client] Client initialized successfully');
+                // Token callback for when Yahoo auto-refreshes tokens
+                const tokenCallback = async ({ access_token, refresh_token }) => {
+                        console.log('[Yahoo Client] Token refreshed by module');
+                        // This will be handled per-request by hooks.server.js
+                };
+                
+                yahooClient = new YahooFantasy(appKey, appSecret, tokenCallback, redirectUri);
+                console.log('[Yahoo Client] Client initialized with auth helpers, redirectUri:', redirectUri);
         }
         return yahooClient;
 }
@@ -102,7 +112,8 @@ export function createAuthenticatedClient(accessToken, refreshToken) {
                 hasAccessToken: !!accessToken,
                 hasRefreshToken: !!refreshToken,
                 accessTokenLength: accessToken?.length,
-                refreshTokenLength: refreshToken?.length
+                refreshTokenLength: refreshToken?.length,
+                accessTokenPreview: accessToken ? `${accessToken.substring(0, 20)}...` : 'none'
         });
         
         // Create a NEW client instance for this user (not the shared singleton)
@@ -110,17 +121,19 @@ export function createAuthenticatedClient(accessToken, refreshToken) {
         
         if (accessToken) {
                 client.setUserToken(accessToken);
-                console.log('[createAuthenticatedClient] Access token set on client');
+                console.log('[createAuthenticatedClient] AFTER setUserToken, client.yahooUserToken =', client.yahooUserToken ? `${client.yahooUserToken.substring(0, 20)}...` : 'NULL!');
         }
         if (refreshToken) {
                 client.setRefreshToken(refreshToken);
-                console.log('[createAuthenticatedClient] Refresh token set on client');
+                console.log('[createAuthenticatedClient] AFTER setRefreshToken, client.yahooRefreshToken =', client.yahooRefreshToken ? `${client.yahooRefreshToken.substring(0, 20)}...` : 'NULL!');
         }
         
         // Verify token was set
-        console.log('[createAuthenticatedClient] Client token status:', {
+        console.log('[createAuthenticatedClient] FINAL Client token status:', {
                 hasUserToken: !!client.yahooUserToken,
-                hasRefreshToken: !!client.yahooRefreshToken
+                hasRefreshToken: !!client.yahooRefreshToken,
+                userTokenPreview: client.yahooUserToken ? `${client.yahooUserToken.substring(0, 20)}...` : 'MISSING',
+                refreshTokenPreview: client.yahooRefreshToken ? `${client.yahooRefreshToken.substring(0, 20)}...` : 'MISSING'
         });
         
         return client;
