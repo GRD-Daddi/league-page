@@ -58,6 +58,13 @@ export async function GET({ url, cookies, fetch }) {
                 
                 const tokens = await tokenResponse.json();
                 
+                console.log('[OAuth Callback] Token exchange successful:', {
+                        hasAccessToken: !!tokens.access_token,
+                        hasRefreshToken: !!tokens.refresh_token,
+                        expiresIn: tokens.expires_in,
+                        tokenType: tokens.token_type
+                });
+                
                 if (!tokens || !tokens.access_token) {
                         return new Response('Failed to obtain access token', { status: 500 });
                 }

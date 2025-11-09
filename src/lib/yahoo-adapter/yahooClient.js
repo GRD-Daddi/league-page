@@ -98,15 +98,30 @@ export function createAuthenticatedClient(accessToken, refreshToken) {
                 return null;
         }
         
+        console.log('[createAuthenticatedClient] Creating client with tokens:', {
+                hasAccessToken: !!accessToken,
+                hasRefreshToken: !!refreshToken,
+                accessTokenLength: accessToken?.length,
+                refreshTokenLength: refreshToken?.length
+        });
+        
         // Create a NEW client instance for this user (not the shared singleton)
         const client = new YahooFantasy(appKey, appSecret);
         
         if (accessToken) {
                 client.setUserToken(accessToken);
+                console.log('[createAuthenticatedClient] Access token set on client');
         }
         if (refreshToken) {
                 client.setRefreshToken(refreshToken);
+                console.log('[createAuthenticatedClient] Refresh token set on client');
         }
+        
+        // Verify token was set
+        console.log('[createAuthenticatedClient] Client token status:', {
+                hasUserToken: !!client.yahooUserToken,
+                hasRefreshToken: !!client.yahooRefreshToken
+        });
         
         return client;
 }
