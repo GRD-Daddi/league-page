@@ -6,15 +6,18 @@ import { getNFLState, getLeagueData, getWinnersBracket } from '$lib/utils/platfo
 
 export async function GET({ locals }) {
     // get NFL state from platform API (week and year)
-    const [nflState, leagueData, playoffs] = await waitForAll(
+    const [nflState, leagueData] = await waitForAll(
         getNFLState(locals.yahooClient),
         getLeagueData(leagueID, locals.yahooClient),
-        getWinnersBracket(leagueID, locals.yahooClient),
     )
 
         let year = nflState.league_season;
     const regularSeasonLength = leagueData.settings.playoff_week_start - 1;
-    const playoffLength = playoffs.pop().r;
+    
+    // Calculate playoff length from number of playoff teams (Yahoo doesn't provide bracket data the same way as Sleeper)
+    const numPlayoffTeams = leagueData.settings.playoff_teams || 4;
+    const playoffLength = Math.ceil(Math.log2(numPlayoffTeams)); // e.g., 4 teams = 2 rounds, 6 teams = 3 rounds
+    
     const fullSeasonLength = regularSeasonLength + playoffLength;
 
     const resPromises = [
