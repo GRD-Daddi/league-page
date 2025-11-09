@@ -1,0 +1,592 @@
+ethereum.js:2 You are trying to access `chrome.runtime` inside the injected content script even though it does not exist in this context. `chrome.runtime` is only available in the injected script when it is running inside a trusted site (`app.uniswap.org`), so this could have unintended consequences and should be avoided.
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+ethereum.js:2 Avoid using `isDevEnv()` inside the injected script. Use `__DEV__` instead. `chrome.runtime` is only available when the injected script is running inside a trusted site (`app.uniswap.org`). This helper only works reliably when running the app locally but not when publishing the Dev build.
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+contentScript.bundle.js:6700 i18next: languageChanged en-US
+contentScript.bundle.js:6700 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:6688 i18next: languageChanged en-US
+framesContent.bundle.js:6688 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:12607 framesScript
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 7a4fa5d3-63c8-4036-8657-b266dc92e63e
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 4f03d4ff-5c33-4d6f-96ef-837b22caa505
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 409173de-5ffc-4ef4-bb25-a0d75e0edd0c
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+framesContent.bundle.js:6688 i18next: languageChanged en-US
+framesContent.bundle.js:6688 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:12607 framesScript
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 911a90e5-ffd5-4e15-8fcd-4677a94ab336
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 01c35dc1-dd16-4199-84a4-303a6b67de16
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id b2b7d1f5-df29-480c-82bd-2838a7ce3b67
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+(index):1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+framesContent.bundle.js:6688 i18next: languageChanged en-US
+framesContent.bundle.js:6688 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:12607 framesScript
+client:755 WebSocket connection to 'wss://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev:5000/?token=nIWV-Uk9shg6' failed: 
+createConnection @ client:755
+connect @ client:426
+connect @ client:764
+connect @ client:279
+connect @ client:372
+(anonymous) @ client:861
+installHook.js:1 [vite] failed to connect to websocket (Error: WebSocket closed without opened.). 
+overrideMethod @ installHook.js:1
+connect @ client:794
+await in connect
+connect @ client:279
+connect @ client:372
+(anonymous) @ client:861
+client:443 Uncaught (in promise) Error: WebSocket closed without opened.
+    at WebSocket.<anonymous> (client:443:22)
+(anonymous) @ client:443
+script.debug.js:1 [Vercel Web Analytics] Debug mode is enabled by default in development. No requests will be sent to the server.
+script.debug.js:1 [Vercel Web Analytics] Running queued event pageview {route: '/', path: '/'}
+script.debug.js:1 [Vercel Web Analytics] [pageview] https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/ {o: 'https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/', sv: '0.1.3', sdkn: '@vercel/analytics/sveltekit', sdkv: '1.4.1', ts: 1762720197265, …}
+app:1 The resource https://use.typekit.net/af/efe4a5/00000000000000007735e609/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+app:1 The resource https://use.typekit.net/af/2555e1/00000000000000007735e603/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+yahooClient.js:43 [Yahoo Client] Client initialized successfully
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+meta @ yahoo-fantasy.js?v=de0d59a3:7048
+(anonymous) @ leagueAdapter.js:8
+withRetry @ yahooClient.js:60
+getYahooLeagueData @ leagueAdapter.js:8
+getLeagueData @ platformApi.js:20
+getLeagueData @ leagueData.js:10
+getLeagueMatchups @ leagueMatchups.js:16
+load @ +page.js:7
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+settings @ yahoo-fantasy.js?v=de0d59a3:7062
+(anonymous) @ leagueAdapter.js:9
+withRetry @ yahooClient.js:60
+getYahooLeagueData @ leagueAdapter.js:9
+getLeagueData @ platformApi.js:20
+getLeagueData @ leagueData.js:10
+getLeagueMatchups @ leagueMatchups.js:16
+load @ +page.js:7
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+teams @ yahoo-fantasy.js?v=de0d59a3:7121
+getYahooLeagueRosters @ rosterAdapter.js:7
+getLeagueRosters @ platformApi.js:34
+getLeagueRosters @ leagueRosters.js:16
+getBrackets @ leagueBrackets.js:16
+load @ +page.js:8
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+meta @ yahoo-fantasy.js?v=de0d59a3:7048
+(anonymous) @ leagueAdapter.js:8
+withRetry @ yahooClient.js:60
+getYahooLeagueData @ leagueAdapter.js:8
+getLeagueData @ platformApi.js:20
+getLeagueData @ leagueData.js:10
+getBrackets @ leagueBrackets.js:17
+load @ +page.js:8
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+settings @ yahoo-fantasy.js?v=de0d59a3:7062
+(anonymous) @ leagueAdapter.js:9
+withRetry @ yahooClient.js:60
+getYahooLeagueData @ leagueAdapter.js:9
+getLeagueData @ platformApi.js:20
+getLeagueData @ leagueData.js:10
+getBrackets @ leagueBrackets.js:17
+load @ +page.js:8
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+teams @ yahoo-fantasy.js?v=de0d59a3:7121
+getYahooLeagueUsers @ rosterAdapter.js:32
+getLeagueUsers @ platformApi.js:48
+getLeagueTeamManagers @ leagueTeamManagers.js:21
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 [Yahoo Adapter] Unexpected data structure in getYahooLeagueUsers: TypeError: import_crypto.default.randomBytes is not a function
+    at YahooFantasy.api (yahoo-fantasy.js?v=de0d59a3:8407:44)
+    at LeagueResource.teams (yahoo-fantasy.js?v=de0d59a3:7121:20)
+    at getYahooLeagueUsers (rosterAdapter.js:32:47)
+    at getLeagueUsers (platformApi.js:48:30)
+    at getLeagueTeamManagers (leagueTeamManagers.js:21:13)
+    at load (+page.js:9:33)
+    at load_node (client.js?v=de0d59a3:754:39)
+overrideMethod @ installHook.js:1
+getYahooLeagueUsers @ rosterAdapter.js:58
+getLeagueUsers @ platformApi.js:48
+getLeagueTeamManagers @ leagueTeamManagers.js:21
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 League key: 449.l.744586
+overrideMethod @ installHook.js:1
+getYahooLeagueUsers @ rosterAdapter.js:59
+getLeagueUsers @ platformApi.js:48
+getLeagueTeamManagers @ leagueTeamManagers.js:21
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+meta @ yahoo-fantasy.js?v=de0d59a3:7048
+(anonymous) @ leagueAdapter.js:8
+withRetry @ yahooClient.js:60
+getYahooLeagueData @ leagueAdapter.js:8
+getLeagueData @ platformApi.js:20
+getLeagueData @ leagueData.js:10
+getLeagueTeamManagers @ leagueTeamManagers.js:22
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+settings @ yahoo-fantasy.js?v=de0d59a3:7062
+(anonymous) @ leagueAdapter.js:9
+withRetry @ yahooClient.js:60
+getYahooLeagueData @ leagueAdapter.js:9
+getLeagueData @ platformApi.js:20
+getLeagueData @ leagueData.js:10
+getLeagueTeamManagers @ leagueTeamManagers.js:22
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+overrideMethod @ installHook.js:1
+warn @ client.js?v=de0d59a3:2854
+get @ yahoo-fantasy.js?v=de0d59a3:41
+api @ yahoo-fantasy.js?v=de0d59a3:8407
+teams @ yahoo-fantasy.js?v=de0d59a3:7121
+getYahooLeagueRosters @ rosterAdapter.js:7
+getLeagueRosters @ platformApi.js:34
+getLeagueTeamManagers @ leagueTeamManagers.js:23
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 TypeError: import_crypto.default.randomBytes is not a function
+    at YahooFantasy.api (yahoo-fantasy.js?v=de0d59a3:8407:44)
+    at LeagueResource.teams (yahoo-fantasy.js?v=de0d59a3:7121:20)
+    at getYahooLeagueRosters (rosterAdapter.js:7:39)
+    at getLeagueRosters (platformApi.js:34:30)
+    at getLeagueRosters (leagueRosters.js:16:24)
+    at getBrackets (leagueBrackets.js:16:9)
+    at load (+page.js:8:23)
+    at load_node (client.js?v=de0d59a3:754:39)
+overrideMethod @ installHook.js:1
+(anonymous) @ leagueRosters.js:16
+Promise.catch
+getLeagueRosters @ leagueRosters.js:16
+getBrackets @ leagueBrackets.js:16
+load @ +page.js:8
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 TypeError: import_crypto.default.randomBytes is not a function
+    at YahooFantasy.api (yahoo-fantasy.js?v=de0d59a3:8407:44)
+    at LeagueResource.meta (yahoo-fantasy.js?v=de0d59a3:7048:20)
+    at leagueAdapter.js:8:43
+    at withRetry (yahooClient.js:60:38)
+    at getYahooLeagueData (leagueAdapter.js:8:17)
+    at getLeagueData (platformApi.js:20:30)
+    at getLeagueData (leagueData.js:10:24)
+    at getLeagueMatchups (leagueMatchups.js:16:17)
+    at load (+page.js:7:23)
+    at load_node (client.js?v=de0d59a3:754:39)
+overrideMethod @ installHook.js:1
+(anonymous) @ leagueData.js:10
+Promise.catch
+getLeagueData @ leagueData.js:10
+getLeagueMatchups @ leagueMatchups.js:16
+load @ +page.js:7
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 TypeError: import_crypto.default.randomBytes is not a function
+    at YahooFantasy.api (yahoo-fantasy.js?v=de0d59a3:8407:44)
+    at LeagueResource.meta (yahoo-fantasy.js?v=de0d59a3:7048:20)
+    at leagueAdapter.js:8:43
+    at withRetry (yahooClient.js:60:38)
+    at getYahooLeagueData (leagueAdapter.js:8:17)
+    at getLeagueData (platformApi.js:20:30)
+    at getLeagueData (leagueData.js:10:24)
+    at getBrackets (leagueBrackets.js:17:9)
+    at load (+page.js:8:23)
+    at load_node (client.js?v=de0d59a3:754:39)
+overrideMethod @ installHook.js:1
+(anonymous) @ leagueData.js:10
+Promise.catch
+getLeagueData @ leagueData.js:10
+getBrackets @ leagueBrackets.js:17
+load @ +page.js:8
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 TypeError: import_crypto.default.randomBytes is not a function
+    at YahooFantasy.api (yahoo-fantasy.js?v=de0d59a3:8407:44)
+    at LeagueResource.meta (yahoo-fantasy.js?v=de0d59a3:7048:20)
+    at leagueAdapter.js:8:43
+    at withRetry (yahooClient.js:60:38)
+    at getYahooLeagueData (leagueAdapter.js:8:17)
+    at getLeagueData (platformApi.js:20:30)
+    at getLeagueData (leagueData.js:10:24)
+    at getLeagueTeamManagers (leagueTeamManagers.js:22:25)
+    at load (+page.js:9:33)
+    at load_node (client.js?v=de0d59a3:754:39)
+overrideMethod @ installHook.js:1
+(anonymous) @ leagueData.js:10
+Promise.catch
+getLeagueData @ leagueData.js:10
+getLeagueTeamManagers @ leagueTeamManagers.js:22
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 TypeError: import_crypto.default.randomBytes is not a function
+    at YahooFantasy.api (yahoo-fantasy.js?v=de0d59a3:8407:44)
+    at LeagueResource.teams (yahoo-fantasy.js?v=de0d59a3:7121:20)
+    at getYahooLeagueRosters (rosterAdapter.js:7:39)
+    at getLeagueRosters (platformApi.js:34:30)
+    at getLeagueTeamManagers (leagueTeamManagers.js:23:13)
+    at load (+page.js:9:33)
+    at load_node (client.js?v=de0d59a3:754:39)
+overrideMethod @ installHook.js:1
+(anonymous) @ leagueTeamManagers.js:24
+Promise.catch
+getLeagueTeamManagers @ leagueTeamManagers.js:24
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+installHook.js:1 TypeError: rosters is not iterable
+    at processRosters (leagueRosters.js:26:29)
+    at getLeagueRosters (leagueRosters.js:18:34)
+    at async Promise.all (/index 0)
+    at async getBrackets (leagueBrackets.js:15:37)
+overrideMethod @ installHook.js:1
+(anonymous) @ leagueBrackets.js:18
+Promise.catch
+getBrackets @ leagueBrackets.js:18
+load @ +page.js:8
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+script.debug.js:1 [Vercel Web Analytics] [pageview] https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/matchups {o: 'https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/matchups', sv: '0.1.3', sdkn: '@vercel/analytics/sveltekit', sdkv: '1.4.1', ts: 1762720199959, …}
+leagueTeamManagers.js:20 Uncaught (in promise) TypeError: (intermediate value) is not iterable
+    at getLeagueTeamManagers (leagueTeamManagers.js:20:54)
+getLeagueTeamManagers @ leagueTeamManagers.js:20
+await in getLeagueTeamManagers
+load @ +page.js:9
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+leagueBrackets.js:15 Uncaught (in promise) TypeError: (intermediate value) is not iterable
+    at getBrackets (leagueBrackets.js:15:37)
+    at async MatchupsAndBrackets.svelte:18:17
+getBrackets @ leagueBrackets.js:15
+await in getBrackets
+load @ +page.js:8
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+players.js:31  GET https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/api/fetch_players_info 500 (Internal Server Error)
+window.fetch @ fetcher.js?v=de0d59a3:66
+dev_fetch @ fetcher.js?v=de0d59a3:148
+subsequent_fetch @ fetcher.js?v=de0d59a3:133
+fetch @ client.js?v=de0d59a3:730
+loadPlayers @ players.js:31
+load @ +page.js:10
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293
+players.js:35 Uncaught (in promise) Error: [object Object]
+    at loadPlayers (players.js:35:19)
+loadPlayers @ players.js:35
+await in loadPlayers
+load @ +page.js:10
+load_node @ client.js?v=de0d59a3:754
+await in load_node
+(anonymous) @ client.js?v=de0d59a3:988
+load_route @ client.js?v=de0d59a3:959
+navigate @ client.js?v=de0d59a3:1371
+(anonymous) @ client.js?v=de0d59a3:2293

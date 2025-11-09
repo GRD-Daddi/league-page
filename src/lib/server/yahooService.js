@@ -33,40 +33,40 @@ export async function fetchLeagueUsers(queryLeagueID = leagueID, yahooClient = n
         return await getLeagueUsers(queryLeagueID, yahooClient);
 }
 
-export async function fetchLeagueMatchups(queryLeagueID = leagueID, week) {
-        return await getLeagueMatchups(queryLeagueID, week);
+export async function fetchLeagueMatchups(queryLeagueID = leagueID, week, yahooClient = null) {
+        return await getLeagueMatchups(queryLeagueID, week, yahooClient);
 }
 
-export async function fetchLeagueTransactions(queryLeagueID = leagueID, week) {
-        return await getLeagueTransactions(queryLeagueID, week);
+export async function fetchLeagueTransactions(queryLeagueID = leagueID, week, yahooClient = null) {
+        return await getLeagueTransactions(queryLeagueID, week, yahooClient);
 }
 
-export async function fetchDraftResults(leagueKeyOrDraftID, isLeagueKey = null) {
-        return await getDraftResults(leagueKeyOrDraftID, isLeagueKey);
+export async function fetchDraftResults(leagueKeyOrDraftID, isLeagueKey = null, yahooClient = null) {
+        return await getDraftResults(leagueKeyOrDraftID, isLeagueKey, yahooClient);
 }
 
-export async function fetchDraftData(leagueKeyOrDraftID, isLeagueKey = null) {
-        return await getDraftData(leagueKeyOrDraftID, isLeagueKey);
+export async function fetchDraftData(leagueKeyOrDraftID, isLeagueKey = null, yahooClient = null) {
+        return await getDraftData(leagueKeyOrDraftID, isLeagueKey, yahooClient);
 }
 
-export async function fetchTradedPicks(queryLeagueID = leagueID) {
-        return await getTradedPicks(queryLeagueID);
+export async function fetchTradedPicks(queryLeagueID = leagueID, yahooClient = null) {
+        return await getTradedPicks(queryLeagueID, yahooClient);
 }
 
-export async function fetchWinnersBracket(queryLeagueID = leagueID) {
-        return await getWinnersBracket(queryLeagueID);
+export async function fetchWinnersBracket(queryLeagueID = leagueID, yahooClient = null) {
+        return await getWinnersBracket(queryLeagueID, yahooClient);
 }
 
-export async function fetchLosersBracket(queryLeagueID = leagueID) {
-        return await getLosersBracket(queryLeagueID);
+export async function fetchLosersBracket(queryLeagueID = leagueID, yahooClient = null) {
+        return await getLosersBracket(queryLeagueID, yahooClient);
 }
 
-export async function fetchAllPlayers() {
-        return await getAllPlayers();
+export async function fetchAllPlayers(yahooClient = null) {
+        return await getAllPlayers(yahooClient);
 }
 
-export async function fetchPlayerStats(playerKey, week = null) {
-        return await getPlayerStats(playerKey, week);
+export async function fetchPlayerStats(playerKey, week = null, yahooClient = null) {
+        return await getPlayerStats(playerKey, week, yahooClient);
 }
 
 export function isPlatformYahoo() {
@@ -77,13 +77,13 @@ export function getActivePlatform() {
         return getPlatform();
 }
 
-export async function fetchHomePageData() {
+export async function fetchHomePageData(yahooClient = null) {
         try {
                 const [nflState, leagueData, rosters, users] = await Promise.all([
                         fetchNFLState(),
-                        fetchLeagueData(),
-                        fetchLeagueRosters(),
-                        fetchLeagueUsers()
+                        fetchLeagueData(leagueID, yahooClient),
+                        fetchLeagueRosters(leagueID, yahooClient),
+                        fetchLeagueUsers(leagueID, yahooClient)
                 ]);
 
                 return {
