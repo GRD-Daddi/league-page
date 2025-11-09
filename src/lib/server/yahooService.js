@@ -21,16 +21,16 @@ export async function fetchNFLState() {
         return await getNFLState();
 }
 
-export async function fetchLeagueData(queryLeagueID = leagueID) {
-        return await getLeagueData(queryLeagueID);
+export async function fetchLeagueData(queryLeagueID = leagueID, yahooClient = null) {
+        return await getLeagueData(queryLeagueID, yahooClient);
 }
 
-export async function fetchLeagueRosters(queryLeagueID = leagueID) {
-        return await getLeagueRosters(queryLeagueID);
+export async function fetchLeagueRosters(queryLeagueID = leagueID, yahooClient = null) {
+        return await getLeagueRosters(queryLeagueID, yahooClient);
 }
 
-export async function fetchLeagueUsers(queryLeagueID = leagueID) {
-        return await getLeagueUsers(queryLeagueID);
+export async function fetchLeagueUsers(queryLeagueID = leagueID, yahooClient = null) {
+        return await getLeagueUsers(queryLeagueID, yahooClient);
 }
 
 export async function fetchLeagueMatchups(queryLeagueID = leagueID, week) {

@@ -1,4 +1,5 @@
 import { fetchNFLState, fetchLeagueData, fetchLeagueRosters, fetchLeagueUsers } from '$lib/server/yahooService.js';
+import { leagueID } from '$lib/utils/leagueInfo.js';
 
 export async function load({ locals }) {
         try {
@@ -19,11 +20,12 @@ export async function load({ locals }) {
                         };
                 }
                 
-                // Authenticated users get full data
+                // Authenticated users get full data - pass authenticated client
+                const yahooClient = locals.yahooClient;
                 const [leagueData, rosters, users] = await Promise.all([
-                        fetchLeagueData(),
-                        fetchLeagueRosters(),
-                        fetchLeagueUsers()
+                        fetchLeagueData(leagueID, yahooClient),
+                        fetchLeagueRosters(leagueID, yahooClient),
+                        fetchLeagueUsers(leagueID, yahooClient)
                 ]);
 
                 return {

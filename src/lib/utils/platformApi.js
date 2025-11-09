@@ -15,9 +15,9 @@ import {
 
 const platform = selectedPlatform?.toLowerCase() || 'sleeper';
 
-export async function getLeagueData(queryLeagueID = configuredLeagueID) {
+export async function getLeagueData(queryLeagueID = configuredLeagueID, yahooClient = null) {
         if (platform === 'yahoo') {
-                return await getYahooLeagueData(queryLeagueID);
+                return await getYahooLeagueData(queryLeagueID, yahooClient);
         } else {
                 const res = await fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}`, {compress: true});
                 const data = await res.json();
@@ -29,9 +29,9 @@ export async function getLeagueData(queryLeagueID = configuredLeagueID) {
         }
 }
 
-export async function getLeagueRosters(queryLeagueID = configuredLeagueID) {
+export async function getLeagueRosters(queryLeagueID = configuredLeagueID, yahooClient = null) {
         if (platform === 'yahoo') {
-                return await getYahooLeagueRosters(queryLeagueID);
+                return await getYahooLeagueRosters(queryLeagueID, yahooClient);
         } else {
                 const res = await fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/rosters`, {compress: true});
                 const data = await res.json();
@@ -43,9 +43,9 @@ export async function getLeagueRosters(queryLeagueID = configuredLeagueID) {
         }
 }
 
-export async function getLeagueUsers(queryLeagueID = configuredLeagueID) {
+export async function getLeagueUsers(queryLeagueID = configuredLeagueID, yahooClient = null) {
         if (platform === 'yahoo') {
-                return await getYahooLeagueUsers(queryLeagueID);
+                return await getYahooLeagueUsers(queryLeagueID, yahooClient);
         } else {
                 const res = await fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/users`, {compress: true});
                 const data = await res.json();

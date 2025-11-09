@@ -1,7 +1,7 @@
 import { getYahooClient, withRetry } from './yahooClient.js';
 
-export async function getYahooLeagueData(leagueKey) {
-        const yf = getYahooClient();
+export async function getYahooLeagueData(leagueKey, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const [leagueMeta, leagueSettings] = await Promise.all([

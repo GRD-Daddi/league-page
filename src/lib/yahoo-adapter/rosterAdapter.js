@@ -1,7 +1,7 @@
 import { getYahooClient } from './yahooClient.js';
 
-export async function getYahooLeagueRosters(leagueKey) {
-        const yf = getYahooClient();
+export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const teams = await yf.league.teams(leagueKey);
@@ -24,8 +24,8 @@ export async function getYahooLeagueRosters(leagueKey) {
         return rosters.filter(r => r !== null);
 }
 
-export async function getYahooLeagueUsers(leagueKey) {
-        const yf = getYahooClient();
+export async function getYahooLeagueUsers(leagueKey, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         try {

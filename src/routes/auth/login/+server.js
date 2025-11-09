@@ -4,7 +4,7 @@ export async function GET({ url, cookies }) {
         const appKey = process.env.VITE_YAHOO_APP_KEY || import.meta.env.VITE_YAHOO_APP_KEY;
         const redirectUri = process.env.VITE_YAHOO_REDIRECT_URI || 
                                                 import.meta.env.VITE_YAHOO_REDIRECT_URI || 
-                                                `${url.origin}/auth/callback`;
+                                                `${url.origin}/auth/yahoo/callback`;
         
         if (!appKey) {
                 return new Response('Yahoo API credentials not configured. Set VITE_YAHOO_APP_KEY environment variable.', {
