@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
 
 export async function GET({ url, cookies }) {
@@ -19,14 +20,11 @@ export async function GET({ url, cookies }) {
                 maxAge: 10 * 60
         });
         
+        // Call auth() without response object to get URL string
         const authUrl = yf.auth();
         
+        // Add state parameter for CSRF protection
         const finalAuthUrl = `${authUrl}&state=${state}`;
         
-        return new Response(null, {
-                status: 302,
-                headers: {
-                        'Location': finalAuthUrl
-                }
-        });
+        throw redirect(302, finalAuthUrl);
 }
