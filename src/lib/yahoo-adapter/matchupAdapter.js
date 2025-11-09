@@ -32,10 +32,10 @@ function convertScoreboardToSleeperMatchups(scoreboard, week) {
                                                 teamMeta = {...teamMeta, ...segment};
                                         }
                                         if (segment.team_points) {
-                                                teamPoints = segment.team_points;
+                                                teamPoints = Array.isArray(segment.team_points) && segment.team_points.length > 0 ? segment.team_points[0] : segment.team_points;
                                         }
                                         if (segment.team_projected_points) {
-                                                teamProjectedPoints = segment.team_projected_points;
+                                                teamProjectedPoints = Array.isArray(segment.team_projected_points) && segment.team_projected_points.length > 0 ? segment.team_projected_points[0] : segment.team_projected_points;
                                         }
                                         if (segment.roster) {
                                                 roster = segment.roster;
@@ -43,8 +43,8 @@ function convertScoreboardToSleeperMatchups(scoreboard, week) {
                                 });
                         } else {
                                 teamMeta = teamWrapper.team || teamWrapper;
-                                teamPoints = teamMeta.team_points || {};
-                                teamProjectedPoints = teamMeta.team_projected_points || {};
+                                const rawPoints = teamMeta.team_points || {}; teamPoints = Array.isArray(rawPoints) && rawPoints.length > 0 ? rawPoints[0] : rawPoints;
+                                const rawProjected = teamMeta.team_projected_points || {}; teamProjectedPoints = Array.isArray(rawProjected) && rawProjected.length > 0 ? rawProjected[0] : rawProjected;
                                 roster = teamMeta.roster || {};
                         }
                         

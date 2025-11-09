@@ -66,7 +66,8 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                                 teamMeta = {...teamMeta, ...segment};
                         }
                         if (segment.team_standings || segment.standings) {
-                                teamStandings = segment.team_standings || segment.standings || {};
+                                const rawStandings = segment.team_standings || segment.standings || {};
+                                teamStandings = Array.isArray(rawStandings) && rawStandings.length > 0 ? rawStandings[0] : rawStandings;
                         }
                         if (segment.managers) {
                                 managers = segment.managers;
@@ -74,7 +75,8 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                 });
         } else {
                 teamMeta = team;
-                teamStandings = team.team_standings || team.standings || {};
+                const rawStandings = team.team_standings || team.standings || {};
+                teamStandings = Array.isArray(rawStandings) && rawStandings.length > 0 ? rawStandings[0] : rawStandings;
                 managers = team.managers || [];
         }
         
