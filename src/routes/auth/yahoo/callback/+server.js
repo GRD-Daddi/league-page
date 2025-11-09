@@ -72,10 +72,12 @@ export async function GET({ url, cookies, fetch }) {
                 let userGuid = null;
                 try {
                         const userInfo = await authenticatedClient.user.games();
+                        console.log('[OAuth] User info response:', JSON.stringify(userInfo, null, 2));
                         userGuid = userInfo?.users?.[0]?.user?.[0]?.guid || null;
                         console.log('[OAuth] ✅ User GUID:', userGuid);
                 } catch (err) {
-                        console.error('[OAuth] Error fetching user info:', err);
+                        console.error('[OAuth] Error fetching user info:', err.message);
+                        console.error('[OAuth] Full error:', JSON.stringify(err, null, 2));
                 }
                 
                 // Get manager info
