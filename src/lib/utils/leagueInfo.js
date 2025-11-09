@@ -1,6 +1,6 @@
 /*   STEP 1   */
 
-export const platform = "yahoo"; // 'yahoo' or 'sleeper' - which fantasy platform to use
+export const platform = "sleeper"; // 'yahoo' or 'sleeper' - which fantasy platform to use
 
 export const leagueID = "your_league_id"; // Yahoo: use league key format like "449.l.123456" | Sleeper: use numeric league ID
 export const leagueName = "your_league_name"; // your league name
