@@ -1,8 +1,24 @@
 import { getYahooClient, withRetry } from './yahooClient.js';
 
 export async function getYahooLeagueData(leagueKey, yahooClient = null) {
+        console.log('[getYahooLeagueData] Received yahooClient:', {
+                wasProvided: !!yahooClient,
+                hasUserToken: yahooClient?.yahooUserToken ? true : false,
+                tokenLength: yahooClient?.yahooUserToken?.length || 0
+        });
+        
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
+        
+        console.log('[getYahooLeagueData] Using client:', {
+                hasUserToken: !!yf.yahooUserToken,
+                hasRefreshToken: !!yf.yahooRefreshToken,
+                tokenLength: yf.yahooUserToken?.length || 0
+        });
+        
+        if (!yf.yahooUserToken) {
+                throw new Error('Yahoo client missing user token - authentication required');
+        }
 
         const [leagueMeta, leagueSettings] = await Promise.all([
                 withRetry(() => yf.league.meta(leagueKey)),

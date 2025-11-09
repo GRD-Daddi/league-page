@@ -22,6 +22,13 @@ export async function load({ locals }) {
                 
                 // Authenticated users get full data - pass authenticated client
                 const yahooClient = locals.yahooClient;
+                
+                console.log('[+page.server] About to fetch league data with yahooClient:', {
+                        hasYahooClient: !!yahooClient,
+                        hasUserToken: yahooClient?.yahooUserToken ? true : false,
+                        hasRefreshToken: yahooClient?.yahooRefreshToken ? true : false
+                });
+                
                 const [leagueData, rosters, users] = await Promise.all([
                         fetchLeagueData(leagueID, yahooClient),
                         fetchLeagueRosters(leagueID, yahooClient),
