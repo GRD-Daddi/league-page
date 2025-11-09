@@ -10,13 +10,14 @@ export async function getYahooLeagueMatchups(leagueKey, week) {
 }
 
 function convertScoreboardToSleeperMatchups(scoreboard, week) {
-        const matchups = scoreboard.league?.[0]?.scoreboard?.[0]?.matchups || 
-                        scoreboard.scoreboard?.matchups || [];
-        
-        const sleeperMatchups = [];
-        let matchupId = 1;
-        
-        matchups.forEach(matchup => {
+        try {
+                const matchups = scoreboard.league?.[0]?.scoreboard?.[0]?.matchups || 
+                                scoreboard.scoreboard?.matchups || [];
+                
+                const sleeperMatchups = [];
+                let matchupId = 1;
+                
+                matchups.forEach(matchup => {
                 const matchupData = matchup.matchup?.[0] || matchup;
                 const teams = matchupData.teams || [];
                 
@@ -102,9 +103,14 @@ function convertScoreboardToSleeperMatchups(scoreboard, week) {
                 });
                 
                 matchupId++;
-        });
-        
-        return sleeperMatchups;
+                });
+                
+                return sleeperMatchups;
+        } catch (error) {
+                console.error('[Yahoo Adapter] Unexpected data structure in convertScoreboardToSleeperMatchups:', error);
+                console.error('Yahoo scoreboard response:', JSON.stringify(scoreboard, null, 2));
+                return [];
+        }
 }
 
 export async function getYahooNFLState() {

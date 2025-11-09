@@ -114,10 +114,11 @@ function convertPlayerToSleeperFormat(playerData) {
 }
 
 function convertPlayerStatsToSleeperFormat(statsData, playerKey) {
-        const player = statsData.player?.[0] || statsData;
-        const stats = player.player_stats?.stats?.stat || player.stats || [];
-        
-        const sleeperStats = {};
+        try {
+                const player = statsData.player?.[0] || statsData;
+                const stats = player.player_stats?.stats?.stat || player.stats || [];
+                
+                const sleeperStats = {};
         
         const yahooToSleeperStatMap = {
                 '4': 'pass_att',
@@ -149,9 +150,15 @@ function convertPlayerStatsToSleeperFormat(statsData, playerKey) {
                 if (sleeperStat && stat.value) {
                         sleeperStats[sleeperStat] = parseFloat(stat.value);
                 }
-        });
-        
-        return sleeperStats;
+                });
+                
+                return sleeperStats;
+        } catch (error) {
+                console.error('[Yahoo Adapter] Unexpected data structure in convertPlayerStatsToSleeperFormat:', error);
+                console.error('Player key:', playerKey);
+                console.error('Stats data:', JSON.stringify(statsData, null, 2));
+                return {};
+        }
 }
 
 export async function getAllNFLPlayers() {

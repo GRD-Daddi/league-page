@@ -2,22 +2,17 @@ import { leagueID } from "$lib/utils/leagueInfo"
 import { round } from "$lib/utils/helperFunctions/universalFunctions"
 import { waitForAll } from "$lib/utils/helperFunctions/multiPromise"
 import { json, error } from '@sveltejs/kit';
+import { getNFLState, getLeagueData, getWinnersBracket } from '$lib/utils/platformApi';
 
 export async function GET() {
-    // get NFL state from sleeper (week and year)
-    const [nflStateRes, leagueDataRes, playoffsRes] = await waitForAll(
-        fetch(`https://api.sleeper.app/v1/state/nfl`, {compress: true}),
-        fetch(`https://api.sleeper.app/v1/league/${leagueID}`, {compress: true}),
-        fetch(`https://api.sleeper.app/v1/league/${leagueID}/winners_bracket`, {compress: true}),
-    )
-    
+    // get NFL state from platform API (week and year)
     const [nflState, leagueData, playoffs] = await waitForAll(
-        nflStateRes.json(),
-        leagueDataRes.json(),
-        playoffsRes.json(),
+        getNFLState(),
+        getLeagueData(leagueID),
+        getWinnersBracket(leagueID),
     )
 
-	let year = nflState.league_season;
+        let year = nflState.league_season;
     const regularSeasonLength = leagueData.settings.playoff_week_start - 1;
     const playoffLength = playoffs.pop().r;
     const fullSeasonLength = regularSeasonLength + playoffLength;
@@ -31,8 +26,8 @@ export async function GET() {
             fetch(`https://api.sleeper.app/projections/nfl/${year}/${week}?season_type=regular&position[]=DB&position[]=DEF&position[]=DL&position[]=FLEX&position[]=IDP_FLEX&position[]=K&position[]=LB&position[]=QB&position[]=RB&position[]=REC_FLEX&position[]=SUPER_FLEX&position[]=TE&position[]=WR&position[]=WRRB_FLEX&order_by=ppr`, {compress: true})
         );
     }
-	
-	const responses = await waitForAll(...resPromises);
+        
+        const responses = await waitForAll(...resPromises);
 
     const resJSONs = [];
     for(const res of responses) {

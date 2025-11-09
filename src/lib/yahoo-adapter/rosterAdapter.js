@@ -28,39 +28,46 @@ export async function getYahooLeagueUsers(leagueKey) {
         const yf = getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
-        const teams = await yf.league.teams(leagueKey);
-        const teamsArray = teams.league?.[0]?.teams?.[0]?.team || teams.teams || [];
-        
-        return teamsArray.map((team, index) => {
-                const teamData = Array.isArray(team) ? team[0] : team;
-                const managers = teamData.managers || [];
-                const manager = Array.isArray(managers) ? managers[0] : managers;
-                const managerData = manager?.manager || manager || {};
+        try {
+                const teams = await yf.league.teams(leagueKey);
+                const teamsArray = teams.league?.[0]?.teams?.[0]?.team || teams.teams || [];
                 
-                return {
-                        user_id: managerData.guid || `yahoo_${index + 1}`,
-                        username: managerData.nickname || teamData.name || `Team ${index + 1}`,
-                        display_name: managerData.nickname || teamData.name || `Team ${index + 1}`,
-                        avatar: managerData.image_url || null,
-                        metadata: {
-                                team_key: teamData.team_key,
-                                team_name: teamData.name,
-                                yahoo_guid: managerData.guid,
-                                is_commissioner: managerData.is_commissioner === '1',
-                                email: managerData.email || null
-                        },
-                        is_owner: managerData.is_commissioner === '1',
-                        is_bot: false
-                };
-        });
+                return teamsArray.map((team, index) => {
+                        const teamData = Array.isArray(team) ? team[0] : team;
+                        const managers = teamData.managers || [];
+                        const manager = Array.isArray(managers) ? managers[0] : managers;
+                        const managerData = manager?.manager || manager || {};
+                        
+                        return {
+                                user_id: managerData.guid || `yahoo_${index + 1}`,
+                                username: managerData.nickname || teamData.name || `Team ${index + 1}`,
+                                display_name: managerData.nickname || teamData.name || `Team ${index + 1}`,
+                                avatar: managerData.image_url || null,
+                                metadata: {
+                                        team_key: teamData.team_key,
+                                        team_name: teamData.name,
+                                        yahoo_guid: managerData.guid,
+                                        is_commissioner: managerData.is_commissioner === '1',
+                                        email: managerData.email || null
+                                },
+                                is_owner: managerData.is_commissioner === '1',
+                                is_bot: false
+                        };
+                });
+        } catch (error) {
+                console.error('[Yahoo Adapter] Unexpected data structure in getYahooLeagueUsers:', error);
+                console.error('League key:', leagueKey);
+                return [];
+        }
 }
 
 function convertRosterToSleeperFormat(team, rosterData, rosterId) {
-        let teamMeta = {};
-        let teamStandings = {};
-        let managers = [];
-        
-        if (Array.isArray(team)) {
+        try {
+                let teamMeta = {};
+                let teamStandings = {};
+                let managers = [];
+                
+                if (Array.isArray(team)) {
                 team.forEach(segment => {
                         if (segment.team_key) {
                                 teamMeta = {...teamMeta, ...segment};
@@ -161,5 +168,38 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                 keepers: null,
                 
                 co_owners: null
-        };
+                };
+        } catch (error) {
+                console.error('[Yahoo Adapter] Unexpected data structure in convertRosterToSleeperFormat:', error);
+                console.error('Team data:', JSON.stringify(team, null, 2));
+                console.error('Roster data:', JSON.stringify(rosterData, null, 2));
+                return {
+                        roster_id: rosterId,
+                        owner_id: `yahoo_${rosterId}`,
+                        league_id: null,
+                        players: [],
+                        starters: [],
+                        reserve: [],
+                        taxi: null,
+                        settings: {
+                                wins: 0,
+                                losses: 0,
+                                ties: 0,
+                                fpts: 0,
+                                fpts_against: 0,
+                                fpts_decimal: 0,
+                                fpts_against_decimal: 0,
+                                ppts: 0,
+                                ppts_decimal: 0,
+                                waiver_position: 0,
+                                waiver_budget_used: 0,
+                                total_moves: 0,
+                                division: null,
+                                record: '0-0'
+                        },
+                        metadata: {},
+                        keepers: null,
+                        co_owners: null
+                };
+        }
 }

@@ -78,10 +78,11 @@ function getDraftStatus(draftStatus) {
 }
 
 function convertDraftResultsToSleeperFormat(draftResults, leagueKey) {
-        const picks = draftResults.league?.[0]?.draft_results?.[0]?.draft_result || 
-                      draftResults.draft_results || [];
-        
-        return picks.map(pick => {
+        try {
+                const picks = draftResults.league?.[0]?.draft_results?.[0]?.draft_result || 
+                              draftResults.draft_results || [];
+                
+                return picks.map(pick => {
                 const pickData = Array.isArray(pick) ? pick[0] : pick;
                 
                 const teamKey = pickData.team_key || '';
@@ -110,8 +111,13 @@ function convertDraftResultsToSleeperFormat(draftResults, leagueKey) {
                         is_keeper: pickData.is_keeper === '1' ? true : null,
                         
                         draft_id: `${leagueKey}_draft`
-                };
-        });
+                        };
+                });
+        } catch (error) {
+                console.error('[Yahoo Adapter] Unexpected data structure in convertDraftResultsToSleeperFormat:', error);
+                console.error('Draft results:', JSON.stringify(draftResults, null, 2));
+                return [];
+        }
 }
 
 export async function getYahooTradedPicks(leagueKey) {

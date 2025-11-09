@@ -27,11 +27,12 @@ function convertTransactionsToSleeperFormat(transactions, filterWeek = null) {
 }
 
 function convertSingleTransaction(trans) {
-        const type = trans.type || '';
-        const status = trans.status || 'complete';
-        const timestamp = trans.timestamp ? parseInt(trans.timestamp) * 1000 : Date.now();
-        
-        const players = trans.players?.[0]?.player || trans.players || [];
+        try {
+                const type = trans.type || '';
+                const status = trans.status || 'complete';
+                const timestamp = trans.timestamp ? parseInt(trans.timestamp) * 1000 : Date.now();
+                
+                const players = trans.players?.[0]?.player || trans.players || [];
         
         const adds = {};
         const drops = {};
@@ -124,5 +125,26 @@ function convertSingleTransaction(trans) {
                 
                 leg: 1,
                 roster_ids: [...new Set([...Object.values(adds), ...Object.values(drops)])]
-        };
+                };
+        } catch (error) {
+                console.error('[Yahoo Adapter] Unexpected data structure in convertSingleTransaction:', error);
+                console.error('Transaction data:', JSON.stringify(trans, null, 2));
+                return {
+                        transaction_id: `yahoo_${Date.now()}`,
+                        type: 'free_agent',
+                        status: 'complete',
+                        adds: {},
+                        drops: {},
+                        draft_picks: [],
+                        waiver_budget: [],
+                        settings: { waiver_bid: 0, seq: 0 },
+                        creator: null,
+                        consenter_ids: [],
+                        created: Date.now(),
+                        status_updated: Date.now(),
+                        metadata: {},
+                        leg: 1,
+                        roster_ids: []
+                };
+        }
 }
