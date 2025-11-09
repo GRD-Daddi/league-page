@@ -1,6 +1,5 @@
-import { loadMatchupData, loadBrackets, loadLeagueUsers } from '$lib/server/dataLoaders.js';
+import { loadMatchupData, loadBrackets, loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
-import { loadPlayers } from '$lib/utils/helperFunctions/universalFunctions';
 
 export async function load({ url, fetch, locals }) {
         const yahooClient = locals.yahooClient;

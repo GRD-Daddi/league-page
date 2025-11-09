@@ -11,6 +11,7 @@ import {
         getLosersBracket
 } from '$lib/utils/platformApi.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
+import { loadPlayers as loadPlayersUtil } from '$lib/utils/helperFunctions/players.js';
 
 export async function loadLeagueData(yahooClient = null, queryLeagueID = configuredLeagueID) {
         return await getLeagueDataApi(queryLeagueID, yahooClient);
@@ -156,4 +157,8 @@ function processRosters(rosters) {
                 rosterMap[roster.roster_id] = roster;
         }
         return {rosters: rosterMap, startersAndReserve};
+}
+
+export async function loadPlayers(fetch) {
+        return await loadPlayersUtil(fetch);
 }
