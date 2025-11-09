@@ -23,16 +23,49 @@ This is a SvelteKit-based web application for creating custom fantasy football l
 - ✅ Updated jsconfig.json to extend SvelteKit's generated config
 - ✅ All dependencies installed successfully
 
-### Yahoo Fantasy API Migration ✅ **COMPLETE**
+### Yahoo Fantasy API Migration 🚧 **IN PROGRESS**
 
-The application has been successfully migrated to support both Yahoo Fantasy and Sleeper APIs through an adapter/conversion layer pattern.
+The application has been migrated to support both Yahoo Fantasy and Sleeper APIs through an adapter/conversion layer pattern.
 
-#### ✅ Migration Complete - Production Ready
+#### ✅ Phase 1 Complete: Server-Side Architecture
+
+**CRITICAL FIX**: Resolved `crypto.randomBytes is not a function` error that prevented the app from loading.
+
+**Server-Side Data Loading** (`src/lib/server/` and `src/routes/+page.server.js`):
+- Created server-only `yahooService.js` wrapper for all Yahoo API calls
+- Implemented SvelteKit load functions for server-side data fetching
+- Homepage now loads data during SSR, preventing browser crypto errors
+- Yahoo client properly accesses environment variables in Node.js context
+- No yahoo-fantasy code ships to browser
+
+**Homepage Status**:
+- ✅ Loads cleanly with NO crypto errors
+- ✅ Yahoo OAuth LOGIN button appears in navigation
+- ✅ Shows league name ("Minnesota Slopes")
+- ✅ Shows current NFL season info
+- ⏸️ PowerRankings component temporarily removed (pending server-side refactor)
+- ⏸️ Transactions component temporarily removed (pending server-side refactor)
+- ⏸️ Awards/podiums pending Yahoo-specific implementation
+
+#### ⚠️ Known Issue: Yahoo API Credentials
+
+Yahoo API is currently returning `"consumer_key_unknown"` error despite environment variables being set. This may indicate:
+1. Invalid or expired Yahoo API credentials
+2. Yahoo app configuration issue (callback URLs, permissions, etc.)
+3. Additional Yahoo API setup required
+
+**Next Steps**:
+1. Verify Yahoo API credentials at https://developer.yahoo.com/apps/
+2. Confirm app has "Fantasy Sports" API access enabled
+3. Check callback/redirect URI settings
+4. Consider regenerating credentials if app was created long ago
+
+#### ✅ Previously Completed: Yahoo Adapter Layer
 
 **Yahoo API Adapter Layer** (`src/lib/yahoo-adapter/`):
-- yahooClient.js - Yahoo OAuth wrapper with credential validation
+- yahooClient.js - Yahoo OAuth wrapper with server/browser env detection
 - leagueAdapter.js - League metadata, settings & playoff configuration
-- rosterAdapter.js - Roster/team data with Yahoo array segment merging
+- rosterAdapter.js - Roster/team data with Yahoo array segment merging  
 - matchupAdapter.js - Matchup/scoreboard with proper points/standings unwrapping
 - transactionAdapter.js - Trades, waivers, and roster moves
 - draftAdapter.js - Draft results and pick history
@@ -44,19 +77,11 @@ The application has been successfully migrated to support both Yahoo Fantasy and
 - Automatic platform detection from leagueInfo.js
 - Seamless switching between platforms without code changes
 
-**Helper Functions** (11 files updated):
-- All Sleeper API calls replaced with platformApi functions
-- Caching and error handling preserved
-- No breaking changes to existing frontend code
-
-**API Endpoints**:
-- fetch_players_info updated to use platformApi for league data
-
 **Error Handling**:
 - Try/catch blocks in all Yahoo adapters
 - Detailed JSON logging for debugging Yahoo API responses
 - Graceful fallbacks to prevent crashes
-- Helpful error messages for missing OAuth credentials
+- Server-side environment variable access for credentials
 
 #### 🚀 Yahoo Setup Instructions
 

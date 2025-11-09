@@ -18,17 +18,37 @@ export function initializeYahooClient(appKey, appSecret, tokenCallback = null, r
  * 
  * For authenticated requests, ALWAYS use createAuthenticatedClient() instead.
  */
+function getEnvVar(name) {
+        if (typeof process !== 'undefined' && process.env) {
+                return process.env[name];
+        }
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+                return import.meta.env[name];
+        }
+        return undefined;
+}
+
 export function getYahooClient() {
         if (!yahooClient) {
-                const appKey = import.meta.env.VITE_YAHOO_APP_KEY || process.env.VITE_YAHOO_APP_KEY;
-                const appSecret = import.meta.env.VITE_YAHOO_APP_SECRET || process.env.VITE_YAHOO_APP_SECRET;
+                const appKey = getEnvVar('VITE_YAHOO_APP_KEY');
+                const appSecret = getEnvVar('VITE_YAHOO_APP_SECRET');
+                
+                console.log('[Yahoo Client] Initializing with credentials:', {
+                        appKeyLength: appKey?.length,
+                        appSecretLength: appSecret?.length,
+                        appKeyFirst4: appKey?.substring(0, 4),
+                        hasAppKey: !!appKey,
+                        hasAppSecret: !!appSecret
+                });
                 
                 if (!appKey || !appSecret) {
                         console.warn('Yahoo API credentials not configured. Set VITE_YAHOO_APP_KEY and VITE_YAHOO_APP_SECRET environment variables.');
+                        console.warn('AppKey:', appKey ? 'found' : 'missing', 'AppSecret:', appSecret ? 'found' : 'missing');
                         return null;
                 }
                 
                 yahooClient = new YahooFantasy(appKey, appSecret);
+                console.log('[Yahoo Client] Client initialized successfully');
         }
         return yahooClient;
 }
@@ -46,8 +66,8 @@ export function getYahooClient() {
  * @returns {YahooFantasy} A new Yahoo client instance with the user's tokens
  */
 export function createAuthenticatedClient(accessToken, refreshToken) {
-        const appKey = import.meta.env.VITE_YAHOO_APP_KEY || process.env.VITE_YAHOO_APP_KEY;
-        const appSecret = import.meta.env.VITE_YAHOO_APP_SECRET || process.env.VITE_YAHOO_APP_SECRET;
+        const appKey = getEnvVar('VITE_YAHOO_APP_KEY');
+        const appSecret = getEnvVar('VITE_YAHOO_APP_SECRET');
         
         if (!appKey || !appSecret) {
                 console.warn('Yahoo API credentials not configured.');
