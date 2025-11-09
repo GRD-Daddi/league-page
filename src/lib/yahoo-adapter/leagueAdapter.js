@@ -1,12 +1,12 @@
-import { getYahooClient } from './yahooClient.js';
+import { getYahooClient, withRetry } from './yahooClient.js';
 
 export async function getYahooLeagueData(leagueKey) {
         const yf = getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const [leagueMeta, leagueSettings] = await Promise.all([
-                yf.league.meta(leagueKey),
-                yf.league.settings(leagueKey)
+                withRetry(() => yf.league.meta(leagueKey)),
+                withRetry(() => yf.league.settings(leagueKey))
         ]);
 
         return convertLeagueDataToSleeperFormat(leagueMeta, leagueSettings, leagueKey);
