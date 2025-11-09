@@ -4,12 +4,12 @@ import { waitForAll } from "$lib/utils/helperFunctions/multiPromise"
 import { json, error } from '@sveltejs/kit';
 import { getNFLState, getLeagueData, getWinnersBracket } from '$lib/utils/platformApi';
 
-export async function GET() {
+export async function GET({ locals }) {
     // get NFL state from platform API (week and year)
     const [nflState, leagueData, playoffs] = await waitForAll(
-        getNFLState(),
-        getLeagueData(leagueID),
-        getWinnersBracket(leagueID),
+        getNFLState(locals.yahooClient),
+        getLeagueData(leagueID, locals.yahooClient),
+        getWinnersBracket(leagueID, locals.yahooClient),
     )
 
         let year = nflState.league_season;
