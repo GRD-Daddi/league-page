@@ -20,11 +20,23 @@ export async function GET({ url, cookies }) {
                 maxAge: 10 * 60
         });
         
-        // Call auth() without response object to get URL string
-        const authUrl = yf.auth();
+        // Create a mock Express-style response to capture the redirect URL
+        let capturedUrl = null;
+        const mockRes = {
+                redirect: (url) => {
+                        capturedUrl = url;
+                }
+        };
+        
+        // Call auth() with mock response object
+        yf.auth(mockRes);
+        
+        if (!capturedUrl) {
+                return new Response('Failed to generate OAuth URL', { status: 500 });
+        }
         
         // Add state parameter for CSRF protection
-        const finalAuthUrl = `${authUrl}&state=${state}`;
+        const finalAuthUrl = `${capturedUrl}&state=${state}`;
         
         throw redirect(302, finalAuthUrl);
 }
