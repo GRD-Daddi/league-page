@@ -1,0 +1,45 @@
+[Yahoo Adapter] Unexpected data structure in getYahooLeagueUsers: TypeError: import_crypto.default.randomBytes is not a function
+    at getYahooLeagueUsers (rosterAdapter.js:32:47)
+    at getLeagueUsers (platformApi.js:48:30)
+    at getLeagueTeamManagers (leagueTeamManagers.js:21:13)
+    at load (+page.js:7:9)
+    at async Promise.all (index 1)
+rosterAdapter.js:59 League key: nfl.l.744586
+leagueAdapter.js:4 [getYahooLeagueData] Received yahooClient: 
+{wasProvided: false, hasUserToken: false, tokenLength: 0}
+leagueAdapter.js:13 [getYahooLeagueData] Using client: 
+{hasUserToken: false, hasRefreshToken: false, tokenLength: 0, tokenPreview: 'NONE!'}
+rosterAdapter.js:7 Module "crypto" has been externalized for browser compatibility. Cannot access "crypto.randomBytes" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+leagueData.js:10 Error: Yahoo client missing user token - authentication required
+    at getYahooLeagueData (leagueAdapter.js:21:23)
+    at getLeagueData (platformApi.js:20:30)
+    at getLeagueData (leagueData.js:10:24)
+    at load (+page.js:5:9)
+    at async Promise.all (index 1)
+leagueRosters.js:16 TypeError: import_crypto.default.randomBytes is not a function
+    at getYahooLeagueRosters (rosterAdapter.js:7:39)
+    at getLeagueRosters (platformApi.js:34:30)
+    at getLeagueRosters (leagueRosters.js:16:24)
+    at load (+page.js:6:9)
+    at async Promise.all (index 1)
+
+leagueData.js:10 Error: Yahoo client missing user token - authentication required
+    at getYahooLeagueData (leagueAdapter.js:21:23)
+    at getLeagueData (platformApi.js:20:30)
+    at getLeagueData (leagueData.js:10:24)
+    at getLeagueTeamManagers (leagueTeamManagers.js:22:25)
+    at load (+page.js:7:9)
+    at async Promise.all (index 1)
+leagueTeamManagers.js:24 TypeError: import_crypto.default.randomBytes is not a function
+    at getYahooLeagueRosters (rosterAdapter.js:7:39)
+    at getLeagueRosters (platformApi.js:34:30)
+    at getLeagueTeamManagers (leagueTeamManagers.js:23:13)
+    at load (+page.js:7:9)
+    at async Promise.all (index 1)
+script.debug.js:1 [Vercel Web Analytics] Debug mode is enabled by default in development. No requests will be sent to the server.
+script.debug.js:1 [Vercel Web Analytics] Running queued event pageview 
+{route: '/rosters', path: '/rosters'}
+script.debug.js:1 [Vercel Web Analytics] [pageview] https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/rosters 
+{o: 'https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/rosters', sv: '0.1.3', sdkn: '@vercel/analytics/sveltekit', sdkv: '1.4.1', ts: 1762725288074, …}
+﻿
+
