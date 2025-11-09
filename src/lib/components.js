@@ -1,4 +1,5 @@
 import Nav from './Nav/index.svelte';
+import AuthButton from './Nav/AuthButton.svelte';
 import Footer from './Footer.svelte';
 import News from './News/index.svelte';
 import Resources from './Resources.svelte';
@@ -21,6 +22,7 @@ import Standings from './Standings/index.svelte';
 
 export {
     Nav,
+    AuthButton,
     Footer,
     Awards,
     Rosters,
