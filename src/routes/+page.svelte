@@ -1,12 +1,8 @@
 <script>
-	import LinearProgress from '@smui/linear-progress';
-	import { getNflState, leagueName, getAwards, getLeagueTeamManagers, homepageText, managers, gotoManager, enableBlog, waitForAll } from '$lib/utils/helper';
-	import { Transactions, PowerRankings, HomePost} from '$lib/components';
-	import { getAvatarFromTeamManagers, getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
+        import { leagueName, homepageText, enableBlog } from '$lib/utils/helper';
+        import { HomePost} from '$lib/components';
 
-    const nflState = getNflState();
-    const podiumsData = getAwards();
-    const leagueTeamManagersData = getLeagueTeamManagers();
+        export let data;
 </script>
 
 <style>
@@ -38,9 +34,9 @@
         min-width: 470px;
         max-width: 470px;
         min-height: 100%;
-		background-color: var(--ebebeb);
+                background-color: var(--ebebeb);
         border-left: var(--eee);
-		box-shadow: inset 8px 0px 6px -6px rgb(0 0 0 / 24%);
+                box-shadow: inset 8px 0px 6px -6px rgb(0 0 0 / 24%);
     }
 
     @media (max-width: 950px) {
@@ -48,7 +44,7 @@
             max-width: 100%;
             min-width: 100%;
             width: 100%;
-		    box-shadow: none;
+                    box-shadow: none;
         }
         #home {
             flex-wrap: wrap;
@@ -80,7 +76,7 @@
     /* champ styling */
     #currentChamp {
         padding: 25px 0;
-		background-color: var(--f3f3f3);
+                background-color: var(--f3f3f3);
         box-shadow: 5px 0 8px var(--champShadow);
         border-left: 1px solid var(--ddd);
     }
@@ -129,11 +125,11 @@
         cursor: pointer;
     }
     
-	:global(.curOwner) {
-		font-size: 0.75em;
-		color: #bbb;
-		font-style: italic;
-	}
+        :global(.curOwner) {
+                font-size: 0.75em;
+                color: #bbb;
+                font-style: italic;
+        }
 </style>
 
 <div id="home">
@@ -147,51 +143,34 @@
                 <HomePost />
             {/if}
         </div>
-        <PowerRankings />
+        <div style="text-align: center; padding: 40px 20px; color: #888;">
+            <p>Power Rankings Coming Soon</p>
+        </div>
     </div>
     
     <div class="leagueData">
         <div class="homeBanner">
-            {#await nflState}
-                <div class="center">Retrieving NFL state...</div>
-                <LinearProgress indeterminate />
-            {:then nflStateData}
-                <div class="center">NFL {nflStateData.season} 
-                    {#if nflStateData.season_type == 'pre'}
+            {#if data?.nflState}
+                <div class="center">NFL {data.nflState.season} 
+                    {#if data.nflState.season_type == 'pre'}
                         Preseason
-                    {:else if nflStateData.season_type == 'post'}
+                    {:else if data.nflState.season_type == 'post'}
                         Postseason
                     {:else}
-                        Season - {nflStateData.week > 0 ? `Week ${nflStateData.week}` : "Preseason"}
+                        Season - {data.nflState.week > 0 ? `Week ${data.nflState.week}` : "Preseason"}
                     {/if}
                 </div>
-            {:catch error}
-                <div class="center">Something went wrong: {error.message}</div>
-            {/await}
+            {:else}
+                <div class="center">NFL Season</div>
+            {/if}
         </div>
 
         <div id="currentChamp">
-            {#await waitForAll(podiumsData, leagueTeamManagersData)}
-                <p class="center">Retrieving awards...</p>
-                <LinearProgress indeterminate />
-            {:then [podiums, leagueTeamManagers]}
-                {#if podiums[0]}
-                    <h4>{podiums[0].year} Fantasy Champ</h4>
-                    <div id="champ" onclick={() => {if(managers.length) gotoManager({year: podiums[0].year, leagueTeamManagers, rosterID: parseInt(podiums[0].champion)})}} >
-                        <img src="{getAvatarFromTeamManagers(leagueTeamManagers, podiums[0].champion, podiums[0].year)}" class="first" alt="champion" />
-                        <img src="/laurel.png" class="laurel" alt="laurel" />
-                    </div>
-                    <span class="label" onclick={() => gotoManager({year: podiums[0].year, leagueTeamManagers, rosterID: parseInt(podiums[0].champion)})} >{getTeamFromTeamManagers(leagueTeamManagers, podiums[0].champion, podiums[0].year).name}</span>
-                {:else}
-                    <p class="center">No former champs.</p>
-                {/if}
-            {:catch error}
-                <p class="center">Something went wrong: {error.message}</p>
-            {/await}
+            <p class="center">League Awards Coming Soon</p>
         </div>
 
         <div class="transactions" >
-            <Transactions />
+            <p class="center">Recent Transactions Coming Soon</p>
         </div>
     </div>
 </div>
