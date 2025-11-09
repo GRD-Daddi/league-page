@@ -1,4 +1,4 @@
-import { getSession, updateSession, isTokenExpired } from '$lib/server/sessionStore.js';
+import { getSession, updateSession, isTokenExpired, deleteSession } from '$lib/server/sessionStore.js';
 import { createAuthenticatedClient, getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
 
 export async function handle({ event, resolve }) {
@@ -26,10 +26,21 @@ export async function handle({ event, resolve }) {
                                                                 ...newTokens,
                                                                 token_time: Date.now()
                                                         };
+                                                } else {
+                                                        // Token refresh failed - delete session and force re-authentication
+                                                        deleteSession(sessionId);
+                                                        event.cookies.delete('session_id', { path: '/' });
+                                                        event.locals.session = null;
+                                                        event.locals.yahooClient = null;
                                                 }
                                         }
                                 } catch (error) {
                                         console.error('Error refreshing token:', error);
+                                        // On token refresh failure, delete the session and clear the cookie to force re-authentication
+                                        deleteSession(sessionId);
+                                        event.cookies.delete('session_id', { path: '/' });
+                                        event.locals.session = null;
+                                        event.locals.yahooClient = null;
                                 }
                         }
                         

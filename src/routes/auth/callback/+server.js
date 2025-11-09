@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
+import { getYahooClient, createAuthenticatedClient } from '$lib/yahoo-adapter/yahooClient.js';
 import { createSession } from '$lib/server/sessionStore.js';
 import { getYahooLeagueUsers } from '$lib/yahoo-adapter/rosterAdapter.js';
 import { leagueID } from '$lib/utils/leagueInfo.js';
@@ -35,11 +35,16 @@ export async function GET({ url, cookies }) {
                         return new Response('Failed to obtain access token', { status: 500 });
                 }
                 
-                yf.setUserToken(tokenResponse.access_token);
+                // SECURITY FIX: Create a temporary authenticated client instead of mutating the global singleton.
+                // This prevents token leakage across different user sessions.
+                const authenticatedClient = createAuthenticatedClient(
+                        tokenResponse.access_token,
+                        tokenResponse.refresh_token
+                );
                 
                 let userGuid = null;
                 try {
-                        const userInfo = await yf.user.games();
+                        const userInfo = await authenticatedClient.user.games();
                         userGuid = userInfo?.users?.[0]?.user?.[0]?.guid || null;
                 } catch (err) {
                         console.error('Error fetching user info:', err);
