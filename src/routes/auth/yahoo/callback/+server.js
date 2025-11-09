@@ -73,7 +73,8 @@ export async function GET({ url, cookies, fetch }) {
                 try {
                         const userInfo = await authenticatedClient.user.games();
                         console.log('[OAuth] User info response:', JSON.stringify(userInfo, null, 2));
-                        userGuid = userInfo?.users?.[0]?.user?.[0]?.guid || null;
+                        // Yahoo returns { guid: "...", games: [...] } directly
+                        userGuid = userInfo?.guid || null;
                         console.log('[OAuth] ✅ User GUID:', userGuid);
                 } catch (err) {
                         console.error('[OAuth] Error fetching user info:', err.message);
