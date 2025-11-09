@@ -16,6 +16,17 @@ export const getLeagueMatchups = async () => {
                 getLeagueData(),
         ).catch((err) => { console.error(err); });
 
+        // Handle authentication required - return empty state
+        if (!leagueData || !nflState) {
+                return {
+                        matchupWeeks: [],
+                        year: null,
+                        week: 1,
+                        regularSeasonLength: 0,
+                        requiresAuth: true
+                };
+        }
+
         let week = 1;
         if(nflState.season_type == 'regular') {
                 week = nflState.display_week;
