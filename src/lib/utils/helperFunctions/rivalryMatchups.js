@@ -4,6 +4,7 @@ import { getNflState } from "./nflState"
 import { waitForAll } from './multiPromise';
 import { getRosterIDFromManagerIDAndYear } from '$lib/utils/helperFunctions/universalFunctions';
 import { getLeagueTeamManagers } from "./leagueTeamManagers";
+import { getLeagueMatchups as getLeagueMatchupsApi } from '$lib/utils/platformApi';
 
 export const getRivalryMatchups = async (userOneID, userTwoID) => {
     if(!userOneID || !userTwoID) {
@@ -12,17 +13,17 @@ export const getRivalryMatchups = async (userOneID, userTwoID) => {
 
     let curLeagueID = leagueID;
 
-	const [nflState, teamManagers] = await waitForAll(
-		getNflState(),
-		getLeagueTeamManagers(),
-	).catch((err) => { console.error(err); });
+        const [nflState, teamManagers] = await waitForAll(
+                getNflState(),
+                getLeagueTeamManagers(),
+        ).catch((err) => { console.error(err); });
 
-	let week = 1;
-	if(nflState.season_type == 'regular') {
-		week = nflState.display_week;
-	} else if(nflState.season_type == 'post') {
-		week = 18;
-	}
+        let week = 1;
+        if(nflState.season_type == 'regular') {
+                week = nflState.display_week;
+        } else if(nflState.season_type == 'post') {
+                week = 18;
+        }
 
     const rivalry = {
         points: {
@@ -51,20 +52,9 @@ export const getRivalryMatchups = async (userOneID, userTwoID) => {
         // pull in all matchup data for the season
         const matchupsPromises = [];
         for(let i = 1; i < leagueData.settings.playoff_week_start; i++) {
-            matchupsPromises.push(fetch(`https://api.sleeper.app/v1/league/${curLeagueID}/matchups/${i}`, {compress: true}))
+            matchupsPromises.push(getLeagueMatchupsApi(curLeagueID, i))
         }
-        const matchupsRes = await waitForAll(...matchupsPromises);
-
-        // convert the json matchup responses
-        const matchupsJsonPromises = [];
-        for(const matchupRes of matchupsRes) {
-            const data = matchupRes.json();
-            matchupsJsonPromises.push(data)
-            if (!matchupRes.ok) {
-                throw new Error(data);
-            }
-        }
-        const matchupsData = await waitForAll(...matchupsJsonPromises).catch((err) => { console.error(err); }).catch((err) => { console.error(err); });
+        const matchupsData = await waitForAll(...matchupsPromises).catch((err) => { console.error(err); });
 
         // process all the matchups
         for(let i = 1; i < matchupsData.length + 1; i++) {
@@ -101,15 +91,15 @@ export const getRivalryMatchups = async (userOneID, userTwoID) => {
         return yearOrder || weekOrder;
     });
 
-	return rivalry;
+        return rivalry;
 }
 
 const processRivalryMatchups = (inputMatchups, week, rosterIDOne, rosterIDTwo) => {
-	if(!inputMatchups || inputMatchups.length == 0) {
-		return false;
-	}
-	const matchups = {};
-	for(const match of inputMatchups) {
+        if(!inputMatchups || inputMatchups.length == 0) {
+                return false;
+        }
+        const matchups = {};
+        for(const match of inputMatchups) {
         if(match.roster_id == rosterIDOne || match.roster_id == rosterIDTwo) {
             if(!matchups[match.matchup_id]) {
                 matchups[match.matchup_id] = [];
@@ -120,7 +110,7 @@ const processRivalryMatchups = (inputMatchups, week, rosterIDOne, rosterIDTwo) =
                 points: match.starters_points,
             })
         }
-	}
+        }
     const keys = Object.keys(matchups);
     const matchup = matchups[keys[0]];
     // if the two teams played each other, there will only be one matchup, or if
@@ -133,5 +123,5 @@ const processRivalryMatchups = (inputMatchups, week, rosterIDOne, rosterIDTwo) =
         const two = matchup.shift();
         matchup.push(two);
     }
-	return {matchup, week};
+        return {matchup, week};
 }

@@ -4,6 +4,7 @@ import { getLeagueRosters } from './leagueRosters';
 import {waitForAll} from './multiPromise';
 import { get } from 'svelte/store';
 import {brackets} from '$lib/stores';
+import { getWinnersBracket, getLosersBracket, getLeagueMatchups as getLeagueMatchupsApi } from '$lib/utils/platformApi';
 
 export const getBrackets = async (queryLeagueID = leagueID) => {
     if(get(brackets).champs && queryLeagueID == leagueID) {
@@ -21,8 +22,8 @@ export const getBrackets = async (queryLeagueID = leagueID) => {
 
     // get bracket data for winners and losers
     const bracketsAndMatchupFetches = [
-        fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/winners_bracket`, {compress: true}),
-        fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/losers_bracket`, {compress: true}),
+        getWinnersBracket(queryLeagueID),
+        getLosersBracket(queryLeagueID),
     ]
 
     // variables for playoff records
@@ -49,27 +50,16 @@ export const getBrackets = async (queryLeagueID = leagueID) => {
     // add each week after the regular season to the fetch array
     for(let i = playoffsStart; i < 19; i++) {
         // Get the matchup data (starters) for the playoff weeks
-        bracketsAndMatchupFetches.push(fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/matchups/${i}`, {compress: true}));
+        bracketsAndMatchupFetches.push(getLeagueMatchupsApi(queryLeagueID, i));
     }
     
     // Simultaneously fetch the bracket and matchup data
-    const bracketsAndMatchupResps = await waitForAll(...bracketsAndMatchupFetches).catch((err) => { console.error(err); });
-
-    // an array to hold all the JSON being converted
-    const bracketsAndMatchupJson = [];
-
-    // convert all the returned data from JSON
-    for(const bracketsAndMatchupResp of bracketsAndMatchupResps) {
-        bracketsAndMatchupJson.push(bracketsAndMatchupResp.json());
-    }
-
-    // wait for promises to fulfill
-    const playoffMatchups = await waitForAll(...bracketsAndMatchupJson).catch((err) => { console.error(err); });
+    const playoffMatchups = await waitForAll(...bracketsAndMatchupFetches).catch((err) => { console.error(err); });
 
     // The first element above was the winners bracket, so remove that
     const winnersData = playoffMatchups.shift();
 
-    // The second element above was the winners bracket, so remove that, the remaining items are matchup weeks
+    // The second element above was the losers bracket, so remove that, the remaining items are matchup weeks
     const losersData = playoffMatchups.shift();
 
     // determine the length of the playoffs by looking at the last bracket
