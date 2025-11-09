@@ -57,9 +57,9 @@ export async function getLeagueUsers(queryLeagueID = configuredLeagueID, yahooCl
         }
 }
 
-export async function getLeagueMatchups(queryLeagueID = configuredLeagueID, week) {
+export async function getLeagueMatchups(queryLeagueID = configuredLeagueID, week, yahooClient = null) {
         if (platform === 'yahoo') {
-                return await getYahooLeagueMatchups(queryLeagueID, week);
+                return await getYahooLeagueMatchups(queryLeagueID, week, yahooClient);
         } else {
                 const res = await fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/matchups/${week}`, {compress: true});
                 const data = await res.json();
@@ -85,9 +85,9 @@ export async function getNFLState() {
         }
 }
 
-export async function getLeagueTransactions(queryLeagueID = configuredLeagueID, week) {
+export async function getLeagueTransactions(queryLeagueID = configuredLeagueID, week, yahooClient = null) {
         if (platform === 'yahoo') {
-                return await getYahooLeagueTransactions(queryLeagueID, week);
+                return await getYahooLeagueTransactions(queryLeagueID, week, yahooClient);
         } else {
                 const res = await fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/transactions/${week}`, {compress: true});
                 const data = await res.json();
@@ -99,10 +99,10 @@ export async function getLeagueTransactions(queryLeagueID = configuredLeagueID, 
         }
 }
 
-export async function getDraftResults(leagueKeyOrDraftID, isLeagueKey = null) {
+export async function getDraftResults(leagueKeyOrDraftID, isLeagueKey = null, yahooClient = null) {
         if (platform === 'yahoo') {
                 const leagueKey = isLeagueKey !== false ? leagueKeyOrDraftID : configuredLeagueID;
-                return await getYahooDraftResults(leagueKey);
+                return await getYahooDraftResults(leagueKey, yahooClient);
         } else {
                 const draftID = leagueKeyOrDraftID;
                 const res = await fetch(`https://api.sleeper.app/v1/draft/${draftID}/picks`, {compress: true});
@@ -115,10 +115,10 @@ export async function getDraftResults(leagueKeyOrDraftID, isLeagueKey = null) {
         }
 }
 
-export async function getDraftData(leagueKeyOrDraftID, isLeagueKey = null) {
+export async function getDraftData(leagueKeyOrDraftID, isLeagueKey = null, yahooClient = null) {
         if (platform === 'yahoo') {
                 const leagueKey = isLeagueKey !== false ? leagueKeyOrDraftID : configuredLeagueID;
-                return await getYahooDraftData(leagueKey);
+                return await getYahooDraftData(leagueKey, yahooClient);
         } else {
                 const draftID = leagueKeyOrDraftID;
                 const res = await fetch(`https://api.sleeper.app/v1/draft/${draftID}`, {compress: true});
@@ -131,9 +131,9 @@ export async function getDraftData(leagueKeyOrDraftID, isLeagueKey = null) {
         }
 }
 
-export async function getTradedPicks(queryLeagueID = configuredLeagueID) {
+export async function getTradedPicks(queryLeagueID = configuredLeagueID, yahooClient = null) {
         if (platform === 'yahoo') {
-                return await getYahooTradedPicks(queryLeagueID);
+                return await getYahooTradedPicks(queryLeagueID, yahooClient);
         } else {
                 const res = await fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/traded_picks`, {compress: true});
                 const data = await res.json();
@@ -145,7 +145,7 @@ export async function getTradedPicks(queryLeagueID = configuredLeagueID) {
         }
 }
 
-export async function getWinnersBracket(queryLeagueID = configuredLeagueID) {
+export async function getWinnersBracket(queryLeagueID = configuredLeagueID, yahooClient = null) {
         if (platform === 'yahoo') {
                 return [];
         } else {
@@ -159,7 +159,7 @@ export async function getWinnersBracket(queryLeagueID = configuredLeagueID) {
         }
 }
 
-export async function getLosersBracket(queryLeagueID = configuredLeagueID) {
+export async function getLosersBracket(queryLeagueID = configuredLeagueID, yahooClient = null) {
         if (platform === 'yahoo') {
                 return [];
         } else {
@@ -173,7 +173,7 @@ export async function getLosersBracket(queryLeagueID = configuredLeagueID) {
         }
 }
 
-export async function getAllPlayers() {
+export async function getAllPlayers(yahooClient = null) {
         if (platform === 'yahoo') {
                 return {};
         } else {
@@ -187,9 +187,9 @@ export async function getAllPlayers() {
         }
 }
 
-export async function getPlayerStats(playerKey, week = null) {
+export async function getPlayerStats(playerKey, week = null, yahooClient = null) {
         if (platform === 'yahoo') {
-                return await getYahooPlayerStats(configuredLeagueID, playerKey, week);
+                return await getYahooPlayerStats(configuredLeagueID, playerKey, week, yahooClient);
         } else {
                 return {};
         }

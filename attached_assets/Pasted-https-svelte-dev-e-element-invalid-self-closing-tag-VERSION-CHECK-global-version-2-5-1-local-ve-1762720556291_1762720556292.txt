@@ -1,0 +1,66 @@
+https://svelte.dev/e/element_invalid_self_closing_tag
+VERSION CHECK: global version: 2.5.1, local version: 2.5.1
+VERSION CHECK: global version: 2.5.1, local version: 2.5.1
+[+page.server] Unauthenticated - league data requires login
+VERSION CHECK: global version: 2.5.1, local version: 2.5.1
+[OAuth Callback] Token exchange successful: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  expiresIn: 3600,
+  tokenType: 'bearer'
+}
+[createAuthenticatedClient] Creating client with tokens: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  accessTokenLength: 936,
+  refreshTokenLength: 61
+}
+[createAuthenticatedClient] Access token set on client
+[createAuthenticatedClient] Refresh token set on client
+[createAuthenticatedClient] Client token status: { hasUserToken: true, hasRefreshToken: true }
+[createAuthenticatedClient] Creating client with tokens: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  accessTokenLength: 936,
+  refreshTokenLength: 61
+}
+[createAuthenticatedClient] Access token set on client
+[createAuthenticatedClient] Refresh token set on client
+[createAuthenticatedClient] Client token status: { hasUserToken: true, hasRefreshToken: true }
+[+page.server] Unauthenticated - league data requires login
+[createAuthenticatedClient] Creating client with tokens: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  accessTokenLength: 936,
+  refreshTokenLength: 61
+}
+[createAuthenticatedClient] Access token set on client
+[createAuthenticatedClient] Refresh token set on client
+[createAuthenticatedClient] Client token status: { hasUserToken: true, hasRefreshToken: true }
+[createAuthenticatedClient] Creating client with tokens: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  accessTokenLength: 936,
+  refreshTokenLength: 61
+}
+[createAuthenticatedClient] Access token set on client
+[createAuthenticatedClient] Refresh token set on client
+[createAuthenticatedClient] Client token status: { hasUserToken: true, hasRefreshToken: true }
+VERSION CHECK: global version: 2.5.1, local version: 2.5.1
+[createAuthenticatedClient] Creating client with tokens: {
+  hasAccessToken: true,
+  hasRefreshToken: true,
+  accessTokenLength: 936,
+  refreshTokenLength: 61
+}
+[createAuthenticatedClient] Access token set on client
+[createAuthenticatedClient] Refresh token set on client
+[createAuthenticatedClient] Client token status: { hasUserToken: true, hasRefreshToken: true }
+[Yahoo Client] Client initialized successfully
+Error: {"xml:lang":"en-us","yahoo:uri":"/fantasy/v2/league/449.l.744586/metadata?format=json&amp;oauth_consumer_key=dj0yJmk9U1lkbldEZUlWNE1WJmQ9WVdrOVQwSlFWa2h0U2s4bWNHbzlNQT09JnM9Y29uc3VtZXJzZWNyZXQmc3Y9MCZ4PTVj&amp;oauth_signature_method=HMAC-SHA1&amp;oauth_timestamp=1762720532&amp;oauth_nonce=6JLFX266LpxNJStA&amp;oauth_version=1.0&amp;oauth_signature=hj6rDrx2IGtGvZr2p%2FCGX0Alhn4%3D","description":"You must be logged in to view this league.","detail":""}
+    at coalesce_to_error (/home/runner/workspace/node_modules/@sveltejs/kit/src/utils/error.js:11:5)
+    at handle_fatal_error (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/utils.js:73:47)
+    at resolve (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/respond.js:550:35)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async respond (/home/runner/workspace/node_modules/@sveltejs/kit/src/runtime/server/respond.js:330:20)
+    at async file:///home/runner/workspace/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:521:22
