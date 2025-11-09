@@ -1,0 +1,602 @@
+ethereum.js:2 You are trying to access `chrome.runtime` inside the injected content script even though it does not exist in this context. `chrome.runtime` is only available in the injected script when it is running inside a trusted site (`app.uniswap.org`), so this could have unintended consequences and should be avoided.
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+ethereum.js:2 Avoid using `isDevEnv()` inside the injected script. Use `__DEV__` instead. `chrome.runtime` is only available when the injected script is running inside a trusted site (`app.uniswap.org`). This helper only works reliably when running the app locally but not when publishing the Dev build.
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+(anonymous) @ ethereum.js:2
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+inject.bundle.js:1  GET chrome-extension://invalid/ net::ERR_FAILED
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+s @ inject.bundle.js:1
+t.findInstalledCompetitors @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+run @ inject.bundle.js:1
+t.default @ inject.bundle.js:1
+await in t.default
+7263 @ inject.bundle.js:1
+r @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+(anonymous) @ inject.bundle.js:1
+contentScript.bundle.js:6700 i18next: languageChanged en-US
+contentScript.bundle.js:6700 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:6688 i18next: languageChanged en-US
+framesContent.bundle.js:6688 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:12607 framesScript
+framesContent.bundle.js:6688 i18next: languageChanged en-US
+framesContent.bundle.js:6688 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:12607 framesScript
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 7d75bca5-6d68-4c47-81b3-4362f5f5b8df
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id b3fb650b-bfad-415d-802b-fdd665f8efb9
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 88e24534-961e-4e49-a332-bb2c7bd65a58
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 2de273a7-49ec-4a82-9df4-b52b9296f8e0
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id eec262c0-a1f8-4874-8c58-97b2930ff50f
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id edbcf14f-301b-41a9-b606-4add7fe901cb
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 9d647fb7-db65-45f9-8544-b14ced867cc3
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id fe578b34-c4c6-478b-980f-fb5318358154
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 19b51d9d-775c-4a5c-8836-7ae55524da93
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id edd8c946-6a52-467e-beb6-d667d1607f71
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 41ef46e4-5a92-4345-80f3-cb613d06fc3a
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 9b4ecf48-69ff-426e-a09b-2fd6c9757d5c
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 4e292878-76bc-4f8d-8ca9-297341809ade
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id cf4ba8a8-30c1-41d4-8ea4-e97bee9bdd58
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 3ef6367c-b082-437d-a81d-4df52ed2299f
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 5e12ca1e-acdc-48a9-8522-f4b5d5ecd776
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 0e0feb18-429b-4eea-992d-495e374df32f
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 8edf32f7-3221-436a-8cc7-a85b27058ba2
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 3ccd3e9a-2bf6-4a01-8dc3-727d2a629369
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id e1525251-f7e6-40c6-895e-dc93657709e7
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id a63a9a47-ffc7-424b-8098-860c85d01a05
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 8b34c8f6-7bf0-44b9-8ad2-a64ad9131e1f
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 98a5ec63-77a9-481f-8b8d-cbb96550ef94
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 383fb017-54ce-4ed1-96cc-6bed8695d3ff
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 2603b075-831e-490c-94ee-cb730fd73cf8
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id d41d467b-1b1e-4db3-8fe6-4aef5c48c672
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 9e069ac4-dc91-4dd2-9017-71be62b2e15d
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 1d74428f-0e0a-466e-afd4-58f6627bb729
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id c6908e88-6293-4881-8b3f-a3ecfef80d12
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id cd73ca34-b5dd-4734-b190-1558c652370f
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+(index):1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id ce99a73d-ab5b-44bb-9173-f84ed74fa21e
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id 37e9ebcb-fb8c-4aa8-8629-27a09abd89c5
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+chunk-PDIOZR2P.js:1 Uncaught (in promise) Error: Cannot respond. No request with id bdce573b-d590-4c94-9fdd-f92062c08285
+    at chunk-PDIOZR2P.js:1:745
+    at chunk-PDIOZR2P.js:1:649
+    at new Promise (<anonymous>)
+    at P (chunk-PDIOZR2P.js:1:623)
+    at T (chunk-PDIOZR2P.js:1:692)
+    at Object.handleMessage (chunk-PDIOZR2P.js:2:497)
+    at chunk-TGCXPILF.js:212:8540
+(anonymous) @ chunk-PDIOZR2P.js:1
+(anonymous) @ chunk-PDIOZR2P.js:1
+P @ chunk-PDIOZR2P.js:1
+T @ chunk-PDIOZR2P.js:1
+handleMessage @ chunk-PDIOZR2P.js:2
+(anonymous) @ chunk-TGCXPILF.js:212
+client:755 WebSocket connection to 'wss://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev:5000/?token=LRe-xQwLJ3Gv' failed: 
+createConnection @ client:755
+connect @ client:426
+connect @ client:764
+connect @ client:279
+connect @ client:372
+(anonymous) @ client:861
+installHook.js:1 [vite] failed to connect to websocket (Error: WebSocket closed without opened.). 
+overrideMethod @ installHook.js:1
+connect @ client:794
+await in connect
+connect @ client:279
+connect @ client:372
+(anonymous) @ client:861
+client:443 Uncaught (in promise) Error: WebSocket closed without opened.
+    at WebSocket.<anonymous> (client:443:22)
+(anonymous) @ client:443
+framesContent.bundle.js:6688 i18next: languageChanged en-US
+framesContent.bundle.js:6688 i18next: initialized {debug: true, initImmediate: true, ns: Array(1), defaultNS: Array(1), fallbackLng: Array(1), …}
+framesContent.bundle.js:12607 framesScript
+script.debug.js:1 [Vercel Web Analytics] Debug mode is enabled by default in development. No requests will be sent to the server.
+script.debug.js:1 [Vercel Web Analytics] Running queued event pageview {route: '/', path: '/'}
+script.debug.js:1 [Vercel Web Analytics] [pageview] https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/ {o: 'https://69f210e5-c2e1-4835-b762-1d026eebfb94-00-27kb8duvw8tj9.janeway.replit.dev/', sv: '0.1.3', sdkn: '@vercel/analytics/sveltekit', sdkv: '1.4.1', ts: 1762721819885, …}
+app:1 The resource https://use.typekit.net/af/efe4a5/00000000000000007735e609/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+app:1 The resource https://use.typekit.net/af/2555e1/00000000000000007735e603/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.

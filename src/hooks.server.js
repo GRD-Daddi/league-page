@@ -4,8 +4,11 @@ import { createAuthenticatedClient, getYahooClient } from '$lib/yahoo-adapter/ya
 export async function handle({ event, resolve }) {
         const sessionId = event.cookies.get('session_id');
         
+        console.log('[hooks.server] Request to:', event.url.pathname, 'Session cookie:', sessionId ? `${sessionId.substring(0, 10)}...` : 'NONE');
+        
         if (sessionId) {
                 const session = getSession(sessionId);
+                console.log('[hooks.server] Session found:', !!session);
                 
                 if (session) {
                         if (isTokenExpired(session)) {

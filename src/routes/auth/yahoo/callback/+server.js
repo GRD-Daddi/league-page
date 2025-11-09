@@ -104,6 +104,8 @@ export async function GET({ url, cookies, fetch }) {
                 
                 const sessionId = createSession(userGuid, tokenData, managerInfo);
                 
+                console.log('[OAuth Callback] Created session:', sessionId.substring(0, 10) + '...');
+                
                 cookies.set('session_id', sessionId, {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === 'production',
@@ -111,6 +113,8 @@ export async function GET({ url, cookies, fetch }) {
                         path: '/',
                         maxAge: 7 * 24 * 60 * 60
                 });
+                
+                console.log('[OAuth Callback] Cookie set, redirecting to /');
                 
                 throw redirect(302, '/');
         } catch (error) {
