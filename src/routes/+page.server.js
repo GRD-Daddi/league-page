@@ -7,7 +7,7 @@ export async function load({ locals }) {
                 const nflState = await fetchNFLState();
                 
                 // Check if user is authenticated
-                const isAuthenticated = !!locals?.session?.user_id;
+                const isAuthenticated = !!locals?.session?.userId;
                 
                 if (!isAuthenticated) {
                         console.log('[+page.server] Unauthenticated - league data requires login');

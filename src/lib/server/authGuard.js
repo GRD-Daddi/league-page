@@ -5,8 +5,8 @@ import { redirect } from '@sveltejs/kit';
  * preserving the current URL so they're sent back after logging in.
  */
 export function requireAuth(locals, url) {
-	if (!locals?.session?.user_id) {
-		const returnTo = url?.pathname || '/';
-		throw redirect(302, `/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
-	}
+        if (!locals?.session?.userId) {
+                const returnTo = url?.pathname || '/';
+                throw redirect(302, `/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+        }
 }
