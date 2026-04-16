@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "VZ-RHH5SGhtnRLRTlfdFg"
+uri = "file://artifacts/mockup-sandbox/public/images/vintage-football.png"
+type = "image"
+title = "Vintage football on grass"
+
+[[generated]]
+id = "U2iHmg1MnDitdkXjQFOqt"
+uri = "file://artifacts/mockup-sandbox/public/images/stadium-hero.png"
+type = "image"
+title = "Stadium at night neon lights"
