@@ -2,153 +2,96 @@ import YahooFantasy from 'yahoo-fantasy';
 
 let yahooClient = null;
 
+function getEnvVar(name) {
+	if (typeof process !== 'undefined' && process.env) {
+		return process.env[name];
+	}
+	if (typeof import.meta !== 'undefined' && import.meta.env) {
+		return import.meta.env[name];
+	}
+	return undefined;
+}
+
 export function initializeYahooClient(appKey, appSecret, tokenCallback = null, redirectUri = null) {
-        if (!yahooClient) {
-                yahooClient = new YahooFantasy(appKey, appSecret, tokenCallback, redirectUri);
-                console.log('[Yahoo Client] Initialized with redirectUri:', redirectUri);
-        }
-        return yahooClient;
+	if (!yahooClient) {
+		yahooClient = new YahooFantasy(appKey, appSecret, tokenCallback, redirectUri);
+	}
+	return yahooClient;
 }
 
 /**
  * Returns the global Yahoo client singleton.
- * 
- * SECURITY WARNING: This client should ONLY be used for unauthenticated requests
- * (e.g., OAuth flow initialization, token refresh).
- * 
- * NEVER call setUserToken() or setRefreshToken() on this client as it is shared
- * across all requests and would cause token leakage between users.
- * 
- * For authenticated requests, ALWAYS use createAuthenticatedClient() instead.
+ * SECURITY WARNING: Never call setUserToken() on this — it's shared across all requests.
+ * For authenticated requests, always use createAuthenticatedClient() instead.
  */
-function getEnvVar(name) {
-        if (typeof process !== 'undefined' && process.env) {
-                return process.env[name];
-        }
-        if (typeof import.meta !== 'undefined' && import.meta.env) {
-                return import.meta.env[name];
-        }
-        return undefined;
-}
-
 export function getYahooClient() {
-        if (!yahooClient) {
-                const appKey = getEnvVar('VITE_YAHOO_APP_KEY');
-                const appSecret = getEnvVar('VITE_YAHOO_APP_SECRET');
-                const redirectUri = getEnvVar('VITE_YAHOO_REDIRECT_URI') || 'http://localhost:5000/auth/yahoo/callback';
-                
-                if (!appKey || !appSecret) {
-                        console.warn('Yahoo API credentials not configured. Set VITE_YAHOO_APP_KEY and VITE_YAHOO_APP_SECRET environment variables.');
-                        console.warn('AppKey:', appKey ? 'found' : 'missing', 'AppSecret:', appSecret ? 'found' : 'missing');
-                        return null;
-                }
-                
-                // Token callback for when Yahoo auto-refreshes tokens
-                const tokenCallback = async ({ access_token, refresh_token }) => {
-                        console.log('[Yahoo Client] Token refreshed by module');
-                        // This will be handled per-request by hooks.server.js
-                };
-                
-                yahooClient = new YahooFantasy(appKey, appSecret, tokenCallback, redirectUri);
-                console.log('[Yahoo Client] Client initialized with auth helpers, redirectUri:', redirectUri);
-        }
-        return yahooClient;
+	if (!yahooClient) {
+		const appKey = getEnvVar('VITE_YAHOO_APP_KEY');
+		const appSecret = getEnvVar('VITE_YAHOO_APP_SECRET');
+		const redirectUri = getEnvVar('VITE_YAHOO_REDIRECT_URI') || 'http://localhost:5000/auth/yahoo/callback';
+
+		if (!appKey || !appSecret) {
+			console.warn('[Yahoo Client] Credentials not configured (VITE_YAHOO_APP_KEY / VITE_YAHOO_APP_SECRET)');
+			return null;
+		}
+
+		yahooClient = new YahooFantasy(appKey, appSecret, null, redirectUri);
+	}
+	return yahooClient;
 }
 
 /**
  * Executes a Yahoo API call with automatic retry logic for intermittent Yahoo API failures.
- * Yahoo's API is known to return sporadic "consumer_key_unknown" errors even with valid credentials.
- * This wrapper handles those failures gracefully with exponential backoff.
- * 
- * @param {Function} apiCall - Async function that makes the Yahoo API call
- * @param {number} maxRetries - Maximum number of retry attempts (default: 3)
- * @returns {Promise} The result of the API call
  */
 export async function withRetry(apiCall, maxRetries = 3) {
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-                try {
-                        return await apiCall();
-                } catch (error) {
-                        const isConsumerKeyError = error?.description?.includes?.('consumer_key_unknown') ||
-                                                                         error?.message?.includes?.('consumer_key_unknown') ||
-                                                                         error?.lang === 'en-US' && error?.description?.includes?.('valid credentials');
-                        
-                        const isLastAttempt = attempt === maxRetries - 1;
-                        
-                        if (isConsumerKeyError && !isLastAttempt) {
-                                const delayMs = 1000 * (attempt + 1); // Exponential backoff: 1s, 2s, 3s
-                                console.warn(`[Yahoo API Retry] consumer_key_unknown error (attempt ${attempt + 1}/${maxRetries}). Retrying in ${delayMs}ms...`);
-                                await new Promise(resolve => setTimeout(resolve, delayMs));
-                                continue;
-                        }
-                        
-                        throw error;
-                }
-        }
+	for (let attempt = 0; attempt < maxRetries; attempt++) {
+		try {
+			return await apiCall();
+		} catch (error) {
+			const isConsumerKeyError = error?.description?.includes?.('consumer_key_unknown') ||
+				error?.message?.includes?.('consumer_key_unknown');
+
+			const isLastAttempt = attempt === maxRetries - 1;
+
+			if (isConsumerKeyError && !isLastAttempt) {
+				const delayMs = 1000 * (attempt + 1);
+				console.warn(`[Yahoo API] consumer_key_unknown (attempt ${attempt + 1}/${maxRetries}), retrying in ${delayMs}ms...`);
+				await new Promise(resolve => setTimeout(resolve, delayMs));
+				continue;
+			}
+
+			throw error;
+		}
+	}
 }
 
 /**
  * Creates a new Yahoo client instance with user-specific access and refresh tokens.
- * 
- * SECURITY: This creates an isolated client instance for a specific user's session.
- * Each call returns a NEW instance that is not shared with other users.
- * 
- * This is the ONLY safe way to make authenticated API calls on behalf of users.
- * 
- * @param {string} accessToken - User's OAuth access token
- * @param {string} refreshToken - User's OAuth refresh token
- * @returns {YahooFantasy} A new Yahoo client instance with the user's tokens
+ * SECURITY: Each call returns a NEW instance — never shared between users.
  */
 export function createAuthenticatedClient(accessToken, refreshToken) {
-        const appKey = getEnvVar('VITE_YAHOO_APP_KEY');
-        const appSecret = getEnvVar('VITE_YAHOO_APP_SECRET');
-        
-        if (!appKey || !appSecret) {
-                console.warn('Yahoo API credentials not configured.');
-                return null;
-        }
-        
-        console.log('[createAuthenticatedClient] Creating client with tokens:', {
-                hasAccessToken: !!accessToken,
-                hasRefreshToken: !!refreshToken,
-                accessTokenLength: accessToken?.length,
-                refreshTokenLength: refreshToken?.length,
-                accessTokenPreview: accessToken ? `${accessToken.substring(0, 20)}...` : 'none'
-        });
-        
-        // Create a NEW client instance for this user (not the shared singleton)
-        const client = new YahooFantasy(appKey, appSecret);
-        
-        if (accessToken) {
-                client.setUserToken(accessToken);
-                console.log('[createAuthenticatedClient] AFTER setUserToken, client.yahooUserToken =', client.yahooUserToken ? `${client.yahooUserToken.substring(0, 20)}...` : 'NULL!');
-        }
-        if (refreshToken) {
-                client.setRefreshToken(refreshToken);
-                console.log('[createAuthenticatedClient] AFTER setRefreshToken, client.yahooRefreshToken =', client.yahooRefreshToken ? `${client.yahooRefreshToken.substring(0, 20)}...` : 'NULL!');
-        }
-        
-        // Verify token was set
-        console.log('[createAuthenticatedClient] FINAL Client token status:', {
-                hasUserToken: !!client.yahooUserToken,
-                hasRefreshToken: !!client.yahooRefreshToken,
-                userTokenPreview: client.yahooUserToken ? `${client.yahooUserToken.substring(0, 20)}...` : 'MISSING',
-                refreshTokenPreview: client.yahooRefreshToken ? `${client.yahooRefreshToken.substring(0, 20)}...` : 'MISSING'
-        });
-        
-        return client;
+	const appKey = getEnvVar('VITE_YAHOO_APP_KEY');
+	const appSecret = getEnvVar('VITE_YAHOO_APP_SECRET');
+
+	if (!appKey || !appSecret) {
+		console.warn('[Yahoo Client] Credentials not configured.');
+		return null;
+	}
+
+	const client = new YahooFantasy(appKey, appSecret);
+
+	if (accessToken) client.setUserToken(accessToken);
+	if (refreshToken) client.setRefreshToken(refreshToken);
+
+	return client;
 }
 
 export function setYahooUserToken(token) {
-        const client = getYahooClient();
-        if (client) {
-                client.setUserToken(token);
-        }
+	const client = getYahooClient();
+	if (client) client.setUserToken(token);
 }
 
 export function setYahooRefreshToken(token) {
-        const client = getYahooClient();
-        if (client) {
-                client.setRefreshToken(token);
-        }
+	const client = getYahooClient();
+	if (client) client.setRefreshToken(token);
 }

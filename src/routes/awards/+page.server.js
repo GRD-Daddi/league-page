@@ -1,24 +1,19 @@
 import { loadLeagueUsers } from '$lib/server/dataLoaders.js';
+import { requireAuth } from '$lib/server/authGuard.js';
 
-export async function load({ locals }) {
+export async function load({ url, locals }) {
+	requireAuth(locals, url);
+
 	const yahooClient = locals.yahooClient;
-	
-	const teamManagersData = await loadLeagueUsersWithManagers(yahooClient);
-
-	return {
-		awardsData: null,
-		teamManagersData,
-	};
-}
-
-async function loadLeagueUsersWithManagers(yahooClient) {
 	const users = await loadLeagueUsers(yahooClient);
-	return processUsers(users);
+	const leagueTeamManagersData = processUsers(users);
+
+	return { awardsData: null, leagueTeamManagersData };
 }
 
 function processUsers(rawUsers) {
 	const processedUsers = {};
-	for(const user of rawUsers) {
+	for (const user of rawUsers || []) {
 		processedUsers[user.user_id] = user;
 	}
 	return processedUsers;

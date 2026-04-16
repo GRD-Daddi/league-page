@@ -1,5 +1,6 @@
-export async function load({fetch}) {
-	return {
-		articlesData: null
-	};
+import { getNews } from '$lib/utils/helperFunctions/news.js';
+
+export async function load({ fetch }) {
+	const articlesData = getNews(fetch);
+	return { articlesData };
 }

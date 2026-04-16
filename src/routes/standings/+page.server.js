@@ -1,19 +1,18 @@
 import { loadLeagueData, loadLeagueRosters, loadLeagueUsers } from '$lib/server/dataLoaders.js';
+import { requireAuth } from '$lib/server/authGuard.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
-import { leagueID } from '$lib/utils/leagueInfo';
 
-export async function load({ locals }) {
+export async function load({ url, locals }) {
+	requireAuth(locals, url);
+
 	const yahooClient = locals.yahooClient;
-	
+
 	const [standingsData, leagueTeamManagersData] = await waitForAll(
 		loadStandingsData(yahooClient),
 		loadLeagueUsersWithManagers(yahooClient),
 	);
 
-	return {
-		standingsData,
-		leagueTeamManagersData,
-	};
+	return { standingsData, leagueTeamManagersData };
 }
 
 async function loadStandingsData(yahooClient) {
@@ -21,8 +20,7 @@ async function loadStandingsData(yahooClient) {
 		loadLeagueRosters(yahooClient),
 		loadLeagueData(yahooClient),
 	);
-	
-	return { rosters: rosters.rosters, leagueData };
+	return { rosters: rosters?.rosters, leagueData };
 }
 
 async function loadLeagueUsersWithManagers(yahooClient) {
@@ -32,7 +30,7 @@ async function loadLeagueUsersWithManagers(yahooClient) {
 
 function processUsers(rawUsers) {
 	const processedUsers = {};
-	for(const user of rawUsers) {
+	for (const user of rawUsers || []) {
 		processedUsers[user.user_id] = user;
 	}
 	return processedUsers;

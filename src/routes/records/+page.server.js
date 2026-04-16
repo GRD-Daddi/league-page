@@ -1,26 +1,19 @@
 import { loadLeagueUsers } from '$lib/server/dataLoaders.js';
-import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
+import { requireAuth } from '$lib/server/authGuard.js';
 
-export async function load({ locals }) {
+export async function load({ url, locals }) {
+	requireAuth(locals, url);
+
 	const yahooClient = locals.yahooClient;
-	
-	const recordsInfo = waitForAll(
-		loadLeagueUsersWithManagers(yahooClient),
-	);
-
-	return {
-		recordsInfo
-	};
-}
-
-async function loadLeagueUsersWithManagers(yahooClient) {
 	const users = await loadLeagueUsers(yahooClient);
-	return processUsers(users);
+	const leagueTeamManagersData = processUsers(users);
+
+	return { leagueTeamManagersData };
 }
 
 function processUsers(rawUsers) {
 	const processedUsers = {};
-	for(const user of rawUsers) {
+	for (const user of rawUsers || []) {
 		processedUsers[user.user_id] = user;
 	}
 	return processedUsers;
