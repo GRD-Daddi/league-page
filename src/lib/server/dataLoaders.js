@@ -13,40 +13,85 @@ import {
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
 import { loadPlayers as loadPlayersUtil } from '$lib/utils/helperFunctions/players.js';
 
+const isAuthError = (err) => err?.message?.includes('missing user token') || err?.message?.includes('authentication required') || err?.description?.includes?.('logged in');
+
 export async function loadLeagueData(yahooClient = null, queryLeagueID = configuredLeagueID) {
-        return await getLeagueDataApi(queryLeagueID, yahooClient);
+        try {
+                return await getLeagueDataApi(queryLeagueID, yahooClient);
+        } catch (err) {
+                if (isAuthError(err)) return null;
+                throw err;
+        }
 }
 
 export async function loadLeagueRosters(yahooClient = null, queryLeagueID = configuredLeagueID) {
-        const rosters = await getLeagueRostersApi(queryLeagueID, yahooClient);
-        return processRosters(rosters);
+        try {
+                const rosters = await getLeagueRostersApi(queryLeagueID, yahooClient);
+                return processRosters(rosters);
+        } catch (err) {
+                if (isAuthError(err)) return null;
+                throw err;
+        }
 }
 
 export async function loadLeagueUsers(yahooClient = null, queryLeagueID = configuredLeagueID) {
-        return await getLeagueUsersApi(queryLeagueID, yahooClient);
+        try {
+                return await getLeagueUsersApi(queryLeagueID, yahooClient);
+        } catch (err) {
+                if (isAuthError(err)) return [];
+                throw err;
+        }
 }
 
 export async function loadLeagueMatchups(yahooClient = null, queryLeagueID = configuredLeagueID, week) {
-        return await getLeagueMatchupsApi(queryLeagueID, week, yahooClient);
+        try {
+                return await getLeagueMatchupsApi(queryLeagueID, week, yahooClient);
+        } catch (err) {
+                if (isAuthError(err)) return [];
+                throw err;
+        }
 }
 
 export async function loadNFLState(yahooClient = null) {
-        return await getNFLStateApi(yahooClient);
+        try {
+                return await getNFLStateApi(yahooClient);
+        } catch (err) {
+                if (isAuthError(err)) return null;
+                throw err;
+        }
 }
 
 export async function loadLeagueTransactions(yahooClient = null, queryLeagueID = configuredLeagueID, week) {
-        return await getLeagueTransactionsApi(queryLeagueID, week, yahooClient);
+        try {
+                return await getLeagueTransactionsApi(queryLeagueID, week, yahooClient);
+        } catch (err) {
+                if (isAuthError(err)) return [];
+                throw err;
+        }
 }
 
 export async function loadDraftResults(yahooClient = null, leagueKeyOrDraftID, isLeagueKey = null) {
-        return await getDraftResultsApi(leagueKeyOrDraftID, isLeagueKey, yahooClient);
+        try {
+                return await getDraftResultsApi(leagueKeyOrDraftID, isLeagueKey, yahooClient);
+        } catch (err) {
+                if (isAuthError(err)) return null;
+                throw err;
+        }
 }
 
 export async function loadMatchupData(yahooClient = null, queryLeagueID = configuredLeagueID) {
-        const [nflState, leagueData] = await waitForAll(
-                getNFLStateApi(yahooClient),
-                getLeagueDataApi(queryLeagueID, yahooClient),
-        );
+        let nflState, leagueData;
+        try {
+                [nflState, leagueData] = await waitForAll(
+                        getNFLStateApi(yahooClient),
+                        getLeagueDataApi(queryLeagueID, yahooClient),
+                );
+        } catch (err) {
+                if (isAuthError(err)) {
+                        return { matchupWeeks: [], year: null, week: 1, regularSeasonLength: 0, requiresAuth: true };
+                }
+                throw err;
+        }
 
         if (!leagueData || !nflState) {
                 return {
@@ -93,12 +138,24 @@ export async function loadMatchupData(yahooClient = null, queryLeagueID = config
 }
 
 export async function loadBrackets(yahooClient = null, queryLeagueID = configuredLeagueID) {
-        const [rosterRes, leagueData] = await waitForAll(
-                loadLeagueRosters(yahooClient, queryLeagueID),
-                getLeagueDataApi(queryLeagueID, yahooClient),
-        );
+        let rosterRes, leagueData;
+        try {
+                [rosterRes, leagueData] = await waitForAll(
+                        loadLeagueRosters(yahooClient, queryLeagueID),
+                        getLeagueDataApi(queryLeagueID, yahooClient),
+                );
+        } catch (err) {
+                if (isAuthError(err)) {
+                        return { winnersData: null, losersData: null, playoffMatchups: [], numRosters: 0, year: null, playoffType: 0, playoffsStart: 0, requiresAuth: true };
+                }
+                throw err;
+        }
 
-        const numRosters = Object.keys(rosterRes.rosters).length;
+        if (!rosterRes || !leagueData) {
+                return { winnersData: null, losersData: null, playoffMatchups: [], numRosters: 0, year: null, playoffType: 0, playoffsStart: 0, requiresAuth: true };
+        }
+
+        const numRosters = Object.keys(rosterRes.rosters || {}).length;
 
         const bracketsAndMatchupFetches = [
                 getWinnersBracket(queryLeagueID, yahooClient),
