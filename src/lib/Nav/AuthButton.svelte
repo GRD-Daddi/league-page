@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import Button from '@smui/button';
 	import { Icon } from '@smui/common';
-	
+
 	let session = $state(null);
 	let loading = $state(true);
-	
+
 	onMount(async () => {
 		try {
 			const response = await fetch('/auth/session');
@@ -18,7 +18,7 @@
 			loading = false;
 		}
 	});
-	
+
 	async function handleLogout() {
 		window.location.href = '/auth/logout';
 	}
@@ -30,7 +30,7 @@
 		align-items: center;
 		gap: 0.5em;
 	}
-	
+
 	.user-info {
 		font-size: 0.875rem;
 		color: var(--g555);
@@ -38,14 +38,27 @@
 		align-items: center;
 		gap: 0.25em;
 	}
-	
+
 	.loading {
 		font-size: 0.875rem;
 		color: var(--g555);
 	}
-	
+
+	.select-league-link {
+		font-size: 0.8rem;
+		color: var(--g555);
+		text-decoration: underline;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 0;
+	}
+
 	@media (max-width: 600px) {
 		.user-info span {
+			display: none;
+		}
+		.select-league-link {
 			display: none;
 		}
 	}
@@ -59,6 +72,7 @@
 			<Icon class="material-icons">person</Icon>
 			<span>{session.managerInfo?.teamName || 'Manager'}</span>
 		</span>
+		<a class="select-league-link" href="/auth/select-league">Change League</a>
 		<Button variant="outlined" onclick={handleLogout}>Logout</Button>
 	</div>
 {:else}

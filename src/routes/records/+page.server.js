@@ -3,18 +3,13 @@ import { requireAuth } from '$lib/server/authGuard.js';
 
 export async function load({ url, locals }) {
 	requireAuth(locals, url);
-
-	const yahooClient = locals.yahooClient;
-	const users = await loadLeagueUsers(yahooClient);
-	const leagueTeamManagersData = processUsers(users);
-
-	return { leagueTeamManagersData };
+	const { yahooClient, leagueKey } = locals;
+	const users = await loadLeagueUsers(yahooClient, leagueKey);
+	return { leagueTeamManagersData: toMap(users) };
 }
 
-function processUsers(rawUsers) {
-	const processedUsers = {};
-	for (const user of rawUsers || []) {
-		processedUsers[user.user_id] = user;
-	}
-	return processedUsers;
+function toMap(rawUsers) {
+	const out = {};
+	for (const user of rawUsers || []) out[user.user_id] = user;
+	return out;
 }

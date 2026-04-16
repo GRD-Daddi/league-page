@@ -5,33 +5,31 @@ import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 export async function load({ url, locals }) {
 	requireAuth(locals, url);
 
-	const yahooClient = locals.yahooClient;
+	const { yahooClient, leagueKey } = locals;
 
 	const [standingsData, leagueTeamManagersData] = await waitForAll(
-		loadStandingsData(yahooClient),
-		loadLeagueUsersWithManagers(yahooClient),
+		loadStandingsData(yahooClient, leagueKey),
+		loadLeagueUsersAsMap(yahooClient, leagueKey),
 	);
 
 	return { standingsData, leagueTeamManagersData };
 }
 
-async function loadStandingsData(yahooClient) {
+async function loadStandingsData(yahooClient, leagueKey) {
 	const [rosters, leagueData] = await waitForAll(
-		loadLeagueRosters(yahooClient),
-		loadLeagueData(yahooClient),
+		loadLeagueRosters(yahooClient, leagueKey),
+		loadLeagueData(yahooClient, leagueKey),
 	);
 	return { rosters: rosters?.rosters, leagueData };
 }
 
-async function loadLeagueUsersWithManagers(yahooClient) {
-	const users = await loadLeagueUsers(yahooClient);
-	return processUsers(users);
+async function loadLeagueUsersAsMap(yahooClient, leagueKey) {
+	const users = await loadLeagueUsers(yahooClient, leagueKey);
+	return toMap(users);
 }
 
-function processUsers(rawUsers) {
-	const processedUsers = {};
-	for (const user of rawUsers || []) {
-		processedUsers[user.user_id] = user;
-	}
-	return processedUsers;
+function toMap(rawUsers) {
+	const out = {};
+	for (const user of rawUsers || []) out[user.user_id] = user;
+	return out;
 }

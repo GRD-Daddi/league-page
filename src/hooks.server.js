@@ -1,5 +1,6 @@
 import { getSession, updateSession, isTokenExpired, deleteSession } from '$lib/server/sessionStore.js';
 import { createAuthenticatedClient, getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
+import { leagueID as configuredLeagueID } from '$lib/utils/leagueInfo.js';
 
 export async function handle({ event, resolve }) {
 	const sessionId = event.cookies.get('session_id');
@@ -39,6 +40,10 @@ export async function handle({ event, resolve }) {
 			);
 		}
 	}
+
+	// Determine effective league key: cookie override > configured value
+	const cookieLeagueKey = event.cookies.get('selected_league_key');
+	event.locals.leagueKey = cookieLeagueKey || configuredLeagueID;
 
 	return resolve(event);
 }

@@ -1,71 +1,33 @@
-import { fetchNFLState, fetchLeagueData, fetchLeagueRosters, fetchLeagueUsers } from '$lib/server/yahooService.js';
-import { leagueID } from '$lib/utils/leagueInfo.js';
+import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadNFLState } from '$lib/server/dataLoaders.js';
+import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
 
 export async function load({ locals }) {
-        try {
-                // NFL state is public
-                const nflState = await fetchNFLState();
-                
-                // Check if user is authenticated
-                const isAuthenticated = !!locals?.session?.userId;
-                
-                if (!isAuthenticated) {
-                        console.log('[+page.server] Unauthenticated - league data requires login');
-                        return {
-                                nflState,
-                                leagueData: null,
-                                rosters: null,
-                                users: null,
-                                requiresAuth: true
-                        };
-                }
-                
-                // Authenticated users get full data - pass authenticated client
-                const yahooClient = locals.yahooClient;
-                
-                console.log('[+page.server] About to fetch league data with yahooClient:', {
-                        hasYahooClient: !!yahooClient,
-                        hasUserToken: yahooClient?.yahooUserToken ? true : false,
-                        hasRefreshToken: yahooClient?.yahooRefreshToken ? true : false
-                });
-                
-                const [leagueData, rosters, users] = await Promise.all([
-                        fetchLeagueData(leagueID, yahooClient),
-                        fetchLeagueRosters(leagueID, yahooClient),
-                        fetchLeagueUsers(leagueID, yahooClient)
-                ]);
+	const nflState = await loadNFLState().catch(() => null);
 
-                return {
-                        nflState,
-                        leagueData,
-                        rosters,
-                        users,
-                        requiresAuth: false
-                };
-        } catch (error) {
-                console.error('[+page.server] Error loading homepage data:', error);
-                
-                // If authentication error, show login prompt
-                const isAuthError = error?.description?.includes?.('logged in');
-                
-                if (isAuthError) {
-                        const nflState = await fetchNFLState().catch(() => null);
-                        return {
-                                nflState,
-                                leagueData: null,
-                                rosters: null,
-                                users: null,
-                                requiresAuth: true
-                        };
-                }
-                
-                // Other errors
-                return {
-                        nflState: null,
-                        leagueData: null,
-                        rosters: null,
-                        users: null,
-                        error: error.message
-                };
-        }
+	const isAuthenticated = !!locals?.session?.userId;
+
+	if (!isAuthenticated) {
+		return { nflState, leagueData: null, rosters: null, users: null, requiresAuth: true };
+	}
+
+	const { yahooClient, leagueKey } = locals;
+
+	try {
+		const [leagueData, rostersResult, users] = await waitForAll(
+			loadLeagueData(yahooClient, leagueKey),
+			loadLeagueRosters(yahooClient, leagueKey),
+			loadLeagueUsers(yahooClient, leagueKey),
+		);
+
+		return {
+			nflState,
+			leagueData,
+			rosters: rostersResult?.rosters ?? null,
+			users,
+			requiresAuth: false
+		};
+	} catch (error) {
+		console.error('[homepage] Error loading data:', error.message);
+		return { nflState, leagueData: null, rosters: null, users: null, error: error.message };
+	}
 }

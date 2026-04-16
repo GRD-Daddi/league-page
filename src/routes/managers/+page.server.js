@@ -4,22 +4,15 @@ import { managers } from '$lib/utils/leagueInfo';
 
 export async function load({ url, locals }) {
 	requireAuth(locals, url);
-
 	if (!managers.length) return { managers };
 
-	const yahooClient = locals.yahooClient;
-	const users = await loadLeagueUsers(yahooClient);
-
-	return {
-		managers,
-		leagueTeamManagersData: processUsers(users),
-	};
+	const { yahooClient, leagueKey } = locals;
+	const users = await loadLeagueUsers(yahooClient, leagueKey);
+	return { managers, leagueTeamManagersData: toMap(users) };
 }
 
-function processUsers(rawUsers) {
-	const processedUsers = {};
-	for (const user of rawUsers || []) {
-		processedUsers[user.user_id] = user;
-	}
-	return processedUsers;
+function toMap(rawUsers) {
+	const out = {};
+	for (const user of rawUsers || []) out[user.user_id] = user;
+	return out;
 }

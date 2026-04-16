@@ -5,13 +5,13 @@ import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 export async function load({ url, fetch, locals }) {
 	requireAuth(locals, url);
 
-	const yahooClient = locals.yahooClient;
+	const { yahooClient, leagueKey } = locals;
 	const queryWeek = url?.searchParams?.get('week');
 
 	const [matchupsData, bracketsData, teamManagersData, playersData] = await waitForAll(
-		loadMatchupData(yahooClient),
-		loadBrackets(yahooClient),
-		loadLeagueUsersWithManagers(yahooClient),
+		loadMatchupData(yahooClient, leagueKey),
+		loadBrackets(yahooClient, leagueKey),
+		loadLeagueUsersAsMap(yahooClient, leagueKey),
 		loadPlayers(fetch),
 	);
 
@@ -24,15 +24,13 @@ export async function load({ url, fetch, locals }) {
 	};
 }
 
-async function loadLeagueUsersWithManagers(yahooClient) {
-	const users = await loadLeagueUsers(yahooClient);
-	return processUsers(users);
+async function loadLeagueUsersAsMap(yahooClient, leagueKey) {
+	const users = await loadLeagueUsers(yahooClient, leagueKey);
+	return toMap(users);
 }
 
-function processUsers(rawUsers) {
-	const processedUsers = {};
-	for (const user of rawUsers || []) {
-		processedUsers[user.user_id] = user;
-	}
-	return processedUsers;
+function toMap(rawUsers) {
+	const out = {};
+	for (const user of rawUsers || []) out[user.user_id] = user;
+	return out;
 }

@@ -5,18 +5,16 @@ import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 export async function load({ url, fetch, locals }) {
 	requireAuth(locals, url);
 
-	const yahooClient = locals.yahooClient;
+	const { yahooClient, leagueKey } = locals;
 	const show = url?.searchParams?.get('show');
 	const query = url?.searchParams?.get('query');
 	const curPage = url?.searchParams?.get('page');
 
 	const [transactionsData, leagueTeamManagersData, playersData] = await waitForAll(
-		loadAllTransactions(yahooClient),
-		loadLeagueUsersWithManagers(yahooClient),
+		loadAllTransactions(yahooClient, leagueKey),
+		loadLeagueUsersAsMap(yahooClient, leagueKey),
 		loadPlayers(fetch),
 	);
-
-	const bannedValues = ['undefined'];
 
 	const props = {
 		show: 'both',
@@ -27,42 +25,34 @@ export async function load({ url, fetch, locals }) {
 		page: 0,
 	};
 
-	if (show && (show == 'trade' || show == 'waiver' || show == 'both')) {
-		props.show = show;
-	}
-	if (query && !bannedValues.includes(query)) {
-		props.query = query;
-	}
-	if (curPage && !isNaN(curPage)) {
-		props.page = parseInt(curPage) - 1;
-	}
+	if (show && (show === 'trade' || show === 'waiver' || show === 'both')) props.show = show;
+	if (query && query !== 'undefined') props.query = query;
+	if (curPage && !isNaN(curPage)) props.page = parseInt(curPage) - 1;
 
 	return props;
 }
 
-async function loadAllTransactions(yahooClient) {
-	const leagueData = await loadLeagueData(yahooClient);
+async function loadAllTransactions(yahooClient, leagueKey) {
+	const leagueData = await loadLeagueData(yahooClient, leagueKey);
 	if (!leagueData) return [];
 
 	const regularSeasonLength = leagueData.settings.playoff_week_start - 1;
 	const transactionPromises = [];
 	for (let i = 1; i <= regularSeasonLength + 2; i++) {
-		transactionPromises.push(loadLeagueTransactions(yahooClient, undefined, i));
+		transactionPromises.push(loadLeagueTransactions(yahooClient, leagueKey, i));
 	}
 
 	const transactionWeeks = await waitForAll(...transactionPromises);
 	return transactionWeeks.flat();
 }
 
-async function loadLeagueUsersWithManagers(yahooClient) {
-	const users = await loadLeagueUsers(yahooClient);
-	return processUsers(users);
+async function loadLeagueUsersAsMap(yahooClient, leagueKey) {
+	const users = await loadLeagueUsers(yahooClient, leagueKey);
+	return toMap(users);
 }
 
-function processUsers(rawUsers) {
-	const processedUsers = {};
-	for (const user of rawUsers || []) {
-		processedUsers[user.user_id] = user;
-	}
-	return processedUsers;
+function toMap(rawUsers) {
+	const out = {};
+	for (const user of rawUsers || []) out[user.user_id] = user;
+	return out;
 }
