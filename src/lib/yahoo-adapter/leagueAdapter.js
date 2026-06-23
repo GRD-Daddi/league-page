@@ -10,6 +10,57 @@ export function yahooRenewToKey(renew) {
         return `${m[1]}.l.${m[2]}`;
 }
 
+// Yahoo does not always populate the `renew` link that points a league back to its
+// previous season (e.g. when the commissioner creates a fresh league each year
+// instead of renewing). When that link is missing we can still find last season's
+// league from the *logged-in user's* own account: list their NFL seasons, list the
+// leagues they belonged to in prior seasons, and match by league name. Returns the
+// most recent prior-season league_key, or null if none can be identified.
+export async function findPreviousSeasonLeagueKey(currentName, currentSeason, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
+        if (!yf) return null;
+
+        try {
+                const seasonNum = parseInt(currentSeason, 10);
+
+                const gamesUser = await withRetry(() => yf.user.games());
+                const nflGames = (gamesUser?.games || [])
+                        .filter((g) => (g.code || g.game_code) === 'nfl')
+                        .filter((g) => Number.isNaN(seasonNum) || parseInt(g.season, 10) < seasonNum)
+                        .sort((a, b) => parseInt(b.season, 10) - parseInt(a.season, 10));
+
+                if (!nflGames.length) return null;
+
+                const gameKeys = nflGames.map((g) => g.game_key);
+                const leaguesUser = await withRetry(() => yf.user.game_leagues(gameKeys));
+
+                const candidates = [];
+                for (const g of (leaguesUser?.games || [])) {
+                        for (const lg of (g.leagues || [])) {
+                                candidates.push({
+                                        league_key: lg.league_key,
+                                        name: lg.name || '',
+                                        season: parseInt(lg.season ?? g.season, 10) || 0
+                                });
+                        }
+                }
+
+                console.log('[Yahoo Adapter] DIAG prior leagues', JSON.stringify(candidates));
+
+                const norm = (s) => (s || '').trim().toLowerCase();
+                const byName = candidates
+                        .filter((c) => norm(c.name) === norm(currentName))
+                        .sort((a, b) => b.season - a.season);
+                if (byName.length) return byName[0].league_key;
+
+                candidates.sort((a, b) => b.season - a.season);
+                return candidates.length ? candidates[0].league_key : null;
+        } catch (err) {
+                console.error('[Yahoo Adapter] findPreviousSeasonLeagueKey error:', err?.message || err);
+                return null;
+        }
+}
+
 export async function getYahooLeagueData(leagueKey, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');

@@ -12,6 +12,7 @@ import {
 } from '$lib/utils/platformApi.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
 import { loadPlayers as loadPlayersUtil } from '$lib/utils/helperFunctions/players.js';
+import { findPreviousSeasonLeagueKey } from '$lib/yahoo-adapter/leagueAdapter.js';
 
 const isAuthError = (err) => err?.message?.includes('missing user token') || err?.message?.includes('authentication required') || err?.description?.includes?.('logged in');
 
@@ -44,6 +45,9 @@ export async function loadLeagueRostersWithFallback(yahooClient = null, queryLea
         let leagueKey = queryLeagueID;
         let guard = 0;
         let currentSeasonResult = null;
+        let currentName = null;
+        let currentSeason = null;
+        let discoveryTried = false;
 
         while (leagueKey && guard < 12) {
                 guard++;
@@ -56,7 +60,11 @@ export async function loadLeagueRostersWithFallback(yahooClient = null, queryLea
 
                 if (rosters === null) return null; // auth error — let the caller handle it
 
-                if (currentSeasonResult === null) currentSeasonResult = rosters;
+                if (currentSeasonResult === null) {
+                        currentSeasonResult = rosters;
+                        currentName = leagueData?.name ?? null;
+                        currentSeason = leagueData?.season ?? null;
+                }
 
                 const hasPlayers = Object.values(rosters.rosters || {})
                         .some((r) => (r.players?.length || 0) > 0);
@@ -74,7 +82,16 @@ export async function loadLeagueRostersWithFallback(yahooClient = null, queryLea
                         };
                 }
 
-                const prev = leagueData?.previous_league_id || null;
+                let prev = leagueData?.previous_league_id || null;
+
+                // Yahoo's renew link is missing — discover last season's league from the
+                // logged-in user's account by matching the league name (one attempt).
+                if (!prev && !discoveryTried) {
+                        discoveryTried = true;
+                        prev = await findPreviousSeasonLeagueKey(currentName, currentSeason, yahooClient);
+                        if (prev === queryLeagueID) prev = null;
+                }
+
                 if (!prev) break;
                 leagueKey = prev;
         }
