@@ -11,20 +11,26 @@ function teamNumFromKey(teamKey) {
         return m ? parseInt(m[1]) : null;
 }
 
-export async function load({ locals }) {
+export async function load({ locals, url }) {
         const nflState = await loadNFLState().catch(() => null);
-
-        const potData = await computePotData().catch((err) => {
-                console.error('[homepage] Error loading pot data:', err.message);
-                return null;
-        });
 
         const isAuthenticated = !!locals?.session?.userId;
 
+        // The auth guard sends logged-out users here with ?loginRequired=<path>
+        // so we can return them to the page they wanted after they log in. Only
+        // accept same-origin relative paths to avoid open-redirect abuse.
+        const requested = url.searchParams.get('loginRequired');
+        const loginReturnTo = requested && /^\/(?!\/)/.test(requested) ? requested : null;
+
         if (!isAuthenticated) {
+                const potData = await computePotData().catch((err) => {
+                        console.error('[homepage] Error loading pot data:', err.message);
+                        return null;
+                });
                 return {
                         nflState,
                         potData,
+                        loginReturnTo,
                         seasonPhase: resolveSeasonPhase(nflState, null),
                         lastSeasonPodium: null,
                         leagueData: null,
@@ -36,29 +42,9 @@ export async function load({ locals }) {
 
         const { yahooClient, leagueKey } = locals;
 
-        // TEMP DIAGNOSTIC: list this account's current NFL leagues so we can tell
-        // whether the configured leagueKey is the season Yahoo will actually serve
-        // teams/standings for. Remove once the data-loading issue is resolved.
-        try {
-                if (yahooClient?.user?.game_leagues) {
-                        const userLeagues = await new Promise((resolve, reject) => {
-                                yahooClient.user.game_leagues(['nfl'], (err, data) => err ? reject(err) : resolve(data));
-                        });
-                        const flat = [];
-                        for (const game of (userLeagues?.games || userLeagues || [])) {
-                                for (const lg of (game?.leagues || [])) {
-                                        flat.push({ key: lg.league_key, name: lg.name, season: lg.season, num_teams: lg.num_teams });
-                                }
-                        }
-                        console.log('[homepage] DIAG configured leagueKey:', leagueKey, '| account NFL leagues:', JSON.stringify(flat));
-                }
-        } catch (diagErr) {
-                console.log('[homepage] DIAG could not list user leagues:', diagErr?.description || diagErr?.message);
-        }
-
         const authedPotData = await computePotData(undefined, yahooClient, leagueKey).catch((err) => {
                 console.error('[homepage] Error loading pot data (authed):', err.message);
-                return potData;
+                return null;
         });
 
         try {
@@ -87,12 +73,6 @@ export async function load({ locals }) {
                         rosterPositions.filter((p) => p !== 'IR').length ||
                         maxRosterSize ||
                         DEFAULT_DRAFT_ROUNDS;
-                console.log('[homepage] draftRounds debug:', JSON.stringify({
-                        settingsRounds: leagueData?.settings?.draft_rounds ?? null,
-                        rosterPositionsLen: rosterPositions.length,
-                        maxRosterSize,
-                        resolved: draftRounds
-                }));
 
                 // Real per-team upcoming-draft pick ownership. Each team starts with one
                 // pick per round; traded picks move a pick from its original team to its
@@ -142,7 +122,6 @@ export async function load({ locals }) {
                                 if (num != null && pos) order[num] = pos;
                         }
                         if (Object.keys(order).length > 0) draftOrder = order;
-                        console.log('[homepage] draftOrder debug:', JSON.stringify(draftOrder));
                 }
 
                 // The trophy band is shown in every phase, so the podium is fetched for any

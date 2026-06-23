@@ -51,6 +51,10 @@
 
   $: pot = data?.potData ?? null;
 
+  $: loginHref = data?.loginReturnTo
+    ? `/auth/login?returnTo=${encodeURIComponent(data.loginReturnTo)}`
+    : '/auth/login';
+
   $: phase = data?.seasonPhase ?? 'regular';
   $: isDraftPrep = phase === 'preseason' || phase === 'offseason';
 
@@ -1280,7 +1284,7 @@
         {#if data?.requiresAuth}
           <div class="placeholder-box">
             <p style="margin:0 0 16px;">Log in with Yahoo to see each team's draft picks.</p>
-            <a href="/auth/login" class="btn-primary" style="height:44px;"><span>Login with Yahoo</span></a>
+            <a href={loginHref} class="btn-primary" style="height:44px;"><span>Login with Yahoo</span></a>
           </div>
         {:else if teams.length > 0}
           <div class="draft-prep-grid">
@@ -1374,7 +1378,7 @@
         <div class="standings-card">
           <div class="auth-gate">
             <p>Log in with Yahoo to view your league standings.</p>
-            <a href="/auth/login"><span>Login with Yahoo</span></a>
+            <a href={loginHref}><span>Login with Yahoo</span></a>
           </div>
         </div>
       {:else if standings.length > 0}

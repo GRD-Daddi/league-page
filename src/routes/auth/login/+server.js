@@ -8,7 +8,9 @@ export async function GET({ url, cookies }) {
                 throw redirect(302, '/auth/error?reason=credentials_missing');
         }
 
-        const returnTo = url.searchParams.get('returnTo') || '/';
+        const requestedReturn = url.searchParams.get('returnTo');
+        // Only honor same-origin relative paths to prevent open-redirect abuse.
+        const returnTo = requestedReturn && /^\/(?!\/)/.test(requestedReturn) ? requestedReturn : '/';
         cookies.set('auth_return_to', returnTo, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
