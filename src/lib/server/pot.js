@@ -128,6 +128,53 @@ export async function getChampionHistory(yahooClient = null, leagueKey = null) {
 }
 
 /**
+ * Final podium (1st/2nd/3rd) of the most recent *completed* season, resolved
+ * from Yahoo's final standings. Checks the current league key plus any
+ * previousLeagueKeys and returns the highest completed season year. Returns
+ * null when no completed season can be resolved (e.g. preseason with no history)
+ * — callers then render a placeholder.
+ */
+export async function getLastSeasonPodium(yahooClient = null, leagueKey = null) {
+        if (!yahooClient) return null;
+        const keys = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
+        let best = null;
+
+        for (const key of keys) {
+                try {
+                        const leagueData = await loadLeagueData(yahooClient, key);
+                        if (!leagueData || leagueData.status !== 'complete') continue;
+
+                        const year = parseInt(leagueData.season, 10);
+                        if (!Number.isFinite(year)) continue;
+                        if (best && year <= best.year) continue;
+
+                        const rostersResult = await loadLeagueRosters(yahooClient, key);
+                        const rosters = rostersResult?.rosters ? Object.values(rostersResult.rosters) : [];
+                        const ranked = rosters
+                                .filter((r) => Number.isFinite(Number(r?.metadata?.rank)))
+                                .sort((a, b) => Number(a.metadata.rank) - Number(b.metadata.rank));
+                        if (ranked.length === 0) continue;
+
+                        const podium = ranked.slice(0, 3).map((r, i) => ({
+                                place: i + 1,
+                                name: r.metadata?.team_name || 'Unknown Team',
+                                teamKey: r.metadata?.team_key || null,
+                                logo: r.metadata?.team_logo || null,
+                                wins: r.settings?.wins ?? null,
+                                losses: r.settings?.losses ?? null,
+                                pointsFor: num(r.settings?.fpts, null)
+                        }));
+
+                        best = { year, podium };
+                } catch (err) {
+                        console.error('[pot] podium lookup failed for', key, err.message);
+                }
+        }
+
+        return best;
+}
+
+/**
  * Determines the reigning champion (most recent recorded season) and whether a
  * back-to-back is in play or already achieved.
  */

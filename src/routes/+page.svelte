@@ -50,6 +50,39 @@
   }
 
   $: pot = data?.potData ?? null;
+
+  $: phase = data?.seasonPhase ?? 'regular';
+  $: isDraftPrep = phase === 'preseason' || phase === 'offseason';
+
+  $: podium = data?.lastSeasonPodium ?? null;
+
+  // Most recent recorded champion (used as a fallback when the full podium
+  // can't be resolved from Yahoo final standings).
+  $: lastChampion = (() => {
+    const hist = pot?.championHistory;
+    if (!Array.isArray(hist) || hist.length === 0) return null;
+    return [...hist].sort((a, b) => b.year - a.year)[0];
+  })();
+
+  // Live league teams for the draft-prep placeholders. Built from rosters/users
+  // so each team appears even before any draft data exists.
+  $: teams = (() => {
+    if (!data?.rosters) return [];
+    return Object.values(data.rosters).map((r) => {
+      const teamName = r.metadata?.team_name ?? r.team_name ?? 'Unknown Team';
+      return {
+        name: teamName,
+        logo: r.metadata?.team_logo ?? null,
+        rosterId: r.roster_id ?? r.metadata?.team_key ?? teamName
+      };
+    });
+  })();
+
+  const PLACE_LABELS = { 1: '1st', 2: '2nd', 3: '3rd' };
+  const PLACE_TONE = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+
+  // Placeholder draft rounds shown per team until real pick data is wired in.
+  const DRAFT_ROUNDS = [1, 2, 3, 4, 5];
 </script>
 
 <style>
@@ -773,6 +806,228 @@
     color: #4b5563;
     font-size: 0.875rem;
   }
+
+  /* ── Last Season Trophies band ── */
+  .trophy-band {
+    border-bottom: 1px solid #1f2937;
+    background:
+      radial-gradient(900px 240px at 80% -40%, rgba(255,210,74,0.10), transparent 70%),
+      radial-gradient(700px 200px at 10% 0%, rgba(0,240,255,0.08), transparent 70%),
+      #0a0a0c;
+  }
+
+  .trophy-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 56px 24px;
+  }
+
+  .band-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #ffd24a;
+    margin-bottom: 10px;
+  }
+
+  .band-title {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+    color: #fff;
+  }
+
+  .band-title .accent {
+    background: linear-gradient(to right, #ffd24a, #ff8a3d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .band-sub {
+    color: #9ca3af;
+    font-size: 0.95rem;
+    margin: 0 0 28px;
+  }
+
+  .podium-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: end;
+  }
+
+  @media (max-width: 760px) {
+    .podium-grid { grid-template-columns: 1fr; }
+  }
+
+  .trophy-card {
+    position: relative;
+    background: linear-gradient(135deg, #1a1d24, #0f1115);
+    border: 1px solid #1f2937;
+    border-radius: 14px;
+    padding: 28px 24px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .trophy-card.gold   { border-color: rgba(255,210,74,0.5); box-shadow: 0 0 40px rgba(255,210,74,0.12); }
+  .trophy-card.silver { border-color: rgba(203,213,225,0.35); }
+  .trophy-card.bronze { border-color: rgba(216,145,90,0.35); }
+
+  .trophy-card.gold   { transform: translateY(-14px); }
+
+  @media (max-width: 760px) {
+    .trophy-card.gold { transform: none; }
+  }
+
+  .trophy-place {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .trophy-place.gold { color: #ffd24a; }
+  .trophy-place.silver { color: #cbd5e1; }
+  .trophy-place.bronze { color: #d8915a; }
+
+  .trophy-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1f2937, #111827);
+    border: 2px solid #374151;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: #fff;
+    overflow: hidden;
+  }
+  .trophy-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .trophy-card.gold .trophy-avatar { width: 88px; height: 88px; border-color: #ffd24a; }
+
+  .trophy-team {
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+
+  .trophy-meta {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #9ca3af;
+    margin-top: 6px;
+  }
+
+  .trophy-empty {
+    color: #4b5563;
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Draft prep ── */
+  .draft-prep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .draft-team-card {
+    background: #0f1115;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .draft-team-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .draft-picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pick-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    background: #0a0a0c;
+    border: 1px dashed #1f2937;
+    border-radius: 999px;
+    padding: 6px 12px;
+  }
+
+  .pick-chip .rnd { color: #00f0ff; }
+
+  .returning-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .returning-slot {
+    background: #0f1115;
+    border: 1px dashed #1f2937;
+    border-radius: 12px;
+    padding: 22px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .returning-orb {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1f2937, #111827);
+    border: 1px solid #374151;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    flex-shrink: 0;
+  }
+
+  .returning-text .rt-name {
+    font-weight: 800;
+    color: #6b7280;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 0.95rem;
+  }
+  .returning-text .rt-sub {
+    font-size: 11px;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
 </style>
 
 <div class="sn-page">
@@ -886,6 +1141,149 @@
     </div>
   {/if}
 
+  <!-- Last Season Trophies -->
+  <div class="trophy-band">
+    <div class="trophy-inner">
+      <div class="band-eyebrow">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        {podium?.year ?? lastChampion?.year ?? 'Last'} Season
+      </div>
+      <h2 class="band-title">THE <span class="accent">TROPHY ROOM</span></h2>
+      <p class="band-sub">Last season's top three finishers.</p>
+
+      {#if podium?.podium?.length}
+        <div class="podium-grid">
+          {#each [2, 1, 3] as place}
+            {@const t = podium.podium.find((p) => p.place === place)}
+            <div class="trophy-card {PLACE_TONE[place]}">
+              <div class="trophy-place {PLACE_TONE[place]}">{PLACE_LABELS[place]} Place</div>
+              {#if t}
+                <div class="trophy-avatar">
+                  {#if t.logo}<img src={t.logo} alt={t.name} />{:else}{initials(t.name)}{/if}
+                </div>
+                <div class="trophy-team">{t.name}</div>
+                {#if t.wins != null}
+                  <div class="trophy-meta">{t.wins}-{t.losses}{#if t.pointsFor != null} &bull; {t.pointsFor.toFixed(0)} PF{/if}</div>
+                {/if}
+              {:else}
+                <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+                <div class="trophy-empty">To be decided</div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {:else if lastChampion?.name}
+        <div class="podium-grid">
+          <div class="trophy-card silver">
+            <div class="trophy-place silver">2nd Place</div>
+            <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+            <div class="trophy-empty">Not recorded</div>
+          </div>
+          <div class="trophy-card gold">
+            <div class="trophy-place gold">Champion</div>
+            <div class="trophy-avatar">{initials(lastChampion.name)}</div>
+            <div class="trophy-team">{lastChampion.name}</div>
+            <div class="trophy-meta">{lastChampion.year} Champion</div>
+          </div>
+          <div class="trophy-card bronze">
+            <div class="trophy-place bronze">3rd Place</div>
+            <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+            <div class="trophy-empty">Not recorded</div>
+          </div>
+        </div>
+      {:else}
+        <div class="podium-grid">
+          {#each [2, 1, 3] as place}
+            <div class="trophy-card {PLACE_TONE[place]}">
+              <div class="trophy-place {PLACE_TONE[place]}">{place === 1 ? 'Champion' : `${PLACE_LABELS[place]} Place`}</div>
+              <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+              <div class="trophy-empty">To be crowned</div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+
+  {#if isDraftPrep}
+    <!-- Draft Prep (preseason / offseason) -->
+    <div class="content" style="display:block;">
+
+      <!-- Draft Picks by Team -->
+      <div style="margin-bottom: 56px;">
+        <div class="section-header">
+          <h2 class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            Draft Picks by Team
+          </h2>
+          <a href="/drafts" class="section-link">
+            Draft Room
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+
+        {#if data?.requiresAuth}
+          <div class="placeholder-box">
+            <p style="margin:0 0 16px;">Log in with Yahoo to see each team's draft picks.</p>
+            <a href="/auth/login" class="btn-primary" style="height:44px;"><span>Login with Yahoo</span></a>
+          </div>
+        {:else if teams.length > 0}
+          <div class="draft-prep-grid">
+            {#each teams as team}
+              <div class="draft-team-card">
+                <div class="draft-team-head">
+                  <div class="avatar">
+                    {#if team.logo}<img src={team.logo} alt={team.name} style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />{:else}{initials(team.name)}{/if}
+                  </div>
+                  <div class="team-name" style="font-size:0.95rem;">{team.name}</div>
+                </div>
+                <div class="draft-picks">
+                  {#each DRAFT_ROUNDS as rnd}
+                    <span class="pick-chip"><span class="rnd">R{rnd}</span> TBD</span>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+          <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
+            Picks are tradeable — final pick ownership will appear here once entered.
+          </p>
+        {:else}
+          <div class="placeholder-box">
+            <p style="margin:0;">Draft picks will appear here once the league is configured.</p>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Key Players Returning to the Draft -->
+      <div>
+        <div class="section-header">
+          <h2 class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7000ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/></svg>
+            Key Players Returning to the Draft
+          </h2>
+        </div>
+
+        <div class="returning-grid">
+          {#each Array(6) as _, i}
+            <div class="returning-slot">
+              <div class="returning-orb">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="returning-text">
+                <div class="rt-name">Player Slot {i + 1}</div>
+                <div class="rt-sub">To be announced</div>
+              </div>
+            </div>
+          {/each}
+        </div>
+        <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
+          The notable players re-entering the draft pool will be revealed before draft day.
+        </p>
+      </div>
+
+    </div>
+  {:else}
   <!-- Main Content -->
   <div class="content">
 
@@ -1032,6 +1430,7 @@
 
     </div>
   </div>
+  {/if}
 
   <!-- Footer -->
   <footer class="sn-footer">

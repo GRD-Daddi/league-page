@@ -8,6 +8,19 @@ export const dues = 150; // (optional) used in template constitution page
 export const dynasty = true; // true for dynasty leagues, false for redraft and keeper
 export const enableBlog = false; // requires VITE_CONTENTFUL_ACCESS_TOKEN and VITE_CONTENTFUL_SPACE environment variables
 
+/*   HOME PAGE SEASON PHASE   */
+/*
+  Controls what the home page emphasizes. Yahoo's own draft/season status is not
+  always reliable, so this can be set manually. Options:
+    "auto"      - detect from Yahoo draft status + the NFL calendar (default)
+    "preseason" - show last season's trophies + draft prep (returning players, draft picks)
+    "regular"   - show live current standings
+    "playoffs"  - show live current standings (playoff stretch)
+    "offseason" - show last season's trophies + draft prep
+  Both "preseason" and "offseason" surface the draft-prep view.
+*/
+export const seasonPhase = "auto";
+
 /*   LEAGUE POT & PAYOUTS   */
 /*
   Optional manual backup allowlist for commissioner access. The commissioner is
