@@ -1,38 +1,34 @@
 import { json } from '@sveltejs/kit';
 
-const NFL_GAME_KEYS = ['461', '449', '423', '414', '406', '399', '390', '380', '371'];
+const NFL_GAME_KEYS = ['461', '449', '423', '414', '406', '399', '390', '380', '371', '359', '348', '331'];
 
 export async function GET({ locals }) {
 	if (!locals.yahooClient) {
 		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
 
-	const leagues = [];
+	try {
+		const result = await locals.yahooClient.user.game_leagues(NFL_GAME_KEYS);
+		const leagues = [];
 
-	for (const gameKey of NFL_GAME_KEYS) {
-		try {
-			const result = await locals.yahooClient.user.game_leagues(gameKey);
-			const gamesArr = result?.users?.[0]?.user?.[1]?.games || [];
-			const game = Array.isArray(gamesArr) ? gamesArr.find(g => g?.game?.[0]?.game_key === gameKey) : null;
-			const leaguesArr = game?.game?.[1]?.leagues || [];
-
-			const leagueList = Array.isArray(leaguesArr) ? leaguesArr : [];
-			for (const item of leagueList) {
-				const league = Array.isArray(item?.league) ? item.league[0] : item?.league;
-				if (!league) continue;
+		for (const game of (result.games || [])) {
+			for (const league of (game.leagues || [])) {
 				leagues.push({
 					league_key: league.league_key,
 					name: league.name,
 					season: league.season,
 					num_teams: league.num_teams,
-					game_key: gameKey,
+					game_key: game.game_key,
 					url: league.url
 				});
 			}
-		} catch (err) {
-			// This game key may not have leagues for this user — skip silently
 		}
-	}
 
-	return json({ leagues });
+		leagues.sort((a, b) => (b.season || '').localeCompare(a.season || ''));
+
+		return json({ leagues });
+	} catch (err) {
+		console.error('[my-leagues] Error fetching user leagues:', err.message, err);
+		return json({ error: err.message, leagues: [] }, { status: 500 });
+	}
 }
