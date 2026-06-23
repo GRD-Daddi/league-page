@@ -109,7 +109,10 @@ export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
         const teamsArray = await fetchLeagueTeams(yf, leagueKey);
 
         const rosterPromises = teamsArray.map(async (team, index) => {
-                const teamKey = team.team_key || team[0]?.team_key;
+                // Resolve team_key shape-agnostically: flat objects, segmented arrays
+                // (key may not be in index 0), and per-team-meta fallback all merge
+                // through extractTeamMeta so no team is silently dropped.
+                const teamKey = extractTeamMeta(team).teamMeta?.team_key;
                 if (!teamKey) return null;
                 
                 try {

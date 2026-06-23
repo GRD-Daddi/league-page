@@ -60,23 +60,43 @@ chain: settings.draft_rounds -> roster_positions(excl IR) -> max loaded roster s
 The dev server occasionally needs a restart after a transient Yahoo token "cb is
 not a function" crash.
 
-## Concurrency throttling: cap parallel Yahoo calls globally
-Bursting many requests on a single OAuth token makes Yahoo return the generic
-"There was a temporary problem with the server" error — and it tends to reject the
-heavy endpoints (`/teams`, `/standings`, larger payloads) while light ones
-(`/settings`, `/meta`, `/users;use_login=1`) keep succeeding. So a load where
-settings works but teams/standings consistently fail is the fingerprint of
-throttling, NOT a dead token or a per-endpoint bug.
+## Team-COLLECTION endpoints fail while single-resource endpoints work (offseason)
+The generic "There was a temporary problem with the server" error is NOT caused by
+concurrency. We added a global semaphore (`MAX_CONCURRENT_YAHOO_CALLS=2`),
+exponential backoff+jitter, per-call timeout, and funneled every `yf.*` through
+`withRetry` — and `/teams` + `/standings` STILL failed every time while
+`/settings`, `/league/metadata`, and the OAuth GUID call kept succeeding. So
+throttling-down did NOT fix it; the fingerprint is endpoint-class-specific, not load.
 
-**Why:** the homepage fanned out ~8 top-level loads, and `getYahooLeagueRosters`
-fired `Promise.all` over every team's roster (10+ more), and several adapter calls
-bypassed `withRetry` — 20+ simultaneous requests on one token.
+**The real pattern:** Yahoo errors on the endpoints that **enumerate the whole team
+collection** (`/league/{key}/teams`, `/league/{key}/standings`, `/scoreboard`) — most
+reliably during the offseason / pre-draft window — while **single-resource**
+endpoints (`/league/{key}/metadata`, `/league/{key}/settings`,
+`/team/{teamKey}/metadata`, `/team/{teamKey}/roster`) keep working for the same league.
 
-**How to apply:** every Yahoo call MUST funnel through `withRetry`, which now also
-acquires a slot from a global semaphore (`MAX_CONCURRENT_YAHOO_CALLS`, currently 2)
-in yahooClient.js, with exponential backoff + jitter and a per-call timeout
-(`callWithTimeout`, 15s, retryable) so a hung request can't monopolize a slot. When
-adding a new `yf.*` call anywhere, wrap it in `withRetry(() => yf...)` or it will
-bypass the limiter and reintroduce burst throttling. Verifying any of this requires
-an authenticated (logged-in) page reload — unauthenticated loads never hit these
-endpoints.
+**Why:** this is Yahoo-side and class-specific; retries/concurrency caps can't fix a
+collection endpoint that the server refuses to serve.
+
+**How to apply:** when the collection endpoints fail, enumerate teams INDIVIDUALLY.
+`fetchLeagueTeams()` in rosterAdapter now falls back (after /teams then /standings) to
+`fetchTeamsIndividually()`: it reads canonical `league_key` + `num_teams` from
+`yf.league.meta()` (works), builds deterministic team keys `{league_key}.t.{N}` for
+N=1..num_teams, and fetches each via `yf.team.meta()`. `yf.team.meta` returns a flat
+team object that `convertRosterToSleeperFormat`'s non-array branch already handles.
+Keep the semaphore/withRetry wrapping regardless — it's good hygiene, just not the cure.
+
+## Past-season data: walk the `renew` chain, don't hardcode keys
+Yahoo issues a BRAND-NEW league key every season, so last season's standings live
+under a different key than the current one. `previousLeagueKeys` in leagueInfo.js is
+typically empty, so historical lookups (Trophy Room / last champion) find nothing and
+render placeholders.
+
+**Why:** the current season is never `status==='complete'`, and without prior keys
+there is nowhere to read a completed season's final standings.
+
+**How to apply:** Yahoo's raw league metadata has a `renew` field
+("GAME_l_LEAGUEID", e.g. "449_l_744586") pointing at the prior season's league. The
+library returns the raw meta object, so `meta.renew` is present even though it isn't
+explicitly mapped. `yahooRenewToKey()` in leagueAdapter converts it to a real key and
+populates `previous_league_id`; `getLastSeasonPodium` (pot.js) walks that chain (BFS
+with a seen-set + depth guard) to auto-discover completed seasons.

@@ -3,4 +3,4 @@
 - [yahoo-fantasy client-bundle leak](yahoo-fantasy-client-bundle.md) — Node-only yahoo-fantasy leaks into browser bundle via helper.js barrel; stub it in vite for non-SSR resolution.
 - [Yahoo season-finished status](yahoo-season-finished.md) — draft_status never goes "complete"; use league is_finished==1 to detect season end.
 - [Champion auto-record vs manual](champion-auto-record.md) — season_records.champion_source 'auto'/'manual'; manual override never overwritten by auto-detection.
-- [Yahoo adapter quirks](yahoo-adapter-quirks.md) — library strips traded picks (use raw yf.api); rosters is a map (Object.values); key teams by Yahoo .t.N number not roster_id.
+- [Yahoo adapter quirks](yahoo-adapter-quirks.md) — traded picks need raw yf.api; rosters is a map; offseason collection endpoints (/teams,/standings) fail (not concurrency) → enumerate /team/{key}/metadata; past seasons via `renew` chain.

@@ -1,5 +1,15 @@
 import { getYahooClient, withRetry } from './yahooClient.js';
 
+// Yahoo's `renew` metadata field links a league to its previous season using the
+// format "GAME_l_LEAGUEID" (e.g. "449_l_744586"). Convert it to a standard
+// league key ("449.l.744586"). Returns null when absent or malformed.
+export function yahooRenewToKey(renew) {
+        if (!renew || typeof renew !== 'string') return null;
+        const m = renew.match(/^(\d+)_l_(\d+)$/);
+        if (!m) return null;
+        return `${m[1]}.l.${m[2]}`;
+}
+
 export async function getYahooLeagueData(leagueKey, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
@@ -78,7 +88,11 @@ function convertLeagueDataToSleeperFormat(meta, settings, leagueKey) {
 
                         scoring_settings: convertScoringSettings(yahooSettings.stat_categories),
                         roster_positions: convertRosterPositions(yahooSettings.roster_positions),
-                        previous_league_id: null,
+                        // Yahoo links each season's league to the prior season via `renew`
+                        // (format "GAME_l_LEAGUEID"). Expose it as the previous league key
+                        // so historical lookups (e.g. last season's champion) can walk the
+                        // season chain without the keys being hardcoded.
+                        previous_league_id: yahooRenewToKey(yahooLeague.renew),
                         total_rosters: yahooLeague.num_teams || 0,
                         shard: 0,
                         last_transaction_id: 0,

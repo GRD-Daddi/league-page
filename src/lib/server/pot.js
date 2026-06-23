@@ -171,13 +171,31 @@ export async function getChampionHistory(yahooClient = null, leagueKey = null) {
  */
 export async function getLastSeasonPodium(yahooClient = null, leagueKey = null) {
         if (!yahooClient) return null;
-        const keys = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
+        // Seed with the configured keys, then walk Yahoo's season chain via each
+        // league's `previous_league_id` (derived from the `renew` field). This means
+        // historical seasons resolve automatically — no need to hardcode every
+        // past league key in previousLeagueKeys.
+        const queue = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
+        const seen = new Set();
         let best = null;
+        let guard = 0;
 
-        for (const key of keys) {
+        while (queue.length > 0 && guard < 25) {
+                guard += 1;
+                const key = queue.shift();
+                if (!key || seen.has(key)) continue;
+                seen.add(key);
                 try {
                         const leagueData = await loadLeagueData(yahooClient, key);
-                        if (!leagueData || leagueData.status !== 'complete') continue;
+                        if (!leagueData) continue;
+
+                        // Follow the chain to the previous season regardless of this
+                        // league's completion status (the current season is in progress).
+                        if (leagueData.previous_league_id && !seen.has(leagueData.previous_league_id)) {
+                                queue.push(leagueData.previous_league_id);
+                        }
+
+                        if (leagueData.status !== 'complete') continue;
 
                         const year = parseInt(leagueData.season, 10);
                         if (!Number.isFinite(year)) continue;
