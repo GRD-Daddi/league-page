@@ -73,8 +73,8 @@ export const tabs = [
             },
             {
                 icon: 'sports_football',
-                label: 'Go to Sleeper',
-                dest: `https://sleeper.app/leagues/${leagueID}`,
+                label: 'Go to Yahoo',
+                dest: `https://football.fantasysports.yahoo.com/f1/${String(leagueID).split('.').pop()}`,
             },
         ]
     },
