@@ -1,0 +1,661 @@
+
+{
+"fantasy_content": {
+"xml:lang": "en-US",
+"yahoo:uri": "/fantasy/v2/league/461.l.744586/teams;out=recommended_trade_partners;recommended_trade_partners.count=1",
+"league": {
+"league_key": "461.l.744586",
+"league_id": "744586",
+"name": "Minnesota Slopes",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586",
+"recordbook_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/recordbook?layout=webview&device=smartphone",
+"logo_url": "https://s.yimg.com/ep/cx/blendr/v2/image-avatar-football-trophy-kc-png_1721783527415.png",
+"password": null,
+"draft_status": "postdraft",
+"num_teams": 12,
+"edit_key": "17",
+"weekly_deadline": null,
+"roster_type": "week",
+"league_update_timestamp": "1767858477",
+"scoring_type": "head",
+"scoring_label": "H2H",
+"league_type": "private",
+"renew": "449_203799",
+"renewed": "470_99366",
+"felo_tier": "silver",
+"is_highscore": null,
+"matchup_week": 17,
+"iris_group_chat_id": null,
+"short_invitation_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/invitation?key=998a31f6cee0e1d1&ikey=0eda465dd5819f73",
+"allow_add_to_dl_extra_pos": 1,
+"is_pro_league": "0",
+"is_cash_league": "0",
+"current_week": "17",
+"start_week": "1",
+"start_date": "2025-09-04",
+"end_week": "17",
+"end_date": "2025-12-29",
+"is_finished": 1,
+"is_plus_league": "0",
+"game_code": "nfl",
+"season": "2025",
+"teams": [
+{
+"team": {
+"team_key": "461.l.744586.t.1",
+"team_id": "1",
+"name": "BBL Daddi",
+"is_owned_by_current_login": 1,
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/1",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://s.yimg.com/cv/apiv2/default/nfl/nfl_12.png"
+}
+}
+],
+"previous_season_team_rank": 3,
+"division_id": "1",
+"waiver_priority": 3,
+"faab_balance": "0",
+"number_of_moves": 30,
+"number_of_trades": "3",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"clinched_playoffs": 1,
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "D",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/1/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "1",
+"nickname": "matthew",
+"guid": "BXQOPWDHTZBNKFSBS2TGAR2PEU",
+"is_commissioner": "1",
+"is_current_login": "1",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "837",
+"felo_tier": "platinum"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.8"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.2",
+"team_id": "2",
+"name": "Younghoe Stubtoe",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/2",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/337e80c6a0dd58b8554b4de0f342f75e3a1e33f87aa6eb2f3bfa78926c57716c.png"
+}
+}
+],
+"previous_season_team_rank": 2,
+"division_id": "2",
+"waiver_priority": 2,
+"faab_balance": "100",
+"number_of_moves": 10,
+"number_of_trades": 0,
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"clinched_playoffs": 1,
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "D",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/2/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "2",
+"nickname": "*",
+"guid": "6E2QDTDIVVCA6TERU2CJTL64NW",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "575",
+"felo_tier": "bronze"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.1"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.3",
+"team_id": "3",
+"name": "4 ACES",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/3",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/b7e77f55324b58191f62dd245c4a1901c177dfe84517c86dcd4f5cec1dc4df07.png"
+}
+}
+],
+"previous_season_team_rank": 6,
+"division_id": "1",
+"waiver_priority": 6,
+"faab_balance": "0",
+"number_of_moves": 27,
+"number_of_trades": "1",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "D+",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/3/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "3",
+"nickname": "kevin",
+"guid": "224A3HPC6IYA4MXRJKP5CQGOIF",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "576",
+"felo_tier": "bronze"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.1"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.4",
+"team_id": "4",
+"name": "Knuck If You Buck",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/4",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://s.yimg.com/cv/apiv2/default/nfl/nfl_9.png"
+}
+}
+],
+"previous_season_team_rank": 8,
+"division_id": "2",
+"waiver_priority": 11,
+"faab_balance": "2",
+"number_of_moves": 38,
+"number_of_trades": "1",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"clinched_playoffs": 1,
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "A+",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/4/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "4",
+"nickname": "Jamieson",
+"guid": "5DIR3J5KPMVWPWZLTFVZTIWIPY",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "783",
+"felo_tier": "gold"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.3"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.5",
+"team_id": "5",
+"name": "Ceedez Nuts🥜",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/5",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://s.yimg.com/cv/apiv2/default/nfl/nfl_2_n.png"
+}
+}
+],
+"previous_season_team_rank": 12,
+"division_id": "1",
+"waiver_priority": 7,
+"faab_balance": "36",
+"number_of_moves": 11,
+"number_of_trades": 0,
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "B",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/5/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "5",
+"nickname": "nick",
+"guid": "HEZZTWXKGGNAS6W64B3DX3VXGM",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "530",
+"felo_tier": "bronze"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.1"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.6",
+"team_id": "6",
+"name": "lamar st.brown",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/6",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/aaf281ac9d7fae7b2d47c4811dec384f62195f3d1ba151698ad2b642e0ce2ed1.jpg"
+}
+}
+],
+"previous_season_team_rank": 11,
+"division_id": "2",
+"waiver_priority": 10,
+"faab_balance": "4",
+"number_of_moves": 40,
+"number_of_trades": 0,
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"clinched_playoffs": 1,
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "A",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/6/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "6",
+"nickname": "Ivan",
+"guid": "7UOYNY7OMVSGKRKCFAXLKISANQ",
+"image_url": "https://s.yimg.com/ag/images/4552/37265255803_7f82c3_64sq.jpg",
+"felo_score": "806",
+"felo_tier": "platinum"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.8"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.7",
+"team_id": "7",
+"name": "Handicapped Hitlers",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/7",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://s.yimg.com/cv/apiv2/default/nfl/nfl_10_e.png"
+}
+}
+],
+"previous_season_team_rank": 4,
+"division_id": "1",
+"waiver_priority": 4,
+"faab_balance": "60",
+"number_of_moves": 20,
+"number_of_trades": "1",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "C-",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/7/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "7",
+"nickname": "matt",
+"guid": "AE2SUAAVEHEBRMYYEGNPOFCVIY",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "781",
+"felo_tier": "gold"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.1"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.8",
+"team_id": "8",
+"name": "Ken Kaniff",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/8",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://s.yimg.com/cv/apiv2/default/nfl/nfl_4.png"
+}
+}
+],
+"previous_season_team_rank": 7,
+"division_id": "2",
+"waiver_priority": 9,
+"faab_balance": "59",
+"number_of_moves": 14,
+"number_of_trades": "2",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "F",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/8/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "8",
+"nickname": "Robert",
+"guid": "DMR57KT2VZOV26N6WPIHFD4BCM",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "569",
+"felo_tier": "bronze"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.6"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.9",
+"team_id": "9",
+"name": "Played The Slice. Didn’t Slice",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/9",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/56482349271_5c4ae7.jpg"
+}
+}
+],
+"previous_season_team_rank": 10,
+"division_id": "1",
+"waiver_priority": 8,
+"faab_balance": "0",
+"number_of_moves": 15,
+"number_of_trades": 0,
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "A",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/9/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "9",
+"nickname": "Jesse",
+"guid": "ZDKIG5MTTEEAQHB5FJS4N63KGM",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "645",
+"felo_tier": "silver"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.8"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.10",
+"team_id": "10",
+"name": "“Most Underwhelming”",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/10",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/eab6692227018b1255634b4a441cb757c6d710aef27e55474315fa48b9dd158a.jpg"
+}
+}
+],
+"previous_season_team_rank": 1,
+"division_id": "2",
+"waiver_priority": 1,
+"faab_balance": "0",
+"number_of_moves": 27,
+"number_of_trades": "5",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"clinched_playoffs": 1,
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "C",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/10/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "10",
+"nickname": "Anthony",
+"guid": "J64AE2P7UHGWRZSDRSATOL3YSD",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "708",
+"felo_tier": "gold"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.1"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.11",
+"team_id": "11",
+"name": "Fries in the bag Tua",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/11",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/d8a9b233ef6ace8e60581e3e0ec57fe17c645250622bf25822a31a2724e15268.jpg"
+}
+}
+],
+"previous_season_team_rank": 5,
+"division_id": "1",
+"waiver_priority": 5,
+"faab_balance": "0",
+"number_of_moves": 20,
+"number_of_trades": "6",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "D",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/11/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "11",
+"nickname": "Tyler",
+"guid": "VLISNHF4YDEMRMPNDMDC2HFBVQ",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "586",
+"felo_tier": "bronze"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.6"
+}
+}
+]
+}
+},
+{
+"team": {
+"team_key": "461.l.744586.t.12",
+"team_id": "12",
+"name": "BBL Criffy",
+"url": "https://football.fantasysports.yahoo.com/2025/f1/744586/12",
+"team_logos": [
+{
+"team_logo": {
+"size": "large",
+"url": "https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/ed3859cd631c917cda70c6a88aed4898e649d3190e58e510b3940f1fe742f149.jpg"
+}
+}
+],
+"previous_season_team_rank": 9,
+"division_id": "2",
+"waiver_priority": 12,
+"faab_balance": "0",
+"number_of_moves": 96,
+"number_of_trades": "5",
+"roster_adds": {
+"coverage_type": "week",
+"coverage_value": 18,
+"value": "0"
+},
+"clinched_playoffs": 1,
+"league_scoring_type": "head",
+"has_draft_grade": 1,
+"draft_grade": "B",
+"draft_recap_url": "https://football.fantasysports.yahoo.com/2025/f1/744586/12/draftrecap",
+"managers": [
+{
+"manager": {
+"manager_id": "12",
+"nickname": "chris",
+"guid": "7Z2TXFBOK7X2E6SJ3IQSXMCCZV",
+"image_url": "https://s.yimg.com/ag/images/default_user_profile_pic_64sq.jpg",
+"felo_score": "559",
+"felo_tier": "bronze"
+}
+}
+],
+"recommended_trade_partners": [
+{
+"recommended_trade_partner": {
+"team_key": "461.l.744586.t.8"
+}
+}
+]
+}
+}
+],
+"teams:attributes": {
+"count": 12
+}
+},
+"@time": "88.582992553711ms",
+"@copyright": "Certain Data by Sportradar, Stats Perform and Rotowire",
+"@refresh_rate": "30"
+}
+}

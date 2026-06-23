@@ -6,6 +6,26 @@ const isHidden = (v) => !v || v === '--hidden--';
 // contains players, so we can wire player-name extraction correctly.
 let ROSTER_SAMPLE_LOGGED = false;
 
+// A roster player can arrive flat (the yahoo-fantasy library's mapped shape) or
+// as an array of raw Yahoo segments. Merge any array form into a single object so
+// fields (player_key, name, selected_position, ...) are reliably accessible.
+function flattenPlayer(player) {
+        if (!Array.isArray(player)) return player || {};
+        return player
+                .flat(Infinity)
+                .filter((seg) => seg && typeof seg === 'object')
+                .reduce((acc, seg) => Object.assign(acc, seg), {});
+}
+
+// selected_position is a plain string ("QB", "BN", "IR") in the mapped shape, or
+// a nested array/object in the raw shape. Normalise to a string.
+function selectedPosition(p) {
+        const sp = p?.selected_position;
+        if (typeof sp === 'string') return sp;
+        if (Array.isArray(sp)) return sp.find((x) => x?.position)?.position || null;
+        return sp?.position || null;
+}
+
 // Yahoo's `/teams` endpoint intermittently fails with "There was a temporary
 // problem with the server" — sometimes persistently for a given league — even
 // while other endpoints (settings, standings) respond fine. We retry it, then
@@ -219,36 +239,48 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
         const manager = Array.isArray(managers) && managers.length > 0 ? managers[0] : managers;
         const managerData = manager?.manager || manager || {};
         
+        // The library's mapped roster sets `team.roster` to a flat array of player
+        // objects. Older/raw shapes nest players under `roster.players[].player` or
+        // inside `team[].roster`. Handle all three.
         let rosterPlayers = [];
-        if (rosterData?.team && Array.isArray(rosterData.team)) {
+        if (Array.isArray(rosterData?.roster)) {
+                rosterPlayers = rosterData.roster;
+        } else if (rosterData?.roster?.players) {
+                rosterPlayers = rosterData.roster.players?.[0]?.player || rosterData.roster.players || [];
+        } else if (rosterData?.team && Array.isArray(rosterData.team)) {
                 rosterData.team.forEach(segment => {
                         if (segment.roster) {
-                                const rosterSegment = segment.roster;
-                                rosterPlayers = rosterSegment.players?.[0]?.player || rosterSegment.players || [];
+                                const rs = segment.roster;
+                                rosterPlayers = Array.isArray(rs) ? rs : (rs.players?.[0]?.player || rs.players || []);
                         }
                 });
-        } else if (rosterData?.roster) {
-                rosterPlayers = rosterData.roster.players?.[0]?.player || rosterData.roster.players || [];
         }
-        
-        const players = rosterPlayers;
-        
-        const playerIds = players.map(player => {
-                const p = Array.isArray(player) && player.length > 0 ? player[0] : player;
-                return p?.player_key || p?.player_id || null;
-        }).filter(id => id !== null);
-        
-        const starters = players
-                .filter(player => {
-                        const p = Array.isArray(player) && player.length > 1 ? player[1] : player;
-                        const selectedPosition = p?.selected_position?.[0]?.position || p?.selected_position;
-                        return selectedPosition && selectedPosition !== 'BN' && selectedPosition !== 'IR';
+
+        const playerObjs = rosterPlayers.map(flattenPlayer).filter((p) => p && (p.player_key || p.player_id));
+
+        const playerIds = playerObjs.map((p) => p.player_key || p.player_id);
+
+        const starters = playerObjs
+                .filter((p) => {
+                        const pos = selectedPosition(p);
+                        return pos && pos !== 'BN' && pos !== 'IR';
                 })
-                .map(player => {
-                        const p = Array.isArray(player) && player.length > 0 ? player[0] : player;
-                        return p?.player_key || p?.player_id || null;
-                })
-                .filter(id => id !== null);
+                .map((p) => p.player_key || p.player_id);
+
+        // Yahoo roster payloads carry player name/position/team inline, so we build a
+        // compact detail map here (keyed by player_key) rather than relying on an
+        // external Sleeper player map whose IDs do not match Yahoo's keys.
+        const players_detail = {};
+        for (const p of playerObjs) {
+                const id = p.player_key || p.player_id;
+                const nm = p.name || {};
+                players_detail[id] = {
+                        fn: nm.first || nm.full || '',
+                        ln: nm.last || '',
+                        pos: p.display_position || p.primary_position || null,
+                        t: p.editorial_team_abbr || null
+                };
+        }
         
         const stats = teamStandings;
         const outcome_totals = stats.outcome_totals || {};
@@ -266,6 +298,7 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                 
                 players: playerIds,
                 starters: starters,
+                players_detail: players_detail,
                 reserve: [],
                 taxi: null,
                 

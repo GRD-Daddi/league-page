@@ -267,6 +267,10 @@ function processMatchups(matchupsData, week) {
 function processRosters(rosters) {
         const startersAndReserve = [];
         const rosterMap = {};
+        // Yahoo roster payloads embed player names/positions; aggregate every
+        // roster's detail map into one lookup (keyed by Yahoo player_key) so the
+        // page can resolve names without an external player map.
+        const yahooPlayers = {};
         for(const roster of rosters) {
                 for(const starter of roster.starters) {
                         startersAndReserve.push(starter);
@@ -276,9 +280,12 @@ function processRosters(rosters) {
                                 startersAndReserve.push(ir);
                         }
                 }
+                if(roster.players_detail) {
+                        Object.assign(yahooPlayers, roster.players_detail);
+                }
                 rosterMap[roster.roster_id] = roster;
         }
-        return {rosters: rosterMap, startersAndReserve};
+        return {rosters: rosterMap, startersAndReserve, yahooPlayers};
 }
 
 export async function loadPlayers(fetch) {
