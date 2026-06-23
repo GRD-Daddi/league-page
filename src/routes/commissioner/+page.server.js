@@ -161,7 +161,8 @@ export const actions = {
                 await upsertSeason(year);
                 await query(
                         `UPDATE season_records
-                         SET champion_team_key = $2, champion_name = $3, champion_recorded = true, updated_at = now()
+                         SET champion_team_key = $2, champion_name = $3, champion_recorded = true,
+                                 champion_source = 'manual', updated_at = now()
                          WHERE year = $1`,
                         [year, teamKey, name]
                 );

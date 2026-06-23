@@ -44,7 +44,8 @@ async function getSeasonRecord(year) {
                         thirdPaid: false,
                         championTeamKey: null,
                         championName: null,
-                        championRecorded: false
+                        championRecorded: false,
+                        championSource: null
                 };
         }
         return {
@@ -57,8 +58,32 @@ async function getSeasonRecord(year) {
                 thirdPaid: row.third_paid,
                 championTeamKey: row.champion_team_key,
                 championName: row.champion_name,
-                championRecorded: row.champion_recorded
+                championRecorded: row.champion_recorded,
+                championSource: row.champion_source
         };
+}
+
+/**
+ * Persists an auto-detected champion into season_records. A commissioner-entered
+ * champion (champion_source = 'manual') is treated as an override and is never
+ * overwritten — the conditional ON CONFLICT clause guarantees that even if this
+ * is called for a season the commissioner has already set by hand.
+ */
+async function recordAutoChampion(year, teamKey, name) {
+        if (!Number.isFinite(year) || !name) return;
+        await query(
+                `INSERT INTO season_records
+                         (year, champion_team_key, champion_name, champion_recorded, champion_source, updated_at)
+                 VALUES ($1, $2, $3, true, 'auto', now())
+                 ON CONFLICT (year) DO UPDATE
+                         SET champion_team_key = EXCLUDED.champion_team_key,
+                                 champion_name = EXCLUDED.champion_name,
+                                 champion_recorded = true,
+                                 champion_source = 'auto',
+                                 updated_at = now()
+                         WHERE season_records.champion_source IS DISTINCT FROM 'manual'`,
+                [year, teamKey, name]
+        );
 }
 
 /**
@@ -102,7 +127,7 @@ async function getYahooChampion(yahooClient, leagueKey) {
  */
 export async function getChampionHistory(yahooClient = null, leagueKey = null) {
         const { rows } = await query(
-                `SELECT year, champion_team_key, champion_name FROM season_records
+                `SELECT year, champion_team_key, champion_name, champion_source FROM season_records
                  WHERE champion_recorded = true AND champion_name IS NOT NULL
                  ORDER BY year ASC`
         );
@@ -110,7 +135,12 @@ export async function getChampionHistory(yahooClient = null, leagueKey = null) {
         const byYear = new Map(
                 rows.map((r) => [
                         r.year,
-                        { year: r.year, teamKey: r.champion_team_key, name: r.champion_name, source: 'manual' }
+                        {
+                                year: r.year,
+                                teamKey: r.champion_team_key,
+                                name: r.champion_name,
+                                source: r.champion_source === 'auto' ? 'yahoo' : 'manual'
+                        }
                 ])
         );
 
@@ -118,9 +148,14 @@ export async function getChampionHistory(yahooClient = null, leagueKey = null) {
                 const keys = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
                 const yahooChamps = await Promise.all(keys.map((key) => getYahooChampion(yahooClient, key)));
                 for (const champ of yahooChamps) {
-                        if (champ) {
-                                byYear.set(champ.year, { ...champ, source: 'yahoo' });
-                        }
+                        if (!champ) continue;
+                        // Never clobber a commissioner override.
+                        const existing = byYear.get(champ.year);
+                        if (existing && existing.source === 'manual') continue;
+                        // Auto-record the detected champion so back-to-back detection and
+                        // future reads run off persisted data, not a live recomputation.
+                        await recordAutoChampion(champ.year, champ.teamKey, champ.name);
+                        byYear.set(champ.year, { ...champ, source: 'yahoo' });
                 }
         }
 
