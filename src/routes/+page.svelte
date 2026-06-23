@@ -16,10 +16,12 @@
         const user = Array.isArray(users)
           ? users.find(u => u.user_id === r.owner_id)
           : null;
+        const teamName = r.metadata?.team_name ?? r.team_name ?? 'Unknown Team';
+        const nickname = user?.metadata?.manager_nickname ?? null;
         return {
           rank: i + 1,
-          team: r.team_name ?? 'Unknown Team',
-          manager: user?.display_name ?? '—',
+          team: teamName,
+          manager: nickname && nickname !== teamName ? nickname : '—',
           w: r.settings?.wins ?? 0,
           l: r.settings?.losses ?? 0,
           points: r.settings?.fpts ?? 0,

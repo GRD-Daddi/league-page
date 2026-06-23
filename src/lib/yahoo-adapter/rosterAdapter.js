@@ -1,5 +1,28 @@
 import { getYahooClient } from './yahooClient.js';
 
+const isHidden = (v) => !v || v === '--hidden--';
+
+// Yahoo team payloads can arrive either as a flat (already-merged) object or as
+// an array of segments. Merge all segments so key fields (team_key, name,
+// managers) are reliably present regardless of which segment carries them.
+function extractTeamMeta(team) {
+        let teamMeta = {};
+        let managers = [];
+        if (Array.isArray(team)) {
+                team.forEach((segment) => {
+                        if (!segment) return;
+                        teamMeta = { ...teamMeta, ...segment };
+                        if (segment.managers) managers = segment.managers;
+                });
+        } else {
+                teamMeta = team || {};
+                managers = teamMeta.managers || [];
+        }
+        const manager = Array.isArray(managers) ? managers[0] : managers;
+        const managerData = manager?.manager || manager || {};
+        return { teamMeta, managerData };
+}
+
 export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
@@ -33,20 +56,22 @@ export async function getYahooLeagueUsers(leagueKey, yahooClient = null) {
                 const teamsArray = teams.league?.[0]?.teams?.[0]?.team || teams.teams || [];
                 
                 return teamsArray.map((team, index) => {
-                        const teamData = Array.isArray(team) ? team[0] : team;
-                        const managers = teamData.managers || [];
-                        const manager = Array.isArray(managers) ? managers[0] : managers;
-                        const managerData = manager?.manager || manager || {};
-                        
+                        const { teamMeta, managerData } = extractTeamMeta(team);
+
+                        const guid = isHidden(managerData.guid) ? null : managerData.guid;
+                        const nickname = isHidden(managerData.nickname) ? null : managerData.nickname;
+                        const stableId = guid || teamMeta.team_key || `yahoo_${index + 1}`;
+
                         return {
-                                user_id: managerData.guid || `yahoo_${index + 1}`,
-                                username: managerData.nickname || teamData.name || `Team ${index + 1}`,
-                                display_name: managerData.nickname || teamData.name || `Team ${index + 1}`,
+                                user_id: stableId,
+                                username: nickname || teamMeta.name || `Team ${index + 1}`,
+                                display_name: nickname || teamMeta.name || `Team ${index + 1}`,
                                 avatar: managerData.image_url || null,
                                 metadata: {
-                                        team_key: teamData.team_key,
-                                        team_name: teamData.name,
-                                        yahoo_guid: managerData.guid,
+                                        team_key: teamMeta.team_key,
+                                        team_name: teamMeta.name,
+                                        yahoo_guid: guid,
+                                        manager_nickname: nickname,
                                         is_commissioner: managerData.is_commissioner === '1',
                                         email: managerData.email || null
                                 },
@@ -126,7 +151,7 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
         
         return {
                 roster_id: rosterId,
-                owner_id: managerData.guid || `yahoo_${rosterId}`,
+                owner_id: (!isHidden(managerData.guid) ? managerData.guid : null) || teamMeta.team_key || `yahoo_${rosterId}`,
                 league_id: teamMeta.team_key?.split('.l.')[1]?.split('.t.')[0] || null,
                 
                 players: playerIds,
