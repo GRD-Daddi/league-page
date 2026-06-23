@@ -11,6 +11,7 @@
 
         let buyIn = $state(0);
         let potSplitPct = $state(50);
+        let pointsLeaderAmount = $state(10);
         let first = $state(0);
         let second = $state(0);
         let third = $state(0);
@@ -19,16 +20,21 @@
         let winnerName = $state('');
         let winnerTeamKey = $state('');
         let potTotalInput = $state(0);
+        let pointsLeaderName = $state('');
+        let pointsLeaderTeamKey = $state('');
 
         $effect(() => {
                 buyIn = c.settings.buyIn;
                 potSplitPct = c.settings.potSplitPct;
+                pointsLeaderAmount = c.settings.pointsLeaderAmount;
                 potTotalInput = c.potTotal;
                 first = c.season.payoutFirst;
                 second = c.season.payoutSecond;
                 third = c.season.payoutThird;
                 championName = c.season.championName || '';
                 championTeamKey = c.season.championTeamKey || '';
+                pointsLeaderName = c.season.pointsLeaderName || '';
+                pointsLeaderTeamKey = c.season.pointsLeaderTeamKey || '';
                 if (c.champion?.reigning) {
                         winnerName = c.champion.reigning.name || '';
                         winnerTeamKey = c.champion.reigning.teamKey || '';
@@ -101,6 +107,11 @@
                                                 <div><strong>{money(buyIn * (potSplitPct / 100))}</strong><span>to pot</span></div>
                                                 <div><strong>{money(buyIn * ((100 - potSplitPct) / 100))}</strong><span>to payout pool</span></div>
                                         </div>
+                                        <label class="field">
+                                                <span>Points-leader bonus per member ($)</span>
+                                                <input type="number" name="pointsLeaderAmount" min="0" step="1" bind:value={pointsLeaderAmount} />
+                                        </label>
+                                        <p class="card-sub note">Each member chips in this amount directly to the season's points leader, on top of dues.</p>
                                         <button class="btn" type="submit">Save Settings</button>
                                 </form>
 
@@ -130,14 +141,20 @@
 
                                 <div class="payout-rows">
                                         {#each [ ['first','1st',c.payoutPool.first], ['second','2nd',c.payoutPool.second], ['third','3rd',c.payoutPool.third] ] as [place, label, info]}
-                                                <div class="payout-row">
+                                                <div class="payout-row {info.enabled ? '' : 'disabled'}">
                                                         <span class="pl">{label}</span>
-                                                        <span class="amt">{money(info.amount)}</span>
+                                                        <span class="amt">{info.enabled ? money(info.amount) : 'Not paid'}</span>
+                                                        <form method="POST" action="?/togglePayoutEnabled" use:enhance>
+                                                                <input type="hidden" name="year" value={c.year} />
+                                                                <input type="hidden" name="place" value={place} />
+                                                                <input type="hidden" name="enabled" value={(!info.enabled).toString()} />
+                                                                <button class="chip ghost" type="submit">{info.enabled ? 'Disable' : 'Enable'}</button>
+                                                        </form>
                                                         <form method="POST" action="?/togglePayoutPaid" use:enhance>
                                                                 <input type="hidden" name="year" value={c.year} />
                                                                 <input type="hidden" name="place" value={place} />
                                                                 <input type="hidden" name="paid" value={(!info.paid).toString()} />
-                                                                <button class="chip {info.paid ? 'paid' : ''}" type="submit">{info.paid ? 'Paid ✓' : 'Mark Paid'}</button>
+                                                                <button class="chip {info.paid ? 'paid' : ''}" type="submit" disabled={!info.enabled}>{info.paid ? 'Paid ✓' : 'Mark Paid'}</button>
                                                         </form>
                                                 </div>
                                         {/each}
@@ -161,6 +178,35 @@
                                                 {#each [...c.championHistory].sort((a,b)=>b.year-a.year) as ch}
                                                         <div class="history-row"><span>{ch.year}</span><strong>{ch.name}</strong></div>
                                                 {/each}
+                                        </div>
+                                {/if}
+                        </section>
+
+                        <!-- Points leader bonus -->
+                        <section class="card">
+                                <h2>{c.year} Points Leader</h2>
+                                <p class="card-sub">The regular-season points leader collects {money(c.pointsLeader.amount)} from every other member, on top of dues.</p>
+                                <form method="POST" action="?/recordPointsLeader" use:enhance>
+                                        <input type="hidden" name="year" value={c.year} />
+                                        <label class="field"><span>Points leader name</span><input type="text" name="pointsLeaderName" placeholder="Team or manager name" bind:value={pointsLeaderName} /></label>
+                                        <label class="field"><span>Team key (optional)</span><input type="text" name="pointsLeaderTeamKey" placeholder="nfl.l.xxxxxx.t.x" bind:value={pointsLeaderTeamKey} /></label>
+                                        <button class="btn" type="submit">Record Points Leader</button>
+                                </form>
+
+                                <div class="pl-summary">
+                                        <div><span>Per member</span><strong>{money(c.pointsLeader.amount)}</strong></div>
+                                        <div><span>Contributors</span><strong>{c.pointsLeader.contributors}</strong></div>
+                                        <div><span>Total to leader</span><strong>{money(c.pointsLeader.total)}</strong></div>
+                                </div>
+
+                                {#if c.pointsLeader.recorded}
+                                        <div class="payout-row">
+                                                <span class="amt">{c.pointsLeader.name} collects {money(c.pointsLeader.total)}</span>
+                                                <form method="POST" action="?/togglePointsLeaderPaid" use:enhance>
+                                                        <input type="hidden" name="year" value={c.year} />
+                                                        <input type="hidden" name="paid" value={(!c.pointsLeader.paid).toString()} />
+                                                        <button class="chip {c.pointsLeader.paid ? 'paid' : ''}" type="submit">{c.pointsLeader.paid ? 'Settled ✓' : 'Mark Settled'}</button>
+                                                </form>
                                         </div>
                                 {/if}
                         </section>
@@ -300,6 +346,15 @@
         }
         .chip:hover { border-color: #00f0ff; color: #00f0ff; }
         .chip.paid { background: rgba(204,255,0,0.15); border-color: rgba(204,255,0,0.4); color: #ccff00; }
+        .chip.ghost { border-style: dashed; }
+        .chip:disabled { opacity: 0.35; cursor: not-allowed; }
+        .chip:disabled:hover { border-color: #374151; color: #9ca3af; }
+        .payout-row.disabled .amt { color: #6b7280; text-decoration: line-through; }
+
+        .pl-summary { display: flex; gap: 18px; margin-top: 16px; flex-wrap: wrap; }
+        .pl-summary div { display: flex; flex-direction: column; gap: 2px; }
+        .pl-summary span { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; }
+        .pl-summary strong { font-family: monospace; font-size: 1.05rem; color: #00f0ff; }
 
         .award-amt { font-size: 0.9rem; color: #9ca3af; margin-bottom: 14px; }
         .award-amt strong { color: #ccff00; font-family: monospace; }

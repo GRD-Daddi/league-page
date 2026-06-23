@@ -19,7 +19,7 @@ function num(value, fallback = 0) {
 }
 
 export async function getSettings() {
-        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pot_adjustment FROM pot_settings WHERE id = 1');
+        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pot_adjustment, points_leader_amount FROM pot_settings WHERE id = 1');
         const row = rows[0] || {};
         const buyIn = num(row.buy_in_amount, 150);
         const potSplitPct = num(row.pot_split_pct, 50);
@@ -27,6 +27,7 @@ export async function getSettings() {
                 buyIn,
                 potSplitPct,
                 potAdjustment: num(row.pot_adjustment, 0),
+                pointsLeaderAmount: num(row.points_leader_amount, 10),
                 potShare: buyIn * (potSplitPct / 100),
                 poolShare: buyIn * ((100 - potSplitPct) / 100)
         };
@@ -64,10 +65,17 @@ async function getSeasonRecord(year) {
                         firstPaid: false,
                         secondPaid: false,
                         thirdPaid: false,
+                        firstEnabled: true,
+                        secondEnabled: true,
+                        thirdEnabled: true,
                         championTeamKey: null,
                         championName: null,
                         championRecorded: false,
-                        championSource: null
+                        championSource: null,
+                        pointsLeaderTeamKey: null,
+                        pointsLeaderName: null,
+                        pointsLeaderRecorded: false,
+                        pointsLeaderPaid: false
                 };
         }
         return {
@@ -78,10 +86,17 @@ async function getSeasonRecord(year) {
                 firstPaid: row.first_paid,
                 secondPaid: row.second_paid,
                 thirdPaid: row.third_paid,
+                firstEnabled: row.first_enabled !== false,
+                secondEnabled: row.second_enabled !== false,
+                thirdEnabled: row.third_enabled !== false,
                 championTeamKey: row.champion_team_key,
                 championName: row.champion_name,
                 championRecorded: row.champion_recorded,
-                championSource: row.champion_source
+                championSource: row.champion_source,
+                pointsLeaderTeamKey: row.points_leader_team_key,
+                pointsLeaderName: row.points_leader_name,
+                pointsLeaderRecorded: row.points_leader_recorded === true,
+                pointsLeaderPaid: row.points_leader_paid === true
         };
 }
 
@@ -299,10 +314,31 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
         const season = await getSeasonRecord(year);
         const poolContributed = paidThisYear * settings.poolShare;
         const paidOut =
-                (season.firstPaid ? season.payoutFirst : 0) +
-                (season.secondPaid ? season.payoutSecond : 0) +
-                (season.thirdPaid ? season.payoutThird : 0);
+                (season.firstEnabled && season.firstPaid ? season.payoutFirst : 0) +
+                (season.secondEnabled && season.secondPaid ? season.payoutSecond : 0) +
+                (season.thirdEnabled && season.thirdPaid ? season.payoutThird : 0);
         const payoutPoolRemaining = Math.max(0, poolContributed - paidOut);
+
+        // End-of-year points-leader bonus. Every member chips in a fixed amount
+        // (settings.pointsLeaderAmount) directly to the season's points leader,
+        // separate from the carryover pot and the payout pool. The leader doesn't
+        // pay themselves, so the total they collect is amount × (members − 1).
+        const { rows: memberCountRows } = await query(
+                'SELECT COUNT(*)::int AS c FROM member_buyins WHERE year = $1',
+                [year]
+        );
+        const pointsLeaderMembers = memberCountRows[0]?.c ?? 0;
+        const pointsLeaderContributors = Math.max(0, pointsLeaderMembers - 1);
+        const pointsLeader = {
+                amount: settings.pointsLeaderAmount,
+                members: pointsLeaderMembers,
+                contributors: pointsLeaderContributors,
+                total: settings.pointsLeaderAmount * pointsLeaderContributors,
+                name: season.pointsLeaderName,
+                teamKey: season.pointsLeaderTeamKey,
+                recorded: season.pointsLeaderRecorded,
+                paid: season.pointsLeaderPaid
+        };
 
         const history = await getChampionHistory(yahooClient, leagueKey);
         const championStatus = computeChampionStatus(history);
@@ -335,10 +371,11 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
                         contributed: poolContributed,
                         paidOut,
                         remaining: payoutPoolRemaining,
-                        first: { amount: season.payoutFirst, paid: season.firstPaid },
-                        second: { amount: season.payoutSecond, paid: season.secondPaid },
-                        third: { amount: season.payoutThird, paid: season.thirdPaid }
+                        first: { amount: season.payoutFirst, paid: season.firstPaid, enabled: season.firstEnabled },
+                        second: { amount: season.payoutSecond, paid: season.secondPaid, enabled: season.secondEnabled },
+                        third: { amount: season.payoutThird, paid: season.thirdPaid, enabled: season.thirdEnabled }
                 },
+                pointsLeader,
                 champion: { ...championStatus, potClaimed },
                 championHistory: history
         };

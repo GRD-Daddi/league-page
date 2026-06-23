@@ -427,6 +427,18 @@
   }
   .status.paid { color: #ccff00; border-color: rgba(204,255,0,0.4); background: rgba(204,255,0,0.1); }
 
+  .pl-bonus {
+    margin-top: 14px; padding: 14px;
+    background: rgba(112,0,255,0.08); border: 1px solid rgba(112,0,255,0.35);
+    border-radius: 8px;
+  }
+  .pl-bonus-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .pl-bonus-label {
+    font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #b794ff;
+  }
+  .pl-bonus-amt { font-family: monospace; font-weight: 700; font-size: 1.05rem; color: #b794ff; }
+  .pl-bonus-sub { margin-top: 6px; font-size: 12px; color: #9ca3af; line-height: 1.5; }
+
   .pool-foot { margin-top: auto; padding-top: 16px; font-size: 12px; color: #6b7280; }
 
   /* ── Main content ── */
@@ -1176,25 +1188,47 @@
               <span class="pool-label">{pot.year} Payout Pool</span>
               <span class="pool-total">{money(pot.payoutPool.remaining)}</span>
             </div>
-            <div class="pool-sub">Split among the top three finishers</div>
+            <div class="pool-sub">Split among the top finishers</div>
 
             <div class="pool-rows">
-              <div class="pool-row">
-                <span class="place gold">1st</span>
-                <span class="place-amt">{money(pot.payoutPool.first.amount)}</span>
-                <span class="status {pot.payoutPool.first.paid ? 'paid' : ''}">{pot.payoutPool.first.paid ? 'Paid' : 'Pending'}</span>
-              </div>
-              <div class="pool-row">
-                <span class="place silver">2nd</span>
-                <span class="place-amt">{money(pot.payoutPool.second.amount)}</span>
-                <span class="status {pot.payoutPool.second.paid ? 'paid' : ''}">{pot.payoutPool.second.paid ? 'Paid' : 'Pending'}</span>
-              </div>
-              <div class="pool-row">
-                <span class="place bronze">3rd</span>
-                <span class="place-amt">{money(pot.payoutPool.third.amount)}</span>
-                <span class="status {pot.payoutPool.third.paid ? 'paid' : ''}">{pot.payoutPool.third.paid ? 'Paid' : 'Pending'}</span>
-              </div>
+              {#if pot.payoutPool.first.enabled}
+                <div class="pool-row">
+                  <span class="place gold">1st</span>
+                  <span class="place-amt">{money(pot.payoutPool.first.amount)}</span>
+                  <span class="status {pot.payoutPool.first.paid ? 'paid' : ''}">{pot.payoutPool.first.paid ? 'Paid' : 'Pending'}</span>
+                </div>
+              {/if}
+              {#if pot.payoutPool.second.enabled}
+                <div class="pool-row">
+                  <span class="place silver">2nd</span>
+                  <span class="place-amt">{money(pot.payoutPool.second.amount)}</span>
+                  <span class="status {pot.payoutPool.second.paid ? 'paid' : ''}">{pot.payoutPool.second.paid ? 'Paid' : 'Pending'}</span>
+                </div>
+              {/if}
+              {#if pot.payoutPool.third.enabled}
+                <div class="pool-row">
+                  <span class="place bronze">3rd</span>
+                  <span class="place-amt">{money(pot.payoutPool.third.amount)}</span>
+                  <span class="status {pot.payoutPool.third.paid ? 'paid' : ''}">{pot.payoutPool.third.paid ? 'Paid' : 'Pending'}</span>
+                </div>
+              {/if}
             </div>
+
+            {#if pot.pointsLeader && pot.pointsLeader.amount > 0}
+              <div class="pl-bonus">
+                <div class="pl-bonus-head">
+                  <span class="pl-bonus-label">Points Leader Bonus</span>
+                  <span class="pl-bonus-amt">{money(pot.pointsLeader.total)}</span>
+                </div>
+                <div class="pl-bonus-sub">
+                  {#if pot.pointsLeader.recorded && pot.pointsLeader.name}
+                    {pot.pointsLeader.name} collects {money(pot.pointsLeader.amount)} from every other member{pot.pointsLeader.paid ? ' — settled' : ''}.
+                  {:else}
+                    The season points leader collects {money(pot.pointsLeader.amount)} from every other member.
+                  {/if}
+                </div>
+              </div>
+            {/if}
 
             <div class="pool-foot">{pot.paidThisYear} member{pot.paidThisYear === 1 ? '' : 's'} paid in this season</div>
           </div>

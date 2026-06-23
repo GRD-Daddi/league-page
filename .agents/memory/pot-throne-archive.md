@@ -29,3 +29,21 @@ drift, a claimed pot won't reset the throne. Keep them in lockstep.
 **How to apply:** Any new pot-award path or any change to how reigning year is
 computed must keep the ledger `year` equal to the reigning year used by the
 `potClaimed` query in `computePotData`.
+
+# Payout place toggles + points-leader bonus
+
+Commissioner can disable a payout place (1st/2nd/3rd) via `*_enabled` flags on
+`season_records`. Disabled places are hidden on the homepage AND excluded from
+`paidOut` in `computePotData`.
+
+**Why / invariant:** a disabled place must never carry a stale `*_paid` flag — if
+it did, re-enabling would instantly shrink the pool with no explicit pay action.
+So: `togglePayoutPaid` only writes when the place is currently enabled
+(`WHERE ... AND *_enabled = true`), and `togglePayoutEnabled` clears `*_paid`
+whenever it disables a place. Keep both guards if you touch payout toggling.
+
+The end-of-year points-leader bonus is a SIDE payout, fully separate from the
+carryover pot and the payout pool. Per-member amount = `pot_settings.points_leader_amount`
+(default $10); leader collects `amount × (members − 1)` where members =
+`COUNT(*) FROM member_buyins WHERE year`. It's peer-to-peer (paid directly to the
+leader), so the app only records leader + settled flag, never moves pot money.

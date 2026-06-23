@@ -89,6 +89,22 @@ UPDATE season_records
 -- offset added to the derived pot total, so paid buy-ins still accumulate on top.
 ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS pot_adjustment NUMERIC NOT NULL DEFAULT 0;
 
+-- Per-place "enabled" flags let the commissioner hide/disable payout spots that
+-- the league doesn't actually pay (e.g. only 1st & 2nd get paid → disable 3rd).
+-- Disabled places are hidden on the public page and excluded from pool math.
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS first_enabled BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS second_enabled BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS third_enabled BOOLEAN NOT NULL DEFAULT true;
+
+-- End-of-year points-leader bonus: a side payout the regular-season points leader
+-- collects directly from every other member (default $10 each), separate from the
+-- carryover pot and the payout pool. points_leader_amount is the per-member share.
+ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS points_leader_amount NUMERIC NOT NULL DEFAULT 10;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_team_key TEXT;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_name TEXT;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_recorded BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_paid BOOLEAN NOT NULL DEFAULT false;
+
 -- Durable league history — the league's OWN copy of season results, independent
 -- of Yahoo. Captured from final standings so the "person to beat", Trophy Room,
 -- and records keep working even if the Yahoo API becomes unavailable or a past
