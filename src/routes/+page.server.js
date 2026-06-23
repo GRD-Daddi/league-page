@@ -41,6 +41,18 @@ export async function load({ locals }) {
                 );
 
                 const seasonPhase = resolveSeasonPhase(nflState, leagueData);
+                // Draft rounds: prefer Yahoo's configured num_draft_rounds (correct for
+                // keeper/dynasty leagues), else fall back to roster size (one pick per
+                // slot, excluding IR). Yahoo only exposes actual pick ownership via
+                // draftresults AFTER a draft runs, so pre-draft each team shows one
+                // pick per round.
+                const rosterPositions = Array.isArray(leagueData?.roster_positions)
+                        ? leagueData.roster_positions
+                        : [];
+                const draftRounds =
+                        leagueData?.settings?.draft_rounds ||
+                        rosterPositions.filter((p) => p !== 'IR').length ||
+                        null;
                 // The trophy band is shown in every phase, so the podium is fetched for any
                 // authenticated user (null when Yahoo has no completed season to resolve).
                 const lastSeasonPodium = await getLastSeasonPodium(yahooClient, leagueKey).catch((err) => {
@@ -54,6 +66,7 @@ export async function load({ locals }) {
                         seasonPhase,
                         lastSeasonPodium,
                         leagueData,
+                        draftRounds,
                         rosters: rostersResult?.rosters ?? null,
                         users,
                         requiresAuth: false

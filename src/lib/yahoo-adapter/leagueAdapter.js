@@ -31,6 +31,7 @@ function convertLeagueDataToSleeperFormat(meta, settings, leagueKey) {
 
                         settings: {
                                 num_teams: yahooLeague.num_teams || 0,
+                                draft_rounds: parseInt(yahooSettings.num_draft_rounds ?? yahooLeague.num_draft_rounds) || null,
                                 playoff_week_start: yahooSettings.playoff_start_week || 15,
                                 playoff_teams: yahooSettings.num_playoff_teams || 6,
                                 playoff_round_type: 0,

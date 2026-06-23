@@ -81,8 +81,10 @@
   const PLACE_LABELS = { 1: '1st', 2: '2nd', 3: '3rd' };
   const PLACE_TONE = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 
-  // Placeholder draft rounds shown per team until real pick data is wired in.
-  const DRAFT_ROUNDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  // Draft rounds come from the league's real roster size (Yahoo). Each team gets
+  // one pick per round; actual traded-pick ownership only exists post-draft.
+  $: draftRoundCount = Math.min(Math.max(data?.draftRounds ?? 0, 0), 40);
+  $: DRAFT_ROUNDS = Array.from({ length: draftRoundCount }, (_, i) => i + 1);
 </script>
 
 <style>
