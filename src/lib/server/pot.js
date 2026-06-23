@@ -184,68 +184,50 @@ export async function getChampionHistory(yahooClient = null, leagueKey = null) {
 }
 
 /**
- * Final podium (1st/2nd/3rd) of the most recent *completed* season, resolved
- * from Yahoo's final standings. Checks the current league key plus any
- * previousLeagueKeys and returns the highest completed season year. Returns
- * null when no completed season can be resolved (e.g. preseason with no history)
- * — callers then render a placeholder.
+ * Last season's podium (1st/2nd/3rd), resolved from the *current* league's
+ * teams via each team's `previous_season_team_rank` (the manager's finish in the
+ * prior season). This avoids walking the renew chain and works even before the
+ * previous league is marked complete. Team name/logo are the current ones, so a
+ * manager who placed top-3 last year shows under their present team. Returns null
+ * when no team carries a prior-season rank (e.g. the league's first season).
  */
 export async function getLastSeasonPodium(yahooClient = null, leagueKey = null) {
-        if (!yahooClient) return null;
-        // Seed with the configured keys, then walk Yahoo's season chain via each
-        // league's `previous_league_id` (derived from the `renew` field). This means
-        // historical seasons resolve automatically — no need to hardcode every
-        // past league key in previousLeagueKeys.
-        const queue = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
-        const seen = new Set();
-        let best = null;
-        let guard = 0;
+        if (!yahooClient || !leagueKey) return null;
+        try {
+                const [leagueData, rostersResult] = await Promise.all([
+                        loadLeagueData(yahooClient, leagueKey),
+                        loadLeagueRosters(yahooClient, leagueKey)
+                ]);
 
-        while (queue.length > 0 && guard < 25) {
-                guard += 1;
-                const key = queue.shift();
-                if (!key || seen.has(key)) continue;
-                seen.add(key);
-                try {
-                        const leagueData = await loadLeagueData(yahooClient, key);
-                        if (!leagueData) continue;
+                // previous_season_team_rank describes the season before this league's,
+                // so the podium year is the current season minus one.
+                const season = parseInt(leagueData?.season, 10);
+                const year = Number.isFinite(season) ? season - 1 : null;
 
-                        // Follow the chain to the previous season regardless of this
-                        // league's completion status (the current season is in progress).
-                        if (leagueData.previous_league_id && !seen.has(leagueData.previous_league_id)) {
-                                queue.push(leagueData.previous_league_id);
-                        }
+                const rosters = rostersResult?.rosters ? Object.values(rostersResult.rosters) : [];
+                const ranked = rosters
+                        .map((r) => ({ r, prevRank: parseInt(r?.metadata?.previous_season_rank, 10) }))
+                        .filter((x) => Number.isFinite(x.prevRank) && x.prevRank >= 1 && x.prevRank <= 3)
+                        .sort((a, b) => a.prevRank - b.prevRank);
+                if (ranked.length === 0) return null;
 
-                        if (leagueData.status !== 'complete') continue;
+                const podium = ranked.map(({ r, prevRank }) => ({
+                        place: prevRank,
+                        name: r.metadata?.team_name || 'Unknown Team',
+                        teamKey: r.metadata?.team_key || null,
+                        logo: r.metadata?.team_logo || null,
+                        // Win/loss/PF on the team object are this season's, not last
+                        // season's, so omit them — the UI hides the meta line when null.
+                        wins: null,
+                        losses: null,
+                        pointsFor: null
+                }));
 
-                        const year = parseInt(leagueData.season, 10);
-                        if (!Number.isFinite(year)) continue;
-                        if (best && year <= best.year) continue;
-
-                        const rostersResult = await loadLeagueRosters(yahooClient, key);
-                        const rosters = rostersResult?.rosters ? Object.values(rostersResult.rosters) : [];
-                        const ranked = rosters
-                                .filter((r) => Number.isFinite(Number(r?.metadata?.rank)))
-                                .sort((a, b) => Number(a.metadata.rank) - Number(b.metadata.rank));
-                        if (ranked.length === 0) continue;
-
-                        const podium = ranked.slice(0, 3).map((r, i) => ({
-                                place: i + 1,
-                                name: r.metadata?.team_name || 'Unknown Team',
-                                teamKey: r.metadata?.team_key || null,
-                                logo: r.metadata?.team_logo || null,
-                                wins: r.settings?.wins ?? null,
-                                losses: r.settings?.losses ?? null,
-                                pointsFor: num(r.settings?.fpts, null)
-                        }));
-
-                        best = { year, podium };
-                } catch (err) {
-                        console.error('[pot] podium lookup failed for', key, err.message);
-                }
+                return { year, podium };
+        } catch (err) {
+                console.error('[pot] podium lookup failed:', err.message);
+                return null;
         }
-
-        return best;
 }
 
 /**

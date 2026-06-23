@@ -308,6 +308,9 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                         team_logo: teamMeta.team_logos?.[0]?.team_logo?.url || teamMeta.team_logo || null,
                         streak: stats.streak || null,
                         rank: parseInt(stats.rank || rosterId),
+                        // Each team's finish in the *previous* season (Yahoo sends this on
+                        // the current league's team objects). 0/absent => no prior season.
+                        previous_season_rank: parseInt(teamMeta.previous_season_team_rank, 10) || null,
                         playoff_seed: parseInt(stats.playoff_seed || 0) || null,
                         // Pre-draft pick order (1 = first overall) once the commissioner
                         // sets it in Yahoo. Absent/0 until an order is assigned.
