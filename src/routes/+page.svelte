@@ -130,7 +130,7 @@
     z-index: 1;
     max-width: 1280px;
     margin: 0 auto;
-    padding: 80px 24px 72px;
+    padding: 44px 24px 40px;
   }
 
   .live-badge {
@@ -145,7 +145,7 @@
     font-weight: 900;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .live-dot {
@@ -162,13 +162,13 @@
   }
 
   .hero-title {
-    font-size: clamp(3rem, 8vw, 6rem);
+    font-size: clamp(2.4rem, 6vw, 4.25rem);
     font-weight: 900;
     font-style: italic;
     text-transform: uppercase;
     letter-spacing: -0.03em;
-    line-height: 0.88;
-    margin: 0 0 24px;
+    line-height: 0.9;
+    margin: 0 0 18px;
   }
 
   .hero-title .line1 {
@@ -188,13 +188,13 @@
   }
 
   .hero-subtitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #9ca3af;
     max-width: 560px;
-    margin: 0 0 40px;
+    margin: 0 0 24px;
     border-left: 4px solid #00f0ff;
     padding-left: 16px;
-    line-height: 1.6;
+    line-height: 1.5;
     font-weight: 500;
   }
 
