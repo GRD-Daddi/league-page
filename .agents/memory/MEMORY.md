@@ -1,0 +1,2 @@
+- [Stadium Night design tokens](stadium-night-tokens.md) — graduated dark sports-broadcast visual theme; preserve these tokens across all future UI work.
+- [Yahoo roster data shape](yahoo-roster-shape.md) — homepage standings computed from `Object.values(data.rosters)` where each roster has `settings.wins/losses/fpts` and `team_name`/`owner_id`.

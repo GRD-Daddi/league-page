@@ -1,176 +1,834 @@
 <script>
-        import { leagueName, homepageText, enableBlog } from '$lib/utils/helper';
-        import { HomePost} from '$lib/components';
+  import { leagueName, enableBlog } from '$lib/utils/helper';
+  import { HomePost } from '$lib/components';
 
-        export let data;
+  export let data;
+
+  function getStandings(rosters, users) {
+    if (!rosters) return [];
+    return Object.values(rosters)
+      .sort((a, b) => {
+        const winDiff = (b.settings?.wins ?? 0) - (a.settings?.wins ?? 0);
+        if (winDiff !== 0) return winDiff;
+        return (b.settings?.fpts ?? 0) - (a.settings?.fpts ?? 0);
+      })
+      .map((r, i) => {
+        const user = Array.isArray(users)
+          ? users.find(u => u.user_id === r.owner_id)
+          : null;
+        return {
+          rank: i + 1,
+          team: r.team_name ?? 'Unknown Team',
+          manager: user?.display_name ?? '—',
+          w: r.settings?.wins ?? 0,
+          l: r.settings?.losses ?? 0,
+          points: r.settings?.fpts ?? 0,
+        };
+      });
+  }
+
+  $: standings = getStandings(data?.rosters, data?.users);
+
+  $: weekLabel = (() => {
+    const s = data?.nflState;
+    if (!s) return null;
+    if (s.season_type === 'pre') return 'Preseason';
+    if (s.season_type === 'post') return 'Playoffs';
+    return s.week > 0 ? `Week ${s.week}` : 'Season';
+  })();
+
+  $: seasonLabel = data?.nflState?.season ? `${data.nflState.season} Season` : 'Fantasy Football';
+
+  function initials(name) {
+    return (name ?? '??').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
 </script>
 
 <style>
-    #home {
-        display: flex;
-        flex-wrap: nowrap;
-        position: relative;
-        overflow-y: hidden;
-        z-index: 1;
-    }
+  /* ── Stadium Night Homepage ── */
 
-    #main {
-        flex-grow: 1;
-        min-width: 320px;
-        margin: 0 auto;
-        padding: 60px 0;
-    }
+  .sn-page {
+    min-height: 100vh;
+    background-color: #0a0a0c;
+    color: #fff;
+    font-family: inherit;
+  }
 
-    .text {
-        padding: 0 30px;
-        max-width: 620px;
-        margin: 0 auto;
-    }
+  /* ── Hero ── */
+  .hero {
+    position: relative;
+    border-bottom: 1px solid #1f2937;
+    overflow: hidden;
+    background-color: #0f1115;
+  }
 
-    .leagueData {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        min-width: 470px;
-        max-width: 470px;
-        min-height: 100%;
-                background-color: var(--ebebeb);
-        border-left: var(--eee);
-                box-shadow: inset 8px 0px 6px -6px rgb(0 0 0 / 24%);
-    }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
 
-    @media (max-width: 950px) {
-        .leagueData {
-            max-width: 100%;
-            min-width: 100%;
-            width: 100%;
-                    box-shadow: none;
-        }
-        #home {
-            flex-wrap: wrap;
-        }
-    }
+  .hero-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.18;
+    display: block;
+  }
 
-    .transactions {
-        display: block;
-        width: 95%;
-        margin: 10px auto;
-    }
+  .hero-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, #0a0a0c 0%, transparent 60%),
+                linear-gradient(to right, #0a0a0c 0%, rgba(10,10,12,0.5) 50%, transparent 100%);
+  }
 
-    .center {
-        text-align: center;
-    }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 80px 24px 72px;
+  }
 
-    h6 {
-        text-align: center;
-    }
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(112, 0, 255, 0.15);
+    color: #ccff00;
+    border: 1px solid rgba(112, 0, 255, 0.4);
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
 
-    .homeBanner {
-        background-color: var(--blueOne);
-        color: #fff;
-        padding: 0.5em 0;
-        font-weight: 500;
-        font-size: 1.5em;
-    }
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccff00;
+    animation: pulse 2s infinite;
+  }
 
-    /* champ styling */
-    #currentChamp {
-        padding: 25px 0;
-                background-color: var(--f3f3f3);
-        box-shadow: 5px 0 8px var(--champShadow);
-        border-left: 1px solid var(--ddd);
-    }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
 
-    #champ {
-        position: relative;
-        width: 150px;
-        height: 150px;
-        margin: 0 auto;
-        cursor: pointer;
-    }
+  .hero-title {
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    line-height: 0.88;
+    margin: 0 0 24px;
+  }
 
-    .first {
-        position: absolute;
-        transform: translate(-50%, -50%);
-        width: 80px;
-        height: 80px;
-        border-radius: 100%;
-        border: 1px solid #ccc;
-        left: 50%;
-        top: 43%;
-    }
+  .hero-title .line1 {
+    display: block;
+    background: linear-gradient(to right, #fff, #9ca3af);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 
-    .laurel {
-        position: absolute;
-        transform: translate(-50%, -50%);
-        width: 135px;
-        height: auto;
-        left: 50%;
-        top: 50%;
-    }
+  .hero-title .line2 {
+    display: block;
+    background: linear-gradient(to right, #00f0ff, #7000ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 
-    h4 {
-        text-align: center;
-        font-size: 1.8em;
-        margin: 10px;
-        font-style: italic;
-    }
+  .hero-subtitle {
+    font-size: 1rem;
+    color: #9ca3af;
+    max-width: 560px;
+    margin: 0 0 40px;
+    border-left: 4px solid #00f0ff;
+    padding-left: 16px;
+    line-height: 1.6;
+    font-weight: 500;
+  }
 
-    .label {
-        display: table;
-        text-align: center;
-        line-height: 1.1em;
-        font-size: 1.7em;
-        margin: 6px auto 10px;
-        cursor: pointer;
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ccff00;
+    color: #000;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0 28px;
+    height: 52px;
+    border: none;
+    cursor: pointer;
+    transform: skewX(-10deg);
+    text-decoration: none;
+    transition: background 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 20px rgba(204,255,0,0.2);
+  }
+
+  .btn-primary:hover {
+    background: #aacc00;
+    box-shadow: 0 0 30px rgba(204,255,0,0.4);
+  }
+
+  .btn-primary span,
+  .btn-secondary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transform: skewX(10deg);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    color: #fff;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0 28px;
+    height: 52px;
+    border: 1px solid #374151;
+    cursor: pointer;
+    transform: skewX(-10deg);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .btn-secondary:hover {
+    background: #1f2937;
+    color: #00f0ff;
+    border-color: #4b5563;
+  }
+
+  /* ── Main content ── */
+  .content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 64px 24px;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 48px;
+  }
+
+  @media (max-width: 960px) {
+    .content {
+      grid-template-columns: 1fr;
     }
-    
-        :global(.curOwner) {
-                font-size: 0.75em;
-                color: #bbb;
-                font-style: italic;
-        }
+  }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1f2937;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .section-title svg {
+    flex-shrink: 0;
+  }
+
+  .section-link {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #00f0ff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.15s;
+  }
+
+  .section-link:hover {
+    color: #fff;
+  }
+
+  /* ── Standings Table ── */
+  .standings-card {
+    background: #0f1115;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+  }
+
+  .standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .standings-table thead tr {
+    background: #1a1d24;
+  }
+
+  .standings-table thead th {
+    padding: 14px 16px;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6b7280;
+  }
+
+  .standings-table thead th.center { text-align: center; }
+  .standings-table thead th.right  { text-align: right; }
+
+  .standings-table tbody tr {
+    border-top: 1px solid #1f2937;
+    transition: background 0.1s;
+  }
+
+  .standings-table tbody tr:hover {
+    background: #1a1d24;
+  }
+
+  .standings-table td {
+    padding: 14px 16px;
+  }
+
+  .rank-cell {
+    text-align: center;
+    font-weight: 900;
+    font-size: 1.25rem;
+    color: #4b5563;
+    transition: color 0.1s;
+    width: 56px;
+  }
+
+  tr:hover .rank-cell { color: #fff; }
+
+  .team-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1f2937, #111827);
+    border: 2px solid #1f2937;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #00f0ff;
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+
+  tr:hover .avatar {
+    border-color: #00f0ff;
+  }
+
+  .team-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    transition: color 0.15s;
+  }
+
+  tr:hover .team-name { color: #00f0ff; }
+
+  .manager-name {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+
+  .record-cell {
+    text-align: center;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #e5e7eb;
+  }
+
+  .points-cell {
+    text-align: right;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #ccff00;
+  }
+
+  /* ── Auth gate ── */
+  .auth-gate {
+    text-align: center;
+    padding: 48px 24px;
+    color: #6b7280;
+  }
+
+  .auth-gate p {
+    margin: 0 0 20px;
+    font-size: 0.95rem;
+  }
+
+  .auth-gate a {
+    display: inline-flex;
+    align-items: center;
+    background: #ccff00;
+    color: #000;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0 24px;
+    height: 44px;
+    text-decoration: none;
+    transform: skewX(-10deg);
+    transition: background 0.15s;
+  }
+
+  .auth-gate a span {
+    transform: skewX(10deg);
+  }
+
+  .auth-gate a:hover {
+    background: #aacc00;
+  }
+
+  /* ── Right column ── */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .btn-outline-full {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid #1f2937;
+    color: #6b7280;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .btn-outline-full:hover {
+    background: #1f2937;
+    color: #fff;
+  }
+
+  /* ── Quick stats card ── */
+  .stats-card {
+    background: linear-gradient(135deg, #1a1d24, #0f1115);
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .stat-row {
+    padding: 20px 24px;
+    border-bottom: 1px solid #1f2937;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 900;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
+  }
+
+  .stat-value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .stat-value {
+    font-family: monospace;
+    font-size: 2rem;
+    font-weight: 900;
+  }
+
+  .stat-value.cyan   { color: #00f0ff; }
+  .stat-value.purple { color: #7000ff; }
+
+  .stat-meta {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  .stat-meta span {
+    display: block;
+    font-weight: 400;
+    color: #9ca3af;
+  }
+
+  .stat-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: rgba(204,255,0,0.05);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .stat-cta:hover {
+    background: rgba(204,255,0,0.1);
+  }
+
+  .stat-cta-label {
+    font-weight: 700;
+    color: #ccff00;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 12px;
+  }
+
+  /* ── Footer (page-level) ── */
+  .sn-footer {
+    border-top: 1px solid #1f2937;
+    background: #0f1115;
+    padding: 48px 24px;
+    margin-top: 48px;
+  }
+
+  .footer-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    text-align: center;
+  }
+
+  @media (min-width: 768px) {
+    .footer-inner {
+      flex-direction: row;
+      justify-content: space-between;
+      text-align: left;
+    }
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .footer-logo-mark {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #1f2937, #111);
+    border: 1px solid #374151;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: skewX(-8deg);
+  }
+
+  .footer-brand-name {
+    font-weight: 900;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    font-style: italic;
+    color: #6b7280;
+  }
+
+  .footer-brand-name strong {
+    color: #9ca3af;
+    font-weight: inherit;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .footer-links a {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #4b5563;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: #fff; }
+
+  .footer-copy {
+    font-size: 11px;
+    color: #374151;
+    font-weight: 500;
+  }
+
+  /* ── no-data placeholder ── */
+  .placeholder-box {
+    background: #0f1115;
+    border: 1px dashed #1f2937;
+    border-radius: 8px;
+    padding: 32px 24px;
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.875rem;
+  }
 </style>
 
-<div id="home">
-    <div id="main">
-        <div class="text">
-            <h6>{leagueName}</h6>
-            <!-- homepageText contains the intro text for your league, this gets edited in /src/lib/utils/leagueInfo.js -->
-            {@html homepageText }
-            <!-- Most recent Blog Post (if enabled) -->
-            {#if enableBlog}
-                <HomePost />
-            {/if}
-        </div>
-        <div style="text-align: center; padding: 40px 20px; color: #888;">
-            <p>Power Rankings Coming Soon</p>
-        </div>
+<div class="sn-page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-bg">
+      <img src="/stadium-hero.png" alt="Stadium" />
     </div>
-    
-    <div class="leagueData">
-        <div class="homeBanner">
-            {#if data?.nflState}
-                <div class="center">NFL {data.nflState.season} 
-                    {#if data.nflState.season_type == 'pre'}
-                        Preseason
-                    {:else if data.nflState.season_type == 'post'}
-                        Postseason
-                    {:else}
-                        Season - {data.nflState.week > 0 ? `Week ${data.nflState.week}` : "Preseason"}
-                    {/if}
+    <div class="hero-inner">
+      {#if weekLabel}
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          Live &bull; {weekLabel}
+        </div>
+      {/if}
+
+      <h1 class="hero-title">
+        <span class="line1">The Battle</span>
+        <span class="line2">For The North</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Welcome to the premier fantasy football league of the frozen tundra.
+        Where championships are forged in the cold and legends never die.
+      </p>
+
+      <div class="hero-actions">
+        <a href="/matchups" class="btn-primary">
+          <span>
+            View Matchups
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </a>
+        <a href="/constitution" class="btn-secondary">
+          <span>League Rules</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content">
+
+    <!-- Left: Standings -->
+    <div>
+      <div class="section-header">
+        <h2 class="section-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          Current Standings
+        </h2>
+        <a href="/standings" class="section-link">
+          Full Standings
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </div>
+
+      {#if data?.requiresAuth}
+        <div class="standings-card">
+          <div class="auth-gate">
+            <p>Log in with Yahoo to view your league standings.</p>
+            <a href="/auth/login"><span>Login with Yahoo</span></a>
+          </div>
+        </div>
+      {:else if standings.length > 0}
+        <div class="standings-card">
+          <div style="overflow-x: auto;">
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th class="center">Rnk</th>
+                  <th>Team</th>
+                  <th class="center">W-L</th>
+                  <th class="right">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each standings as team}
+                  <tr>
+                    <td class="rank-cell">{team.rank}</td>
+                    <td>
+                      <div class="team-cell">
+                        <div class="avatar">{initials(team.team)}</div>
+                        <div>
+                          <div class="team-name">{team.team}</div>
+                          {#if team.manager !== '—'}
+                            <div class="manager-name">{team.manager}</div>
+                          {/if}
+                        </div>
+                      </div>
+                    </td>
+                    <td class="record-cell">{team.w}-{team.l}</td>
+                    <td class="points-cell">{team.points.toFixed(1)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {:else}
+        <div class="standings-card">
+          <div class="auth-gate">
+            <p>Configure your Yahoo league to view standings.</p>
+            <a href="/auth/login"><span>Connect League</span></a>
+          </div>
+        </div>
+      {/if}
+
+      {#if enableBlog}
+        <div style="margin-top: 48px;">
+          <HomePost />
+        </div>
+      {/if}
+    </div>
+
+    <!-- Right column -->
+    <div class="right-col">
+
+      <!-- Recent Moves -->
+      <div>
+        <div class="section-header">
+          <h2 class="section-title" style="font-size:1.1rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Recent Moves
+          </h2>
+        </div>
+
+        <div class="placeholder-box">
+          <p style="margin:0 0 8px;">No recent transactions to display.</p>
+          <a href="/transactions" style="color:#00f0ff; text-decoration:none; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;">View All Transactions →</a>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div>
+        <div class="section-header">
+          <h2 class="section-title" style="font-size:1.1rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7000ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Season Stats
+          </h2>
+        </div>
+
+        <div class="stats-card">
+          {#if standings.length > 0}
+            {@const topScorer = standings.slice().sort((a,b) => b.points - a.points)[0]}
+            <div class="stat-row">
+              <div class="stat-label">Most Points</div>
+              <div class="stat-value-row">
+                <div class="stat-value cyan">{topScorer.points.toFixed(1)}</div>
+                <div class="stat-meta">
+                  {topScorer.team}
+                  <span>Leader</span>
                 </div>
-            {:else}
-                <div class="center">NFL Season</div>
-            {/if}
+              </div>
+            </div>
+            {@const leader = standings[0]}
+            <div class="stat-row">
+              <div class="stat-label">Current Leader</div>
+              <div class="stat-value-row">
+                <div class="stat-value purple">{leader.w}-{leader.l}</div>
+                <div class="stat-meta">
+                  {leader.team}
+                  <span>Record</span>
+                </div>
+              </div>
+            </div>
+          {:else}
+            <div class="stat-row">
+              <div class="stat-label">NFL Season</div>
+              <div class="stat-value-row">
+                <div class="stat-value cyan">{data?.nflState?.season ?? '—'}</div>
+                <div class="stat-meta">
+                  {seasonLabel}
+                  <span>{weekLabel ?? ''}</span>
+                </div>
+              </div>
+            </div>
+          {/if}
+          <a href="/records" class="stat-cta">
+            <span class="stat-cta-label">View Power Rankings</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccff00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
         </div>
+      </div>
 
-        <div id="currentChamp">
-            <p class="center">League Awards Coming Soon</p>
-        </div>
-
-        <div class="transactions" >
-            <p class="center">Recent Transactions Coming Soon</p>
-        </div>
     </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="sn-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo-mark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        </div>
+        <span class="footer-brand-name">Minnesota <strong>Slopes</strong></span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="/constitution">Rules</a></li>
+        <li><a href="/records">History</a></li>
+        <li><a href="/managers">Managers</a></li>
+      </ul>
+      <p class="footer-copy">© {new Date().getFullYear()} Minnesota Slopes FF. All rights reserved.</p>
+    </div>
+  </footer>
+
 </div>
