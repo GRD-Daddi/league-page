@@ -8,7 +8,8 @@ import {
         getCurrentSeasonYear,
         getPotTotal,
         getChampionHistory,
-        computeChampionStatus
+        computeChampionStatus,
+        setManualPotTotal
 } from '$lib/server/pot.js';
 
 function parseYear(value, fallback) {
@@ -83,6 +84,17 @@ export const actions = {
                         [buyIn, split]
                 );
                 return { success: true, action: 'updateSettings' };
+        },
+
+        setPotTotal: async ({ request, locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                const form = await request.formData();
+                const target = parseMoney(form.get('potTotal'));
+
+                await setManualPotTotal(target);
+                return { success: true, action: 'setPotTotal' };
         },
 
         toggleBuyin: async ({ request, locals }) => {

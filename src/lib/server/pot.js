@@ -18,16 +18,37 @@ function num(value, fallback = 0) {
 }
 
 export async function getSettings() {
-        const { rows } = await query('SELECT buy_in_amount, pot_split_pct FROM pot_settings WHERE id = 1');
+        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pot_adjustment FROM pot_settings WHERE id = 1');
         const row = rows[0] || {};
         const buyIn = num(row.buy_in_amount, 150);
         const potSplitPct = num(row.pot_split_pct, 50);
         return {
                 buyIn,
                 potSplitPct,
+                potAdjustment: num(row.pot_adjustment, 0),
                 potShare: buyIn * (potSplitPct / 100),
                 poolShare: buyIn * ((100 - potSplitPct) / 100)
         };
+}
+
+/**
+ * Sets the carryover pot to an exact dollar amount by storing the offset needed
+ * to reach it from the derived total (paid buy-ins minus awarded pots). Paid
+ * buy-ins continue to accumulate on top of the entered amount afterwards.
+ */
+export async function setManualPotTotal(targetValue) {
+        const target = Number.isFinite(targetValue) && targetValue >= 0 ? targetValue : 0;
+        const settings = await getSettings();
+        const [{ rows: allPaidRows }, { rows: awardedRows }] = await Promise.all([
+                query('SELECT COUNT(*)::int AS c FROM member_buyins WHERE paid = true'),
+                query('SELECT COALESCE(SUM(amount), 0) AS s FROM pot_ledger')
+        ]);
+        const totalPaidAll = allPaidRows[0]?.c ?? 0;
+        const totalAwarded = num(awardedRows[0]?.s);
+        const baseWithoutAdjustment = totalPaidAll * settings.potShare - totalAwarded;
+        const adjustment = target - baseWithoutAdjustment;
+        await query('UPDATE pot_settings SET pot_adjustment = $1, updated_at = now() WHERE id = 1', [adjustment]);
+        return target;
 }
 
 async function getSeasonRecord(year) {
@@ -261,7 +282,7 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
         const paidThisYear = yearPaidRows[0]?.c ?? 0;
         const totalAwarded = num(awardedRows[0]?.s);
 
-        const potTotal = Math.max(0, totalPaidAll * settings.potShare - totalAwarded);
+        const potTotal = Math.max(0, totalPaidAll * settings.potShare - totalAwarded + settings.potAdjustment);
 
         const season = await getSeasonRecord(year);
         const poolContributed = paidThisYear * settings.poolShare;
@@ -304,7 +325,7 @@ export async function getPotTotal() {
         ]);
         const totalPaidAll = allPaidRows[0]?.c ?? 0;
         const totalAwarded = num(awardedRows[0]?.s);
-        return Math.max(0, totalPaidAll * settings.potShare - totalAwarded);
+        return Math.max(0, totalPaidAll * settings.potShare - totalAwarded + settings.potAdjustment);
 }
 
 /**

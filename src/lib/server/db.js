@@ -83,6 +83,11 @@ ALTER TABLE season_records ADD COLUMN IF NOT EXISTS champion_source TEXT;
 UPDATE season_records
         SET champion_source = 'manual'
         WHERE champion_recorded = true AND champion_source IS NULL;
+
+-- pot_adjustment lets the commissioner set the carryover pot directly (e.g. to
+-- seed a balance carried over from before this app existed). It's a single
+-- offset added to the derived pot total, so paid buy-ins still accumulate on top.
+ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS pot_adjustment NUMERIC NOT NULL DEFAULT 0;
 `;
 
 /**
