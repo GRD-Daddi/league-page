@@ -82,7 +82,7 @@
   const PLACE_TONE = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 
   // Placeholder draft rounds shown per team until real pick data is wired in.
-  const DRAFT_ROUNDS = [1, 2, 3, 4, 5];
+  const DRAFT_ROUNDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 </script>
 
 <style>
