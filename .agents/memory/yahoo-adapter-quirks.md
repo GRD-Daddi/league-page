@@ -59,3 +59,24 @@ chain: settings.draft_rounds -> roster_positions(excl IR) -> max loaded roster s
 
 The dev server occasionally needs a restart after a transient Yahoo token "cb is
 not a function" crash.
+
+## Concurrency throttling: cap parallel Yahoo calls globally
+Bursting many requests on a single OAuth token makes Yahoo return the generic
+"There was a temporary problem with the server" error — and it tends to reject the
+heavy endpoints (`/teams`, `/standings`, larger payloads) while light ones
+(`/settings`, `/meta`, `/users;use_login=1`) keep succeeding. So a load where
+settings works but teams/standings consistently fail is the fingerprint of
+throttling, NOT a dead token or a per-endpoint bug.
+
+**Why:** the homepage fanned out ~8 top-level loads, and `getYahooLeagueRosters`
+fired `Promise.all` over every team's roster (10+ more), and several adapter calls
+bypassed `withRetry` — 20+ simultaneous requests on one token.
+
+**How to apply:** every Yahoo call MUST funnel through `withRetry`, which now also
+acquires a slot from a global semaphore (`MAX_CONCURRENT_YAHOO_CALLS`, currently 2)
+in yahooClient.js, with exponential backoff + jitter and a per-call timeout
+(`callWithTimeout`, 15s, retryable) so a hung request can't monopolize a slot. When
+adding a new `yf.*` call anywhere, wrap it in `withRetry(() => yf...)` or it will
+bypass the limiter and reintroduce burst throttling. Verifying any of this requires
+an authenticated (logged-in) page reload — unauthenticated loads never hit these
+endpoints.

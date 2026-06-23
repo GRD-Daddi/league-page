@@ -1,10 +1,10 @@
-import { getYahooClient } from './yahooClient.js';
+import { getYahooClient, withRetry } from './yahooClient.js';
 
 export async function getYahooLeagueTransactions(leagueKey, week = null, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
-        const transactions = await yf.league.transactions(leagueKey);
+        const transactions = await withRetry(() => yf.league.transactions(leagueKey));
         
         return convertTransactionsToSleeperFormat(transactions, week);
 }

@@ -68,18 +68,28 @@
   // so each team appears even before any draft data exists.
   $: teams = (() => {
     if (!data?.rosters) return [];
-    return Object.values(data.rosters).map((r) => {
+    const list = Object.values(data.rosters).map((r) => {
       const teamName = r.metadata?.team_name ?? r.team_name ?? 'Unknown Team';
       const teamKey = r.metadata?.team_key ?? null;
       const m = typeof teamKey === 'string' ? teamKey.match(/\.t\.(\d+)/) : null;
+      const teamNum = m ? parseInt(m[1]) : null;
+      const draftSlot = data?.draftOrder?.[teamNum] ?? r.metadata?.draft_position ?? null;
       return {
         name: teamName,
         logo: r.metadata?.team_logo ?? null,
         rosterId: r.roster_id ?? teamKey ?? teamName,
-        teamNum: m ? parseInt(m[1]) : null
+        teamNum,
+        draftSlot
       };
     });
+    // When a draft order is set, show teams in that order (1 = first overall).
+    if (list.some((t) => t.draftSlot)) {
+      list.sort((a, b) => (a.draftSlot ?? 999) - (b.draftSlot ?? 999));
+    }
+    return list;
   })();
+
+  $: hasDraftOrder = teams.some((t) => t.draftSlot);
 
   const PLACE_LABELS = { 1: '1st', 2: '2nd', 3: '3rd' };
   const PLACE_TONE = { 1: 'gold', 2: 'silver', 3: 'bronze' };
@@ -976,6 +986,21 @@
     margin-bottom: 14px;
   }
 
+  .draft-slot {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #00f0ff;
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+  }
+
   .draft-picks {
     display: flex;
     flex-wrap: wrap;
@@ -1262,6 +1287,9 @@
             {#each teams as team}
               <div class="draft-team-card">
                 <div class="draft-team-head">
+                  {#if team.draftSlot}
+                    <div class="draft-slot" title="Draft pick #{team.draftSlot}">{team.draftSlot}</div>
+                  {/if}
                   <div class="avatar">
                     {#if team.logo}<img src={team.logo} alt={team.name} style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />{:else}{initials(team.name)}{/if}
                   </div>
@@ -1281,6 +1309,9 @@
             {/each}
           </div>
           <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
+            {#if hasDraftOrder}
+              Ordered by draft slot.
+            {/if}
             {#if draftPicksByTeam}
               Live pick ownership from Yahoo, including traded picks.
             {:else}

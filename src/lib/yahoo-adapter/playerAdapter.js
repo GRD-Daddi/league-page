@@ -1,4 +1,4 @@
-import { getYahooClient } from './yahooClient.js';
+import { getYahooClient, withRetry } from './yahooClient.js';
 
 export async function getYahooPlayers(leagueKey, playerKeys = null, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
@@ -6,7 +6,7 @@ export async function getYahooPlayers(leagueKey, playerKeys = null, yahooClient 
 
         if (playerKeys && playerKeys.length > 0) {
                 const playerPromises = playerKeys.map(key => 
-                        yf.player.meta(key).catch(err => {
+                        withRetry(() => yf.player.meta(key)).catch(err => {
                                 console.error(`Error fetching player ${key}:`, err);
                                 return null;
                         })
@@ -15,7 +15,7 @@ export async function getYahooPlayers(leagueKey, playerKeys = null, yahooClient 
                 return players.filter(p => p !== null).map(p => convertPlayerToSleeperFormat(p));
         }
         
-        const leaguePlayers = await yf.league.players(leagueKey);
+        const leaguePlayers = await withRetry(() => yf.league.players(leagueKey));
         const playersArray = leaguePlayers.league?.[0]?.players?.[0]?.player || 
                              leaguePlayers.players || [];
         
@@ -28,8 +28,8 @@ export async function getYahooPlayerStats(leagueKey, playerKey, week = null, yah
 
         try {
                 const stats = week 
-                        ? await yf.player.stats(playerKey, week)
-                        : await yf.player.stats(playerKey);
+                        ? await withRetry(() => yf.player.stats(playerKey, week))
+                        : await withRetry(() => yf.player.stats(playerKey));
                 
                 return convertPlayerStatsToSleeperFormat(stats, playerKey);
         } catch (err) {

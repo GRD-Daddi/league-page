@@ -1,16 +1,16 @@
-import { getYahooClient } from './yahooClient.js';
+import { getYahooClient, withRetry } from './yahooClient.js';
 
 export async function getYahooLeagueMatchups(leagueKey, week, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         try {
-                const scoreboard = await yf.league.scoreboard(leagueKey, week);
+                const scoreboard = await withRetry(() => yf.league.scoreboard(leagueKey, week));
                 return convertScoreboardToSleeperMatchups(scoreboard, week);
         } catch (error) {
                 if (error.message?.includes('Cannot read properties of undefined')) {
                         console.log(`[Yahoo Adapter] Library bug accessing scoreboard.week, calling raw API for week ${week}`);
-                        const rawResponse = await yf.api(yf.GET, `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/scoreboard;week=${week}`);
+                        const rawResponse = await withRetry(() => yf.api(yf.GET, `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/scoreboard;week=${week}`));
                         return convertScoreboardToSleeperMatchups(rawResponse, week);
                 }
                 throw error;

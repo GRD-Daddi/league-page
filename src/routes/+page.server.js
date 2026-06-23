@@ -36,6 +36,26 @@ export async function load({ locals }) {
 
         const { yahooClient, leagueKey } = locals;
 
+        // TEMP DIAGNOSTIC: list this account's current NFL leagues so we can tell
+        // whether the configured leagueKey is the season Yahoo will actually serve
+        // teams/standings for. Remove once the data-loading issue is resolved.
+        try {
+                if (yahooClient?.user?.game_leagues) {
+                        const userLeagues = await new Promise((resolve, reject) => {
+                                yahooClient.user.game_leagues(['nfl'], (err, data) => err ? reject(err) : resolve(data));
+                        });
+                        const flat = [];
+                        for (const game of (userLeagues?.games || userLeagues || [])) {
+                                for (const lg of (game?.leagues || [])) {
+                                        flat.push({ key: lg.league_key, name: lg.name, season: lg.season, num_teams: lg.num_teams });
+                                }
+                        }
+                        console.log('[homepage] DIAG configured leagueKey:', leagueKey, '| account NFL leagues:', JSON.stringify(flat));
+                }
+        } catch (diagErr) {
+                console.log('[homepage] DIAG could not list user leagues:', diagErr?.description || diagErr?.message);
+        }
+
         const authedPotData = await computePotData(undefined, yahooClient, leagueKey).catch((err) => {
                 console.error('[homepage] Error loading pot data (authed):', err.message);
                 return potData;
@@ -110,6 +130,21 @@ export async function load({ locals }) {
                                 draftPicksByTeam = null;
                         }
                 }
+                // Pre-draft pick order (set by the commissioner in Yahoo), keyed by
+                // Yahoo team number -> draft slot (1 = first overall). Null when no
+                // order has been assigned yet.
+                let draftOrder = null;
+                {
+                        const order = {};
+                        for (const r of Object.values(rostersResult?.rosters ?? {})) {
+                                const num = teamNumFromKey(r?.metadata?.team_key);
+                                const pos = r?.metadata?.draft_position;
+                                if (num != null && pos) order[num] = pos;
+                        }
+                        if (Object.keys(order).length > 0) draftOrder = order;
+                        console.log('[homepage] draftOrder debug:', JSON.stringify(draftOrder));
+                }
+
                 // The trophy band is shown in every phase, so the podium is fetched for any
                 // authenticated user (null when Yahoo has no completed season to resolve).
                 const lastSeasonPodium = await getLastSeasonPodium(yahooClient, leagueKey).catch((err) => {
@@ -125,6 +160,7 @@ export async function load({ locals }) {
                         leagueData,
                         draftRounds,
                         draftPicksByTeam,
+                        draftOrder,
                         rosters: rostersResult?.rosters ?? null,
                         users,
                         requiresAuth: false

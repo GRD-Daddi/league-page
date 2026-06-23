@@ -41,13 +41,70 @@ export function getYahooClient() {
 }
 
 /**
- * Executes a Yahoo API call with automatic retry logic for intermittent Yahoo API failures.
+ * Global concurrency limiter for Yahoo API calls.
+ *
+ * Yahoo throttles bursts of simultaneous requests on a single token and returns
+ * a generic "There was a temporary problem with the server" error. The homepage
+ * alone fans out ~8 top-level loads, several of which fan out again (one roster
+ * call per team), producing 20+ concurrent requests. Funnelling every call
+ * through this queue caps in-flight requests so Yahoo stops throttling us.
  */
-export async function withRetry(apiCall, maxRetries = 3) {
+const MAX_CONCURRENT_YAHOO_CALLS = 2;
+let activeYahooCalls = 0;
+const yahooWaitQueue = [];
+
+function acquireYahooSlot() {
+        if (activeYahooCalls < MAX_CONCURRENT_YAHOO_CALLS) {
+                activeYahooCalls++;
+                return Promise.resolve();
+        }
+        return new Promise((resolve) => yahooWaitQueue.push(resolve));
+}
+
+function releaseYahooSlot() {
+        const next = yahooWaitQueue.shift();
+        if (next) {
+                // Hand the slot directly to the next waiter (count stays the same).
+                next();
+        } else {
+                activeYahooCalls = Math.max(0, activeYahooCalls - 1);
+        }
+}
+
+// A single hung upstream request must not monopolize a limited slot forever, so
+// every call races against a timeout. The timeout error is retryable, so it
+// triggers backoff + retry and (critically) the slot is released.
+const YAHOO_CALL_TIMEOUT_MS = 15000;
+
+function callWithTimeout(apiCall) {
+        return new Promise((resolve, reject) => {
+                const timer = setTimeout(() => {
+                        const err = new Error('Yahoo API call timed out');
+                        err.description = 'timeout';
+                        reject(err);
+                }, YAHOO_CALL_TIMEOUT_MS);
+                Promise.resolve()
+                        .then(apiCall)
+                        .then((value) => { clearTimeout(timer); resolve(value); })
+                        .catch((error) => { clearTimeout(timer); reject(error); });
+        });
+}
+
+/**
+ * Executes a Yahoo API call through the global concurrency limiter, with
+ * automatic retry + exponential backoff for intermittent Yahoo API failures.
+ */
+export async function withRetry(apiCall, maxRetries = 4) {
         for (let attempt = 0; attempt < maxRetries; attempt++) {
+                await acquireYahooSlot();
                 try {
-                        return await apiCall();
+                        const result = await callWithTimeout(apiCall);
+                        releaseYahooSlot();
+                        return result;
                 } catch (error) {
+                        // Release the slot before backing off so we never hold a slot while sleeping.
+                        releaseYahooSlot();
+
                         const text = `${error?.description ?? ''} ${error?.message ?? ''}`;
                         // Yahoo intermittently returns these transient failures; retrying
                         // after a short backoff almost always succeeds.
@@ -56,7 +113,8 @@ export async function withRetry(apiCall, maxRetries = 3) {
                         const isLastAttempt = attempt === maxRetries - 1;
 
                         if (isRetryable && !isLastAttempt) {
-                                const delayMs = 1000 * (attempt + 1);
+                                // Exponential backoff with jitter: ~0.5s, 1s, 2s (+ up to 400ms).
+                                const delayMs = Math.min(8000, 500 * 2 ** attempt) + Math.floor(Math.random() * 400);
                                 console.warn(`[Yahoo API] transient error (attempt ${attempt + 1}/${maxRetries}), retrying in ${delayMs}ms... — ${text.trim()}`);
                                 await new Promise(resolve => setTimeout(resolve, delayMs));
                                 continue;

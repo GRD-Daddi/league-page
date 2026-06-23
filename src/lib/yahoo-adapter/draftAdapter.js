@@ -1,10 +1,10 @@
-import { getYahooClient } from './yahooClient.js';
+import { getYahooClient, withRetry } from './yahooClient.js';
 
 export async function getYahooDraftResults(leagueKey, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
-        const draftResults = await yf.league.draft_results(leagueKey);
+        const draftResults = await withRetry(() => yf.league.draft_results(leagueKey));
         
         return convertDraftResultsToSleeperFormat(draftResults, leagueKey);
 }
@@ -14,8 +14,8 @@ export async function getYahooDraftData(leagueKey, yahooClient = null) {
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const [draftResults, leagueMeta] = await Promise.all([
-                yf.league.draft_results(leagueKey),
-                yf.league.meta(leagueKey)
+                withRetry(() => yf.league.draft_results(leagueKey)),
+                withRetry(() => yf.league.meta(leagueKey))
         ]);
         
         const league = leagueMeta.league?.[0] || leagueMeta;
@@ -157,7 +157,7 @@ export async function getYahooTradedPicks(leagueKey, yahooClient = null) {
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/transactions;types=trade`;
-        const raw = await yf.api('GET', url);
+        const raw = await withRetry(() => yf.api('GET', url));
 
         const events = [];
         try {

@@ -66,7 +66,7 @@ export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
                 if (!teamKey) return null;
                 
                 try {
-                        const roster = await yf.team.roster(teamKey);
+                        const roster = await withRetry(() => yf.team.roster(teamKey));
                         return convertRosterToSleeperFormat(team, roster, index + 1);
                 } catch (err) {
                         console.error(`Error fetching roster for team ${teamKey}:`, err);
@@ -124,9 +124,10 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                 
                 if (Array.isArray(team)) {
                 team.forEach(segment => {
-                        if (segment.team_key) {
-                                teamMeta = {...teamMeta, ...segment};
-                        }
+                        if (!segment || typeof segment !== 'object') return;
+                        // Merge every segment so fields like draft_position that may live
+                        // on a non-key-bearing segment are not dropped.
+                        teamMeta = {...teamMeta, ...segment};
                         if (segment.team_standings || segment.standings) {
                                 const rawStandings = segment.team_standings || segment.standings || {};
                                 teamStandings = Array.isArray(rawStandings) && rawStandings.length > 0 ? rawStandings[0] : rawStandings;
@@ -223,7 +224,10 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                         team_logo: teamMeta.team_logos?.[0]?.team_logo?.url || teamMeta.team_logo || null,
                         streak: stats.streak || null,
                         rank: parseInt(stats.rank || rosterId),
-                        playoff_seed: parseInt(stats.playoff_seed || 0) || null
+                        playoff_seed: parseInt(stats.playoff_seed || 0) || null,
+                        // Pre-draft pick order (1 = first overall) once the commissioner
+                        // sets it in Yahoo. Absent/0 until an order is assigned.
+                        draft_position: parseInt(teamMeta.draft_position) || null
                 },
                 
                 keepers: null,
