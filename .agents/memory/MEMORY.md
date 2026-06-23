@@ -1,2 +1,3 @@
 - [Yahoo hidden manager GUIDs](yahoo-hidden-guids.md) — Yahoo masks manager guid/nickname as "--hidden--"; join teams↔users on team_key, never guid.
 - [Player dataset field shape](player-data-shape.md) — page-level player map uses Sleeper-style fn/ln/pos/t, not Yahoo full_name/position/team
+- [yahoo-fantasy client-bundle leak](yahoo-fantasy-client-bundle.md) — Node-only yahoo-fantasy leaks into browser bundle via helper.js barrel; stub it in vite for non-SSR resolution.

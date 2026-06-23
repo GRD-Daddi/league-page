@@ -44,6 +44,12 @@
   function initials(name) {
     return (name ?? '??').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   }
+
+  function money(n) {
+    return '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+
+  $: pot = data?.potData ?? null;
 </script>
 
 <style>
@@ -221,6 +227,146 @@
     color: #00f0ff;
     border-color: #4b5563;
   }
+
+  /* ── League Pot band ── */
+  .pot-band {
+    border-bottom: 1px solid #1f2937;
+    background:
+      radial-gradient(900px 240px at 20% -40%, rgba(204,255,0,0.10), transparent 70%),
+      radial-gradient(900px 240px at 90% 0%, rgba(112,0,255,0.14), transparent 70%),
+      #0c0d11;
+  }
+
+  .pot-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  .pot-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    align-items: stretch;
+  }
+
+  @media (max-width: 880px) {
+    .pot-grid { grid-template-columns: 1fr; }
+  }
+
+  .pot-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #ccff00;
+    margin-bottom: 10px;
+  }
+
+  .pot-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ccff00; box-shadow: 0 0 12px #ccff00;
+    animation: pulse 2s infinite;
+  }
+
+  .pot-amount {
+    font-family: monospace;
+    font-size: clamp(3rem, 9vw, 5.5rem);
+    font-weight: 900;
+    line-height: 0.95;
+    color: #ccff00;
+    text-shadow: 0 0 40px rgba(204,255,0,0.25);
+    letter-spacing: -0.02em;
+  }
+
+  .pot-desc {
+    color: #9ca3af;
+    max-width: 520px;
+    margin: 16px 0 24px;
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+
+  .pot-desc strong { color: #fff; }
+
+  .beat-card {
+    background: rgba(15,17,21,0.7);
+    border: 1px solid #1f2937;
+    border-left: 4px solid #ccff00;
+    border-radius: 10px;
+    padding: 18px 20px;
+    max-width: 520px;
+  }
+
+  .beat-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 900; letter-spacing: 0.15em;
+    text-transform: uppercase; color: #9ca3af; margin-bottom: 8px;
+  }
+
+  .beat-name {
+    font-size: 1.6rem; font-weight: 900; font-style: italic;
+    text-transform: uppercase; letter-spacing: -0.02em; color: #fff;
+  }
+
+  .beat-name.muted { color: #4b5563; }
+
+  .beat-note { font-size: 0.85rem; color: #6b7280; margin-top: 6px; }
+  .beat-note.hot { color: #c4a6ff; font-weight: 800; }
+
+  .pool-card {
+    background: linear-gradient(135deg, #1a1d24, #0f1115);
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pool-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+  }
+
+  .pool-label {
+    font-size: 12px; font-weight: 900; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #00f0ff;
+  }
+
+  .pool-total {
+    font-family: monospace; font-size: 2rem; font-weight: 900; color: #fff;
+  }
+
+  .pool-sub { font-size: 12px; color: #6b7280; margin: 4px 0 18px; }
+
+  .pool-rows { display: flex; flex-direction: column; gap: 10px; }
+
+  .pool-row {
+    display: flex; align-items: center; gap: 12px;
+    background: #0a0a0c; border: 1px solid #1f2937; border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .place {
+    font-weight: 900; font-size: 0.85rem; width: 38px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .place.gold { color: #ffd24a; }
+  .place.silver { color: #cbd5e1; }
+  .place.bronze { color: #d8915a; }
+
+  .place-amt { flex: 1; font-family: monospace; font-weight: 700; font-size: 1.05rem; color: #ccff00; }
+
+  .status {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #6b7280; border: 1px solid #374151; border-radius: 999px; padding: 4px 10px;
+  }
+  .status.paid { color: #ccff00; border-color: rgba(204,255,0,0.4); background: rgba(204,255,0,0.1); }
+
+  .pool-foot { margin-top: auto; padding-top: 16px; font-size: 12px; color: #6b7280; }
 
   /* ── Main content ── */
   .content {
@@ -667,6 +813,78 @@
       </div>
     </div>
   </div>
+
+  <!-- League Pot & Payouts -->
+  {#if pot}
+    <div class="pot-band">
+      <div class="pot-inner">
+        <div class="pot-grid">
+
+          <!-- Carryover pot + person to beat -->
+          <div class="pot-main">
+            <div class="pot-label"><span class="pot-dot"></span> The Carryover Pot</div>
+            <div class="pot-amount">{money(pot.potTotal)}</div>
+            <div class="pot-desc">
+              Half of every buy-in builds this pot. It keeps growing until a champion
+              goes <strong>back-to-back</strong> — then they take it all and it resets to zero.
+            </div>
+
+            <div class="beat-card">
+              {#if pot.champion?.reigning}
+                <div class="beat-head">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                  The Person To Beat
+                </div>
+                <div class="beat-name">{pot.champion.reigning.name}</div>
+                {#if pot.champion.backToBackAchieved}
+                  <div class="beat-note hot">🚨 Back-to-back achieved — they can claim the entire pot!</div>
+                {:else}
+                  <div class="beat-note">Reigning champ ({pot.champion.reigning.year}). Win again and they walk away with the pot.</div>
+                {/if}
+              {:else}
+                <div class="beat-head">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                  The Person To Beat
+                </div>
+                <div class="beat-name muted">To be crowned</div>
+                <div class="beat-note">No reigning champion recorded yet.</div>
+              {/if}
+            </div>
+          </div>
+
+          <!-- This year's payout pool -->
+          <div class="pool-card">
+            <div class="pool-head">
+              <span class="pool-label">{pot.year} Payout Pool</span>
+              <span class="pool-total">{money(pot.payoutPool.remaining)}</span>
+            </div>
+            <div class="pool-sub">Split among the top three finishers</div>
+
+            <div class="pool-rows">
+              <div class="pool-row">
+                <span class="place gold">1st</span>
+                <span class="place-amt">{money(pot.payoutPool.first.amount)}</span>
+                <span class="status {pot.payoutPool.first.paid ? 'paid' : ''}">{pot.payoutPool.first.paid ? 'Paid' : 'Pending'}</span>
+              </div>
+              <div class="pool-row">
+                <span class="place silver">2nd</span>
+                <span class="place-amt">{money(pot.payoutPool.second.amount)}</span>
+                <span class="status {pot.payoutPool.second.paid ? 'paid' : ''}">{pot.payoutPool.second.paid ? 'Paid' : 'Pending'}</span>
+              </div>
+              <div class="pool-row">
+                <span class="place bronze">3rd</span>
+                <span class="place-amt">{money(pot.payoutPool.third.amount)}</span>
+                <span class="status {pot.payoutPool.third.paid ? 'paid' : ''}">{pot.payoutPool.third.paid ? 'Paid' : 'Pending'}</span>
+              </div>
+            </div>
+
+            <div class="pool-foot">{pot.paidThisYear} member{pot.paidThisYear === 1 ? '' : 's'} paid in this season</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Main Content -->
   <div class="content">

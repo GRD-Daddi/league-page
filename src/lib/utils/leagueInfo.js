@@ -8,6 +8,24 @@ export const dues = 150; // (optional) used in template constitution page
 export const dynasty = true; // true for dynasty leagues, false for redraft and keeper
 export const enableBlog = false; // requires VITE_CONTENTFUL_ACCESS_TOKEN and VITE_CONTENTFUL_SPACE environment variables
 
+/*   LEAGUE POT & PAYOUTS   */
+/*
+  Optional manual backup allowlist for commissioner access. The commissioner is
+  normally detected automatically from Yahoo's is_commissioner flag. If that flag
+  is ever unavailable, add the commissioner's Yahoo GUID or email here to grant
+  them access to the /commissioner page. Example: ["XXXXXXXXXXXX", "you@example.com"]
+*/
+export const commissionerAllowlist = [];
+
+/*
+  Optional list of Yahoo league keys for PAST seasons (e.g. ["nfl.l.123456",
+  "nfl.l.654321"]). When set, the pot's champion history is built from each of
+  these completed seasons directly from Yahoo, preferring real results over
+  commissioner-entered records. Leave empty to rely on the current league key
+  plus any manually recorded champions.
+*/
+export const previousLeagueKeys = [];
+
 /*   STEP 2   */
 export const homepageText = `
   <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>

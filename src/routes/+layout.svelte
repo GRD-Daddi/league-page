@@ -22,7 +22,7 @@
 </svelte:head>
 
 <main>
-        <Nav session={data.session} />
+        <Nav session={data.session} potTotal={data.potTotal} />
 
         <slot />
 
