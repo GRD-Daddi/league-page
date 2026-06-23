@@ -120,6 +120,125 @@ function convertDraftResultsToSleeperFormat(draftResults, leagueKey) {
         }
 }
 
+// Extract the numeric Yahoo team number (the "N" in "...t.N") from a team key.
+function teamNumFromKey(teamKey) {
+        if (!teamKey || typeof teamKey !== 'string') return null;
+        const m = teamKey.match(/\.t\.(\d+)/);
+        return m ? parseInt(m[1]) : null;
+}
+
+// Yahoo collections come back as objects keyed "0","1",... plus a `count`.
+// Normalize them to a plain array regardless of shape.
+function collectionToArray(coll) {
+        if (!coll) return [];
+        if (Array.isArray(coll)) return coll;
+        const out = [];
+        const count = parseInt(coll.count ?? 0);
+        if (count > 0) {
+                for (let i = 0; i < count; i++) {
+                        if (coll[i] !== undefined) out.push(coll[i]);
+                }
+        }
+        if (out.length === 0) {
+                for (const k of Object.keys(coll)) {
+                        if (/^\d+$/.test(k)) out.push(coll[k]);
+                }
+        }
+        return out;
+}
+
+// Traded draft picks are NOT exposed by the yahoo-fantasy library's transaction
+// mapper (it only keeps `players`), so we hit the raw transactions endpoint and
+// parse the `picks` segment ourselves. We replay every successful trade
+// chronologically to compute the CURRENT owner of each (round, original team)
+// pick for the upcoming draft. Returns net changes only (where ownership moved).
 export async function getYahooTradedPicks(leagueKey, yahooClient = null) {
-        return [];
+        const yf = yahooClient || getYahooClient();
+        if (!yf) throw new Error('Yahoo client not initialized');
+
+        const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/transactions;types=trade`;
+        const raw = await yf.api('GET', url);
+
+        const events = [];
+        try {
+                const league = raw?.fantasy_content?.league;
+                const txContainer = Array.isArray(league)
+                        ? league.find((seg) => seg && seg.transactions)?.transactions
+                        : league?.transactions;
+                const txs = collectionToArray(txContainer);
+
+                let loggedShape = false;
+                let tradeCount = 0;
+                for (const txWrap of txs) {
+                        // `transaction` is usually [meta, content] but can come back as an
+                        // object collection in some leagues — normalize to a flat segment list.
+                        const txRaw = txWrap?.transaction;
+                        const segments = Array.isArray(txRaw)
+                                ? txRaw
+                                : (txRaw && typeof txRaw === 'object' ? collectionToArray(txRaw) : []);
+                        if (segments.length === 0) continue;
+
+                        const meta = segments.find((seg) => seg && seg.type) || segments[0] || {};
+                        if ((meta.type || '') !== 'trade') continue;
+                        const status = meta.status || '';
+                        if (status && status !== 'successful' && status !== 'complete') continue;
+                        tradeCount++;
+
+                        const timestamp = parseInt(meta.timestamp || 0);
+                        const content = segments.find((seg) => seg && seg.picks) || {};
+                        const picks = collectionToArray(content.picks);
+
+                        if (!loggedShape && picks.length > 0) {
+                                console.log('[Yahoo Adapter] Sample traded-pick shape:', JSON.stringify(picks[0]));
+                                loggedShape = true;
+                        }
+
+                        for (const pWrap of picks) {
+                                const pick = pWrap?.pick || pWrap;
+                                if (!pick) continue;
+                                const round = parseInt(pick.round || 0);
+                                const original = teamNumFromKey(pick.original_team_key);
+                                const dest = teamNumFromKey(pick.destination_team_key);
+                                const source = teamNumFromKey(pick.source_team_key);
+                                if (!round || original == null || dest == null) continue;
+                                events.push({ timestamp, round, original, dest, source });
+                        }
+                }
+
+                if (tradeCount > 0 && events.length === 0) {
+                        console.warn(
+                                `[Yahoo Adapter] Found ${tradeCount} trade(s) but parsed 0 pick events — ` +
+                                        'the Yahoo picks shape may differ from what is expected.'
+                        );
+                }
+        } catch (error) {
+                console.error('[Yahoo Adapter] Error parsing traded picks:', error.message);
+        }
+
+        events.sort((a, b) => a.timestamp - b.timestamp);
+
+        // key "round:originalTeam" -> { owner, previous, round, original }
+        const ownership = new Map();
+        for (const ev of events) {
+                const key = `${ev.round}:${ev.original}`;
+                const prevOwner = ownership.has(key) ? ownership.get(key).owner : ev.original;
+                ownership.set(key, {
+                        round: ev.round,
+                        original: ev.original,
+                        owner: ev.dest,
+                        previous: ev.source ?? prevOwner
+                });
+        }
+
+        const result = [];
+        for (const v of ownership.values()) {
+                if (v.owner === v.original) continue;
+                result.push({
+                        round: v.round,
+                        roster_id: v.original,
+                        owner_id: v.owner,
+                        previous_owner_id: v.previous
+                });
+        }
+        return result;
 }

@@ -70,10 +70,13 @@
     if (!data?.rosters) return [];
     return Object.values(data.rosters).map((r) => {
       const teamName = r.metadata?.team_name ?? r.team_name ?? 'Unknown Team';
+      const teamKey = r.metadata?.team_key ?? null;
+      const m = typeof teamKey === 'string' ? teamKey.match(/\.t\.(\d+)/) : null;
       return {
         name: teamName,
         logo: r.metadata?.team_logo ?? null,
-        rosterId: r.roster_id ?? r.metadata?.team_key ?? teamName
+        rosterId: r.roster_id ?? teamKey ?? teamName,
+        teamNum: m ? parseInt(m[1]) : null
       };
     });
   })();
@@ -81,10 +84,19 @@
   const PLACE_LABELS = { 1: '1st', 2: '2nd', 3: '3rd' };
   const PLACE_TONE = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 
-  // Draft rounds come from the league's real roster size (Yahoo). Each team gets
-  // one pick per round; actual traded-pick ownership only exists post-draft.
+  // Draft rounds come from the league's real roster size (Yahoo).
   $: draftRoundCount = Math.min(Math.max(data?.draftRounds ?? 0, 0), 40);
   $: DRAFT_ROUNDS = Array.from({ length: draftRoundCount }, (_, i) => i + 1);
+
+  // Real per-team pick ownership for the upcoming draft, keyed by Yahoo team
+  // number (built server-side from traded picks). Falls back to one pick per
+  // round when no ownership data is available.
+  $: draftPicksByTeam = data?.draftPicksByTeam ?? null;
+  function picksForRound(team, rnd) {
+    const map = draftPicksByTeam?.[team?.teamNum];
+    if (map) return map[rnd] ?? 0;
+    return 1;
+  }
 </script>
 
 <style>
@@ -987,6 +999,21 @@
   .pick-chip .rnd { color: #00f0ff; }
   .pick-chip .pick-count { color: #e5e7eb; font-weight: 800; }
 
+  /* Team has more than one pick in this round (acquired via trade) */
+  .pick-chip.extra {
+    border-style: solid;
+    border-color: #00f0ff;
+    background: rgba(0, 240, 255, 0.08);
+  }
+  .pick-chip.extra .pick-count { color: #00f0ff; }
+
+  /* Team traded away its pick in this round */
+  .pick-chip.traded {
+    opacity: 0.4;
+  }
+  .pick-chip.traded .rnd { color: #4b5563; }
+  .pick-chip.traded .pick-count { color: #6b7280; }
+
   .returning-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -1242,14 +1269,23 @@
                 </div>
                 <div class="draft-picks">
                   {#each DRAFT_ROUNDS as rnd}
-                    <span class="pick-chip"><span class="rnd">R{rnd}</span> <span class="pick-count">×1</span></span>
+                    {@const count = picksForRound(team, rnd)}
+                    {#if count > 0}
+                      <span class="pick-chip" class:extra={count > 1}><span class="rnd">R{rnd}</span> <span class="pick-count">×{count}</span></span>
+                    {:else}
+                      <span class="pick-chip traded"><span class="rnd">R{rnd}</span> <span class="pick-count">—</span></span>
+                    {/if}
                   {/each}
                 </div>
               </div>
             {/each}
           </div>
           <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
-            Picks are tradeable — final pick ownership will appear here once entered.
+            {#if draftPicksByTeam}
+              Live pick ownership from Yahoo, including traded picks.
+            {:else}
+              Picks are tradeable — final pick ownership will appear here once entered.
+            {/if}
           </p>
         {:else}
           <div class="placeholder-box">
