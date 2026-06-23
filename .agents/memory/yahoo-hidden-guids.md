@@ -23,3 +23,6 @@ separately because the homepage read `r.team_name` instead of `r.metadata.team_n
 clean `manager_nickname` (null when hidden) so UI can hide the manager line
 instead of echoing the team name. Team display name lives at
 `roster.metadata.team_name`, not `roster.team_name`.
+
+## Gating "only league members can sign in"
+Do NOT verify membership by matching the logged-in user's GUID against the league user list — Yahoo masks those GUIDs, so it returns no match even for real members. Instead, after OAuth, call `client.user.game_teams(['nfl'])`, scan the (deeply nested, shape-inconsistent) response for any `team_key` containing `.l.<leagueNum>.` (leagueNum parsed from configured leagueID). That team_key is BOTH the membership proof and the user's own team. Gate must be fail-closed: create the session only if a team_key is found, else redirect to an error. Wrap the call in `withRetry` so transient Yahoo errors don't deny real members. Session userId must fall back to the team_key when GUID is null/hidden, or the auth guard (checks `session.userId` truthiness) treats the member as logged-out.

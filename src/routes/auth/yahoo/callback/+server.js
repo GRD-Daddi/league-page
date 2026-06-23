@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { createAuthenticatedClient } from '$lib/yahoo-adapter/yahooClient.js';
+import { createAuthenticatedClient, withRetry } from '$lib/yahoo-adapter/yahooClient.js';
 import { setSessionIdCookie } from '$lib/server/sessionCookie.js';
 import { createSession } from '$lib/server/sessionStore.js';
 import { getAuthConfig } from '$lib/server/authConfig.js';
@@ -8,6 +8,47 @@ import { leagueID } from '$lib/utils/leagueInfo.js';
 
 function isValidLeagueKey(key) {
         return typeof key === 'string' && /^\d+\.l\.\d+$/.test(key);
+}
+
+// Walks any nested Yahoo response and collects every team_key string found.
+// Yahoo responses are deeply nested and shape-inconsistent, so we scan rather
+// than rely on a fixed path.
+function collectTeamKeys(node, out = []) {
+        if (!node || typeof node !== 'object') return out;
+        if (Array.isArray(node)) {
+                for (const item of node) collectTeamKeys(item, out);
+                return out;
+        }
+        for (const [key, value] of Object.entries(node)) {
+                if (key === 'team_key' && typeof value === 'string') out.push(value);
+                else collectTeamKeys(value, out);
+        }
+        return out;
+}
+
+// Returns the logged-in user's own team_key within the configured league, or
+// null if they have no team there (i.e. they are not a league member). Yahoo
+// masks manager GUIDs in league listings, so membership is verified from the
+// user's OWN teams (which always carry their real team_key) rather than by
+// matching GUIDs. Matching on the league number (".l.<num>.") is robust across
+// Yahoo's numeric game-id prefixes.
+async function findUsersTeamInLeague(client, configuredLeagueId) {
+        const match = String(configuredLeagueId || '').match(/\.l\.(\d+)/);
+        const leagueNum = match ? match[1] : null;
+        if (!leagueNum || typeof client?.user?.game_teams !== 'function') return null;
+
+        let data;
+        try {
+                // Retry transient Yahoo failures so a real member is not wrongly
+                // denied access (the gate is otherwise fail-closed).
+                data = await withRetry(() => client.user.game_teams(['nfl']));
+        } catch (err) {
+                console.error('[OAuth] Error fetching user teams:', err.message);
+                return null;
+        }
+
+        const needle = `.l.${leagueNum}.`;
+        return collectTeamKeys(data).find((tk) => tk.includes(needle)) || null;
 }
 
 export async function GET({ url, cookies, fetch }) {
@@ -73,26 +114,29 @@ export async function GET({ url, cookies, fetch }) {
                 try {
                         const userInfo = await authenticatedClient.user.games();
                         userGuid = userInfo?.guid || null;
-                        console.log('[OAuth] User GUID:', userGuid);
                 } catch (err) {
                         console.error('[OAuth] Error fetching user info:', err.message);
                 }
 
-                let managerInfo = null;
-                if (userGuid && leagueID) {
-                        try {
-                                const users = await getYahooLeagueUsers(leagueID, authenticatedClient);
-                                managerInfo =
-                                        users.find(
-                                                (u) => u.user_id === userGuid || u.metadata?.yahoo_guid === userGuid
-                                        ) || null;
-                        } catch (err) {
-                                console.error('[OAuth] Error fetching league users:', err.message);
-                        }
+                // Membership gate: only people who own a team in THIS league may sign in.
+                const usersTeamKey = await findUsersTeamInLeague(authenticatedClient, leagueID);
+                if (!usersTeamKey) {
+                        console.warn('[OAuth] Login denied — Yahoo account has no team in league', leagueID);
+                        throw redirect(302, '/auth/error?reason=not_league_member');
+                }
+
+                // Resolve "their" team's display info. Match on team_key (GUIDs are hidden).
+                let managerInfo = { team_key: usersTeamKey };
+                try {
+                        const users = await getYahooLeagueUsers(leagueID, authenticatedClient);
+                        const matched = users.find((u) => u.metadata?.team_key === usersTeamKey);
+                        if (matched) managerInfo = matched;
+                } catch (err) {
+                        console.error('[OAuth] Error fetching league users:', err.message);
                 }
 
                 const sessionData = {
-                        userId: userGuid,
+                        userId: userGuid || usersTeamKey,
                         tokens: {
                                 access_token: tokens.access_token,
                                 refresh_token: tokens.refresh_token,
