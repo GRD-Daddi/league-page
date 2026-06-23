@@ -1,14 +1,22 @@
-import { loadLeagueUsers } from '$lib/server/dataLoaders.js';
+import { loadLeagueUsers, loadLeagueRosters } from '$lib/server/dataLoaders.js';
 import { requireAuth } from '$lib/server/authGuard.js';
+import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
 import { managers } from '$lib/utils/leagueInfo';
 
 export async function load({ url, locals }) {
 	requireAuth(locals, url);
-	if (!managers.length) return { managers };
 
 	const { yahooClient, leagueKey } = locals;
-	const users = await loadLeagueUsers(yahooClient, leagueKey);
-	return { managers, leagueTeamManagersData: toMap(users) };
+	const [users, rostersResult] = await waitForAll(
+		loadLeagueUsers(yahooClient, leagueKey),
+		loadLeagueRosters(yahooClient, leagueKey),
+	);
+
+	return {
+		managers,
+		leagueTeamManagersData: toMap(users),
+		rosters: rostersResult?.rosters ?? null
+	};
 }
 
 function toMap(rawUsers) {

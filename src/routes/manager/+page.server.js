@@ -1,23 +1,25 @@
-import { loadLeagueData, loadLeagueRosters, loadLeagueUsers } from '$lib/server/dataLoaders.js';
+import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
 import { requireAuth } from '$lib/server/authGuard.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 import { managers as managersObj } from '$lib/utils/leagueInfo';
 
-export async function load({ url, locals }) {
+export async function load({ url, locals, fetch }) {
 	requireAuth(locals, url);
-	if (!managersObj.length) return false;
 
 	const { yahooClient, leagueKey } = locals;
-	const manager = url?.searchParams?.get('manager');
+	const roster = url?.searchParams?.get('roster');
+	const team = url?.searchParams?.get('team');
 
 	const managersInfo = waitForAll(
 		loadLeagueRosters(yahooClient, leagueKey),
 		loadLeagueUsersAsMap(yahooClient, leagueKey),
 		loadLeagueData(yahooClient, leagueKey),
+		loadPlayers(fetch).catch(() => ({ players: {} })),
 	);
 
 	return {
-		manager: manager && manager < managersObj.length ? manager : -1,
+		roster,
+		team,
 		managers: managersObj,
 		managersInfo
 	};
