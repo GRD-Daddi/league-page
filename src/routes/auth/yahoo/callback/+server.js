@@ -47,8 +47,16 @@ async function findUsersTeamInLeague(client, configuredLeagueId) {
                 return null;
         }
 
+        const keys = collectTeamKeys(data);
         const needle = `.l.${leagueNum}.`;
-        return collectTeamKeys(data).find((tk) => tk.includes(needle)) || null;
+        const match = keys.find((tk) => tk.includes(needle)) || null;
+        // TEMP DIAGNOSTIC: surface what Yahoo actually returns for this account so
+        // we can see why a real member's team isn't matching the configured league.
+        console.log('[OAuth] DIAG membership check — leagueNum:', leagueNum, '| needle:', needle, '| userTeamKeys:', JSON.stringify(keys), '| matched:', match);
+        if (!match) {
+                console.log('[OAuth] DIAG raw game_teams (truncated):', JSON.stringify(data).slice(0, 2500));
+        }
+        return match;
 }
 
 export async function GET({ url, cookies, fetch }) {
