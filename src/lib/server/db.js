@@ -59,6 +59,19 @@ CREATE TABLE IF NOT EXISTS pot_ledger (
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Server-side session store. The browser cookie holds only an opaque random
+-- session_id; all tokens + manager info live here so the cookie stays small and
+-- token refreshes are persisted in one place (survives restarts and refreshes).
+CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY,
+        data JSONB NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions (expires_at);
+
 INSERT INTO pot_settings (id, buy_in_amount, pot_split_pct)
 VALUES (1, 150, 50)
 ON CONFLICT (id) DO NOTHING;

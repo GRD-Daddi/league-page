@@ -4,3 +4,4 @@
 - [Yahoo season-finished status](yahoo-season-finished.md) — draft_status never goes "complete"; use league is_finished==1 to detect season end.
 - [Champion auto-record vs manual](champion-auto-record.md) — season_records.champion_source 'auto'/'manual'; manual override never overwritten by auto-detection.
 - [Yahoo adapter quirks](yahoo-adapter-quirks.md) — traded picks need raw yf.api; rosters is a map; offseason collection endpoints (/teams,/standings) fail (not concurrency) → enumerate /team/{key}/metadata; past seasons via `renew` chain.
+- [Session & token refresh design](session-auth-design.md) — sessions in Postgres, cookie holds only an opaque id; Yahoo rotates refresh_token on use so refresh MUST be serialized + DB-re-read before logout.

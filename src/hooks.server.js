@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
-import { readSessionCookie, setSessionCookie, clearSessionCookie } from '$lib/server/sessionCookie.js';
+import { readSessionId, clearSessionCookie } from '$lib/server/sessionCookie.js';
+import { getSession, updateSession, deleteSession } from '$lib/server/sessionStore.js';
 import { createAuthenticatedClient, getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
 import { leagueID as configuredLeagueID } from '$lib/utils/leagueInfo.js';
 
@@ -9,44 +10,73 @@ function isTokenExpired(session) {
         return Date.now() >= token_time + expires_in * 1000 - 5 * 60 * 1000;
 }
 
-export async function handle({ event, resolve }) {
-        let session = readSessionCookie(event.cookies);
+// A single page load fans out into many concurrent server requests. Without
+// coordination they would all see the expired token and all call Yahoo's refresh
+// endpoint at once; Yahoo rotates the refresh token on first use, so every call
+// after the first fails — which previously deleted a session that had in fact
+// just been renewed. This in-process lock collapses concurrent refreshes for the
+// same session into a single shared attempt.
+const refreshLocks = new Map();
 
-        if (session) {
-                if (isTokenExpired(session)) {
-                        const isAuthRoute = event.url.pathname.startsWith('/auth/');
-                        try {
-                                const yf = getYahooClient();
-                                if (yf && session.tokens?.refresh_token) {
-                                        const newTokens = await yf.refreshToken(session.tokens.refresh_token);
-                                        if (newTokens?.access_token) {
-                                                session = {
-                                                        ...session,
-                                                        tokens: { ...newTokens, token_time: Date.now() }
-                                                };
-                                                setSessionCookie(event.cookies, session);
-                                        } else {
-                                                clearSessionCookie(event.cookies);
-                                                session = null;
-                                                if (!isAuthRoute) {
-                                                        redirect(302, '/auth/error?reason=token_refresh_failed');
-                                                }
-                                        }
-                                } else {
-                                        clearSessionCookie(event.cookies);
-                                        session = null;
-                                        if (!isAuthRoute) {
-                                                redirect(302, '/auth/error?reason=token_refresh_failed');
-                                        }
-                                }
-                        } catch (error) {
-                                if (error?.status === 302) throw error;
-                                console.error('[hooks] Token refresh failed:', error.message);
-                                clearSessionCookie(event.cookies);
-                                session = null;
-                                if (!isAuthRoute) {
-                                        redirect(302, '/auth/error?reason=token_refresh_failed');
-                                }
+async function refreshSessionTokens(sessionId, session) {
+        if (refreshLocks.has(sessionId)) return refreshLocks.get(sessionId);
+
+        const attempt = (async () => {
+                const yf = getYahooClient();
+                if (!yf || !session.tokens?.refresh_token) return null;
+                const newTokens = await yf.refreshToken(session.tokens.refresh_token);
+                if (!newTokens?.access_token) return null;
+                const updated = {
+                        ...session,
+                        tokens: {
+                                ...session.tokens,
+                                ...newTokens,
+                                // Yahoo sometimes omits a fresh refresh_token on renewal;
+                                // keep the existing one so the next refresh still works.
+                                refresh_token: newTokens.refresh_token || session.tokens.refresh_token,
+                                token_time: Date.now()
+                        }
+                };
+                await updateSession(sessionId, updated);
+                return updated;
+        })().finally(() => refreshLocks.delete(sessionId));
+
+        refreshLocks.set(sessionId, attempt);
+        return attempt;
+}
+
+export async function handle({ event, resolve }) {
+        const sessionId = readSessionId(event.cookies);
+        let session = sessionId ? await getSession(sessionId) : null;
+
+        async function endSession(reason) {
+                if (sessionId) await deleteSession(sessionId);
+                clearSessionCookie(event.cookies);
+                session = null;
+                if (!event.url.pathname.startsWith('/auth/')) {
+                        redirect(302, `/auth/error?reason=${reason}`);
+                }
+        }
+
+        if (session && isTokenExpired(session)) {
+                let refreshed = null;
+                try {
+                        refreshed = await refreshSessionTokens(sessionId, session);
+                } catch (error) {
+                        console.error('[hooks] Token refresh failed:', error.message);
+                }
+
+                if (refreshed) {
+                        session = refreshed;
+                } else {
+                        // Our refresh failed — but a concurrent request or another
+                        // server instance may have already rotated the token. Re-read
+                        // from the store and only log out if it is genuinely gone/stale.
+                        const fresh = await getSession(sessionId);
+                        if (fresh && !isTokenExpired(fresh)) {
+                                session = fresh;
+                        } else {
+                                await endSession('token_refresh_failed');
                         }
                 }
         }
