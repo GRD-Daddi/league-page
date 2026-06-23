@@ -6,3 +6,4 @@
 - [Yahoo adapter quirks](yahoo-adapter-quirks.md) — traded picks need raw yf.api; rosters is a map; offseason collection endpoints (/teams,/standings) fail (not concurrency) → enumerate /team/{key}/metadata; past seasons via `renew` chain.
 - [Session & token refresh design](session-auth-design.md) — sessions in Postgres, cookie holds only an opaque id; Yahoo rotates refresh_token on use so refresh MUST be serialized + DB-re-read before logout.
 - [OAuth in Replit iframe & auth guards](oauth-iframe-and-guards.md) — third-party OAuth cannot complete in the preview iframe; guards must redirect in-app, not to external login. Rewrite does not fix it.
+- [Pot throne + history archive](pot-throne-archive.md) — "person to beat"=last season champ unless pot claimed; awardPot ledger year MUST equal reigning year or throne won't reset.

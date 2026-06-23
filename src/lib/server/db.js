@@ -88,6 +88,44 @@ UPDATE season_records
 -- seed a balance carried over from before this app existed). It's a single
 -- offset added to the derived pot total, so paid buy-ins still accumulate on top.
 ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS pot_adjustment NUMERIC NOT NULL DEFAULT 0;
+
+-- Durable league history — the league's OWN copy of season results, independent
+-- of Yahoo. Captured from final standings so the "person to beat", Trophy Room,
+-- and records keep working even if the Yahoo API becomes unavailable or a past
+-- league is deleted. season_archive is one header row per season; the richer
+-- per-team / per-week archives (rosters, matchups) are layered on later.
+CREATE TABLE IF NOT EXISTS season_archive (
+        year INT PRIMARY KEY,
+        league_key TEXT,
+        league_name TEXT,
+        status TEXT,
+        num_teams INT,
+        champion_team_key TEXT,
+        champion_name TEXT,
+        runner_up_team_key TEXT,
+        runner_up_name TEXT,
+        third_team_key TEXT,
+        third_name TEXT,
+        captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Per-team final standing for an archived season (one row per team per year).
+CREATE TABLE IF NOT EXISTS team_season_archive (
+        year INT NOT NULL,
+        team_key TEXT NOT NULL,
+        team_name TEXT,
+        manager_name TEXT,
+        logo_url TEXT,
+        final_rank INT,
+        wins INT,
+        losses INT,
+        ties INT,
+        points_for NUMERIC,
+        points_against NUMERIC,
+        playoff_seed INT,
+        captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (year, team_key)
+);
 `;
 
 /**

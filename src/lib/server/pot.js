@@ -1,5 +1,6 @@
 import { query } from './db.js';
 import { loadLeagueData, loadLeagueRosters } from './dataLoaders.js';
+import { getArchivedChampions, snapshotPodium } from './archive.js';
 import { previousLeagueKeys } from '$lib/utils/leagueInfo.js';
 
 /**
@@ -165,6 +166,20 @@ export async function getChampionHistory(yahooClient = null, leagueKey = null) {
                 ])
         );
 
+        // Fill gaps from the durable archive (e.g. last season's champion captured
+        // from the podium) so the reigning champ resolves even when no live Yahoo
+        // call is available and no champion was manually recorded. Never overrides a
+        // season already present (manual/recorded entries take precedence).
+        try {
+                const archived = await getArchivedChampions();
+                for (const champ of archived) {
+                        if (!champ?.name || byYear.has(champ.year)) continue;
+                        byYear.set(champ.year, { ...champ, source: 'archive' });
+                }
+        } catch (err) {
+                console.error('[pot] archived champion merge failed:', err.message);
+        }
+
         if (yahooClient) {
                 const keys = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
                 const yahooChamps = await Promise.all(keys.map((key) => getYahooChampion(yahooClient, key)));
@@ -223,6 +238,21 @@ export async function getLastSeasonPodium(yahooClient = null, leagueKey = null) 
                         pointsFor: null
                 }));
 
+                // Persist last season's podium into the durable archive so the champion
+                // (and "person to beat") survive even if Yahoo later goes dark. Best
+                // effort — a snapshot failure must never break the live podium.
+                if (Number.isFinite(year)) {
+                        try {
+                                await snapshotPodium(year, podium, {
+                                        leagueKey,
+                                        leagueName: leagueData?.name || null,
+                                        numTeams: rosters.length || null
+                                });
+                        } catch (err) {
+                                console.error('[pot] podium snapshot failed:', err.message);
+                        }
+                }
+
                 return { year, podium };
         } catch (err) {
                 console.error('[pot] podium lookup failed:', err.message);
@@ -277,6 +307,24 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
         const history = await getChampionHistory(yahooClient, leagueKey);
         const championStatus = computeChampionStatus(history);
 
+        // Per the pot rule, the "person to beat" is last season's champion ONLY while
+        // they have not yet claimed the pot — i.e. their reigning win was their first
+        // in a row. Once they go back-to-back AND the pot is awarded, the throne
+        // resets and there's no one to beat until a new champion emerges.
+        let potClaimed = false;
+        if (championStatus.reigning) {
+                const { rows: claimRows } = await query(
+                        `SELECT 1 FROM pot_ledger
+                         WHERE year = $1 AND (
+                                 (winner_team_key IS NOT NULL AND winner_team_key = $2)
+                                 OR (winner_name IS NOT NULL AND LOWER(winner_name) = LOWER($3))
+                         )
+                         LIMIT 1`,
+                        [championStatus.reigning.year, championStatus.reigning.teamKey, championStatus.reigning.name]
+                );
+                potClaimed = claimRows.length > 0;
+        }
+
         return {
                 year,
                 settings,
@@ -291,7 +339,7 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
                         second: { amount: season.payoutSecond, paid: season.secondPaid },
                         third: { amount: season.payoutThird, paid: season.thirdPaid }
                 },
-                champion: championStatus,
+                champion: { ...championStatus, potClaimed },
                 championHistory: history
         };
 }

@@ -217,10 +217,13 @@ export const actions = {
                         return fail(400, { error: 'The pot is currently empty — nothing to award.' });
                 }
 
+                // Record the pot against the reigning champion's year (server-derived),
+                // not the form's year. The "throne reset" check (potClaimed) looks up the
+                // ledger by the reigning year, so these must stay in lockstep.
                 await query(
                         `INSERT INTO pot_ledger (year, winner_team_key, winner_name, amount, note, created_at)
                          VALUES ($1, $2, $3, $4, $5, now())`,
-                        [year, winnerTeamKey, winnerName, amount, 'Back-to-back pot awarded']
+                        [reigning.year, winnerTeamKey, winnerName, amount, 'Back-to-back pot awarded']
                 );
                 return { success: true, action: 'awardPot', amount };
         }
