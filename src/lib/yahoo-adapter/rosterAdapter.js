@@ -2,10 +2,6 @@ import { getYahooClient, withRetry } from './yahooClient.js';
 
 const isHidden = (v) => !v || v === '--hidden--';
 
-// TEMP DIAGNOSTIC: capture the raw shape of the first roster that actually
-// contains players, so we can wire player-name extraction correctly.
-let ROSTER_SAMPLE_LOGGED = false;
-
 // A roster player can arrive flat (the yahoo-fantasy library's mapped shape) or
 // as an array of raw Yahoo segments. Merge any array form into a single object so
 // fields (player_key, name, selected_position, ...) are reliably accessible.
@@ -141,13 +137,6 @@ export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
                 
                 try {
                         const roster = await withRetry(() => yf.team.roster(teamKey));
-                        if (!ROSTER_SAMPLE_LOGGED && roster) {
-                                const s = JSON.stringify(roster);
-                                if (s && s.includes('player_key')) {
-                                        ROSTER_SAMPLE_LOGGED = true;
-                                        console.log('[Yahoo Adapter] DIAG raw roster sample for', teamKey, s.slice(0, 3500));
-                                }
-                        }
                         return convertRosterToSleeperFormat(team, roster, index + 1);
                 } catch (err) {
                         console.error(`Error fetching roster for team ${teamKey}:`, err);
@@ -156,19 +145,7 @@ export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
         });
         
         const rosters = await Promise.all(rosterPromises);
-        const result = rosters.filter(r => r !== null);
-        // TEMP DIAGNOSTIC: how many players each roster actually came back with,
-        // plus the pre-draft order if Yahoo has set one. Tells us whether rosters
-        // are empty Yahoo-side (pre-draft) or being dropped by parsing.
-        console.log('[Yahoo Adapter] DIAG rosters for', leagueKey, '→',
-                JSON.stringify(result.map(r => ({
-                        roster_id: r.roster_id,
-                        team: r.metadata?.team_name,
-                        players: r.players?.length || 0,
-                        starters: r.starters?.length || 0,
-                        draft_position: r.metadata?.draft_position ?? null
-                }))));
-        return result;
+        return rosters.filter(r => r !== null);
 }
 
 export async function getYahooLeagueUsers(leagueKey, yahooClient = null) {
@@ -262,7 +239,7 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
 
         const starters = playerObjs
                 .filter((p) => {
-                        const pos = selectedPosition(p);
+                        const pos = (selectedPosition(p) || '').toUpperCase();
                         return pos && pos !== 'BN' && pos !== 'IR';
                 })
                 .map((p) => p.player_key || p.player_id);
@@ -278,7 +255,8 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
                         fn: nm.first || nm.full || '',
                         ln: nm.last || '',
                         pos: p.display_position || p.primary_position || null,
-                        t: p.editorial_team_abbr || null
+                        t: p.editorial_team_abbr || null,
+                        img: p.headshot?.url || p.image_url || null
                 };
         }
         

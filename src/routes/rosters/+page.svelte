@@ -30,9 +30,9 @@
                 const p = players?.[id];
                 if (p) {
                         const name = `${p.fn ?? ''} ${p.ln ?? ''}`.trim();
-                        return { name: name || String(id), pos: p.pos ?? null, team: p.t ?? null };
+                        return { name: name || String(id), pos: p.pos ?? null, team: p.t ?? null, img: p.img ?? null };
                 }
-                return { name: String(id), pos: null, team: null };
+                return { name: String(id), pos: null, team: null, img: null };
         }
 
         function buildTeams(rosterData, users, players) {
@@ -141,7 +141,16 @@
                                                                                 </div>
                                                                                 {#each team.starters as player}
                                                                                         <div class="player-row">
-                                                                                                <span class="player-name">{player.name}</span>
+                                                                                                <div class="player-info">
+                                                                                                        <div class="player-pic">
+                                                                                                                {#if player.img}
+                                                                                                                        <img src={player.img} alt={player.name} loading="lazy" />
+                                                                                                                {:else}
+                                                                                                                        {initials(player.name)}
+                                                                                                                {/if}
+                                                                                                        </div>
+                                                                                                        <span class="player-name">{player.name}</span>
+                                                                                                </div>
                                                                                                 {#if player.pos}
                                                                                                         <span class="sn-badge cyan">{player.pos}</span>
                                                                                                 {/if}
@@ -156,7 +165,16 @@
                                                                                         </div>
                                                                                         {#each team.bench as player}
                                                                                                 <div class="player-row">
-                                                                                                        <span class="player-name muted">{player.name}</span>
+                                                                                                        <div class="player-info">
+                                                                                                                <div class="player-pic">
+                                                                                                                        {#if player.img}
+                                                                                                                                <img src={player.img} alt={player.name} loading="lazy" />
+                                                                                                                        {:else}
+                                                                                                                                {initials(player.name)}
+                                                                                                                        {/if}
+                                                                                                                </div>
+                                                                                                                <span class="player-name muted">{player.name}</span>
+                                                                                                        </div>
                                                                                                         {#if player.pos}
                                                                                                                 <span class="sn-badge">{player.pos}</span>
                                                                                                         {/if}
@@ -225,6 +243,35 @@
 
         .player-row:last-child {
                 border-bottom: none;
+        }
+
+        .player-info {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 0;
+        }
+
+        .player-pic {
+                flex: 0 0 auto;
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                overflow: hidden;
+                background: #1f2937;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.7rem;
+                font-weight: 700;
+                color: #9ca3af;
+        }
+
+        .player-pic img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: top center;
         }
 
         .player-name {

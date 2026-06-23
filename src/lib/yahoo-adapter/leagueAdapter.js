@@ -46,8 +46,6 @@ export async function findPreviousSeasonLeagueKey(currentName, currentSeason, ya
                         }
                 }
 
-                console.log('[Yahoo Adapter] DIAG prior leagues', JSON.stringify(candidates));
-
                 const norm = (s) => (s || '').trim().toLowerCase();
                 const byName = candidates
                         .filter((c) => norm(c.name) === norm(currentName))
@@ -87,10 +85,6 @@ function convertLeagueDataToSleeperFormat(meta, settings, leagueKey) {
                         settings.settings?.[0] ||
                         settings.settings ||
                         {};
-                console.log('[Yahoo Adapter] league settings keys:', Object.keys(yahooSettings || {}).join(','),
-                        '| num_draft_rounds:', yahooSettings?.num_draft_rounds,
-                        '| has roster_positions:', !!yahooSettings?.roster_positions);
-
                 return {
                         league_id: leagueKey,
                         name: yahooLeague.name || '',

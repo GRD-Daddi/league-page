@@ -69,11 +69,6 @@ export async function loadLeagueRostersWithFallback(yahooClient = null, queryLea
                 const hasPlayers = Object.values(rosters.rosters || {})
                         .some((r) => (r.players?.length || 0) > 0);
 
-                console.log('[Yahoo Adapter] DIAG roster-fallback', leagueKey,
-                        '| season:', leagueData?.season,
-                        '| hasPlayers:', hasPlayers,
-                        '| previous_league_id:', leagueData?.previous_league_id);
-
                 if (hasPlayers) {
                         return {
                                 ...rosters,

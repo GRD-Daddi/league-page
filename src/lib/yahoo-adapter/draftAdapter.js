@@ -6,13 +6,7 @@ export async function getYahooDraftResults(leagueKey, yahooClient = null) {
 
         const draftResults = await withRetry(() => yf.league.draft_results(leagueKey));
 
-        const converted = convertDraftResultsToSleeperFormat(draftResults, leagueKey);
-        // TEMP DIAGNOSTIC: how many picks Yahoo returned. 0 picks pre-draft is
-        // expected (draft hasn't happened); >0 means the draft is done.
-        console.log('[Yahoo Adapter] DIAG draft_results for', leagueKey,
-                '→ picks:', converted.length,
-                '| raw keys:', draftResults ? Object.keys(draftResults).join(',') : 'null');
-        return converted;
+        return convertDraftResultsToSleeperFormat(draftResults, leagueKey);
 }
 
 export async function getYahooDraftData(leagueKey, yahooClient = null) {

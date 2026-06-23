@@ -45,11 +45,6 @@ async function fetchUserTeamKeys(client) {
                 try {
                         const data = await withRetry(attempt.run);
                         const found = collectTeamKeys(data);
-                        // TEMP DIAGNOSTIC: surface what each Yahoo endpoint returns.
-                        console.log(`[OAuth] DIAG ${attempt.name} team keys:`, JSON.stringify(found));
-                        if (!found.length) {
-                                console.log(`[OAuth] DIAG ${attempt.name} raw (truncated):`, JSON.stringify(data).slice(0, 2000));
-                        }
                         keys.push(...found);
                 } catch (err) {
                         console.error(`[OAuth] team-fetch ${attempt.name} failed:`, err.message);
@@ -72,7 +67,6 @@ async function findUsersTeamInLeague(client, configuredLeagueId) {
         const keys = await fetchUserTeamKeys(client);
         const needle = `.l.${leagueNum}.`;
         const matchedKey = keys.find((tk) => tk.includes(needle)) || null;
-        console.log('[OAuth] DIAG membership check — leagueNum:', leagueNum, '| needle:', needle, '| allUserTeamKeys:', JSON.stringify(keys), '| matched:', matchedKey);
         return matchedKey;
 }
 
