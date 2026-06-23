@@ -12,3 +12,9 @@ id = "U2iHmg1MnDitdkXjQFOqt"
 uri = "file://artifacts/mockup-sandbox/public/images/stadium-hero.png"
 type = "image"
 title = "Stadium at night neon lights"
+
+[[generated]]
+id = "gfZ0cMdY2kDpi-FDMWadJ"
+uri = "file://artifacts/mockup-sandbox/public/images/dark-tavern.png"
+type = "image"
+title = "Dark tavern background"
