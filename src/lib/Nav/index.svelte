@@ -168,6 +168,10 @@
                 .brand-name {
                         font-size: 1.05rem;
                 }
+                /* Commissioner is in the mobile drawer; hide the standalone gear */
+                .commish-link {
+                        display: none;
+                }
         }
 
         /* Override SMUI tab styles for dark theme */
@@ -276,7 +280,7 @@
                         {/if}
                         <AuthButton {session} />
                         <div class="small">
-                                <NavSmall />
+                                <NavSmall {session} />
                         </div>
                 </div>
         </div>
