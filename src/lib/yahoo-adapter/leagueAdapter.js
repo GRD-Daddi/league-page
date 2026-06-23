@@ -188,11 +188,21 @@ function convertScoringSettings(statCategories) {
 }
 
 function convertRosterPositions(rosterPositions) {
-        if (!rosterPositions?.roster_position) return [];
+        if (!rosterPositions) return [];
 
-        const positions = Array.isArray(rosterPositions.roster_position)
-                ? rosterPositions.roster_position
-                : [rosterPositions.roster_position];
+        // The yahoo-fantasy library's mapSettings flattens roster_positions into a
+        // plain array of { position, count }. Raw/unmapped payloads instead nest
+        // them under .roster_position. Support both shapes.
+        let positions;
+        if (Array.isArray(rosterPositions)) {
+                positions = rosterPositions.map((p) => p.roster_position || p);
+        } else if (rosterPositions.roster_position) {
+                positions = Array.isArray(rosterPositions.roster_position)
+                        ? rosterPositions.roster_position
+                        : [rosterPositions.roster_position];
+        } else {
+                return [];
+        }
 
         const sleeperPositions = [];
 

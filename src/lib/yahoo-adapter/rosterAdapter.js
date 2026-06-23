@@ -2,21 +2,36 @@ import { getYahooClient, withRetry } from './yahooClient.js';
 
 const isHidden = (v) => !v || v === '--hidden--';
 
-// Yahoo's `league.teams` endpoint sometimes RESOLVES with a transient error
-// payload (e.g. { description: 'There was a temporary problem with the server' })
-// instead of throwing. Detect that shape and throw so withRetry can retry it.
+// Yahoo's `/teams` endpoint intermittently fails with "There was a temporary
+// problem with the server" — sometimes persistently for a given league — even
+// while other endpoints (settings, standings) respond fine. We retry it, then
+// fall back to the `/standings` endpoint, which returns the same team objects
+// (both go through the library's mapTeam). team_key/name/managers are identical.
 async function fetchLeagueTeams(yf, leagueKey) {
-        return withRetry(async () => {
-                const teams = await yf.league.teams(leagueKey);
-                const teamsArray = teams?.league?.[0]?.teams?.[0]?.team || teams?.teams || null;
-                if (!teamsArray) {
-                        const desc = teams?.description || 'Unexpected Yahoo teams response';
-                        const err = new Error(desc);
-                        err.description = desc;
+        const validate = (arr, src) => {
+                if (!Array.isArray(arr) || arr.length === 0) {
+                        const err = new Error(`Empty Yahoo ${src} response`);
+                        err.description = `Empty Yahoo ${src} response`;
                         throw err;
                 }
-                return teamsArray;
-        });
+                return arr;
+        };
+
+        try {
+                return await withRetry(async () => {
+                        const res = await yf.league.teams(leagueKey);
+                        const arr = res?.teams || res?.league?.[0]?.teams?.[0]?.team || null;
+                        return validate(arr, 'teams');
+                });
+        } catch (teamsErr) {
+                console.warn('[Yahoo Adapter] /teams failed, falling back to /standings:',
+                        teamsErr?.description || teamsErr?.message);
+                return await withRetry(async () => {
+                        const res = await yf.league.standings(leagueKey);
+                        const arr = res?.standings || null;
+                        return validate(arr, 'standings');
+                });
+        }
 }
 
 // Yahoo team payloads can arrive either as a flat (already-merged) object or as
@@ -163,9 +178,15 @@ function convertRosterToSleeperFormat(team, rosterData, rosterId) {
         
         const stats = teamStandings;
         const outcome_totals = stats.outcome_totals || {};
-        
+
+        // Use the canonical Yahoo team number (.t.N) as roster_id so it stays
+        // consistent regardless of array order (e.g. when teams come from the
+        // /standings fallback in rank order). Other adapters key off this number.
+        const teamNum = parseInt(teamMeta.team_key?.match(/\.t\.(\d+)/)?.[1], 10);
+        const canonicalRosterId = Number.isInteger(teamNum) ? teamNum : rosterId;
+
         return {
-                roster_id: rosterId,
+                roster_id: canonicalRosterId,
                 owner_id: (!isHidden(managerData.guid) ? managerData.guid : null) || teamMeta.team_key || `yahoo_${rosterId}`,
                 league_id: teamMeta.team_key?.split('.l.')[1]?.split('.t.')[0] || null,
                 
