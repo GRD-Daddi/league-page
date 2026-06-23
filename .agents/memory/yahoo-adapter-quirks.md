@@ -34,8 +34,28 @@ the Yahoo `.t.N` team number. When correlating rosters with anything that carrie
 Yahoo team keys (e.g. traded picks), key off the numeric team number parsed from
 `team_key` via `/\.t\.(\d+)/` on both sides — not `roster_id`.
 
-## Transient Yahoo failures
-`consumer_key_unknown` and "There was a temporary problem with the server" are
-intermittent Yahoo-side errors; `withRetry` in yahooClient.js handles the former.
+## Transient Yahoo failures (and the resolved-error-payload trap)
+`consumer_key_unknown` and "There was a temporary problem with the server. Please
+try again shortly." are intermittent Yahoo-side errors. `withRetry` in
+yahooClient.js retries on a broadened set of transient patterns (temporary problem,
+try again, rate limit, timeout, ECONNRESET/REFUSED, 50x).
+
+**Trap:** `yf.league.teams()` does NOT throw on the "temporary problem" error — it
+RESOLVES with an error-shaped payload `{ description, 'yahoo:uri', ... }` that lacks
+the `league[0].teams[0].team` array. Reading the shape then silently yields
+`teamsArray = []`, which surfaces as "rosters showing no one" / empty draft-pick
+chips. **Why it matters:** both getYahooLeagueRosters and getYahooLeagueUsers
+depend on this call. **How to apply:** fetch teams through `fetchLeagueTeams()` in
+rosterAdapter, which throws a descriptive Error when the teams array is missing so
+withRetry actually retries the resolved-error payload. Any other Yahoo call that can
+return a resolved-error payload needs the same throw-to-retry wrapper; plain
+withRetry alone won't catch non-thrown failures.
+
+## Draft rounds can be empty when settings are degraded
+Home page draft-pick chips only render when draftRounds is truthy. Yahoo's settings
+parse is fragile and can yield null draft_rounds + empty roster_positions. Fallback
+chain: settings.draft_rounds -> roster_positions(excl IR) -> max loaded roster size
+-> default 15, so the section never renders blank.
+
 The dev server occasionally needs a restart after a transient Yahoo token "cb is
 not a function" crash.

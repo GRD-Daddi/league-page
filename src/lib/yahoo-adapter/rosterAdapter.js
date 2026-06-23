@@ -1,6 +1,23 @@
-import { getYahooClient } from './yahooClient.js';
+import { getYahooClient, withRetry } from './yahooClient.js';
 
 const isHidden = (v) => !v || v === '--hidden--';
+
+// Yahoo's `league.teams` endpoint sometimes RESOLVES with a transient error
+// payload (e.g. { description: 'There was a temporary problem with the server' })
+// instead of throwing. Detect that shape and throw so withRetry can retry it.
+async function fetchLeagueTeams(yf, leagueKey) {
+        return withRetry(async () => {
+                const teams = await yf.league.teams(leagueKey);
+                const teamsArray = teams?.league?.[0]?.teams?.[0]?.team || teams?.teams || null;
+                if (!teamsArray) {
+                        const desc = teams?.description || 'Unexpected Yahoo teams response';
+                        const err = new Error(desc);
+                        err.description = desc;
+                        throw err;
+                }
+                return teamsArray;
+        });
+}
 
 // Yahoo team payloads can arrive either as a flat (already-merged) object or as
 // an array of segments. Merge all segments so key fields (team_key, name,
@@ -27,9 +44,8 @@ export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
-        const teams = await yf.league.teams(leagueKey);
-        const teamsArray = teams.league?.[0]?.teams?.[0]?.team || teams.teams || [];
-        
+        const teamsArray = await fetchLeagueTeams(yf, leagueKey);
+
         const rosterPromises = teamsArray.map(async (team, index) => {
                 const teamKey = team.team_key || team[0]?.team_key;
                 if (!teamKey) return null;
@@ -52,9 +68,8 @@ export async function getYahooLeagueUsers(leagueKey, yahooClient = null) {
         if (!yf) throw new Error('Yahoo client not initialized');
 
         try {
-                const teams = await yf.league.teams(leagueKey);
-                const teamsArray = teams.league?.[0]?.teams?.[0]?.team || teams.teams || [];
-                
+                const teamsArray = await fetchLeagueTeams(yf, leagueKey);
+
                 return teamsArray.map((team, index) => {
                         const { teamMeta, managerData } = extractTeamMeta(team);
 
