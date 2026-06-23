@@ -2,6 +2,10 @@ import { getYahooClient, withRetry } from './yahooClient.js';
 
 const isHidden = (v) => !v || v === '--hidden--';
 
+// TEMP DIAGNOSTIC: capture the raw shape of the first roster that actually
+// contains players, so we can wire player-name extraction correctly.
+let ROSTER_SAMPLE_LOGGED = false;
+
 // Yahoo's `/teams` endpoint intermittently fails with "There was a temporary
 // problem with the server" — sometimes persistently for a given league — even
 // while other endpoints (settings, standings) respond fine. We retry it, then
@@ -117,6 +121,13 @@ export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
                 
                 try {
                         const roster = await withRetry(() => yf.team.roster(teamKey));
+                        if (!ROSTER_SAMPLE_LOGGED && roster) {
+                                const s = JSON.stringify(roster);
+                                if (s && s.includes('player_key')) {
+                                        ROSTER_SAMPLE_LOGGED = true;
+                                        console.log('[Yahoo Adapter] DIAG raw roster sample for', teamKey, s.slice(0, 3500));
+                                }
+                        }
                         return convertRosterToSleeperFormat(team, roster, index + 1);
                 } catch (err) {
                         console.error(`Error fetching roster for team ${teamKey}:`, err);

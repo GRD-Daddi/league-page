@@ -34,6 +34,54 @@ export async function loadLeagueRosters(yahooClient = null, queryLeagueID = conf
         }
 }
 
+// During the preseason / pre-draft window the current Yahoo league has no rosters
+// yet — players are imported at the roster-import deadline or added via the draft.
+// For a dynasty league the meaningful squads live in the most recent completed
+// season, which Yahoo links via the `renew` chain (exposed as previous_league_id).
+// Walk that chain until we find a season whose teams actually have players, so the
+// rosters page shows last season's rosters instead of a wall of "No Players".
+export async function loadLeagueRostersWithFallback(yahooClient = null, queryLeagueID = configuredLeagueID) {
+        let leagueKey = queryLeagueID;
+        let guard = 0;
+        let currentSeasonResult = null;
+
+        while (leagueKey && guard < 12) {
+                guard++;
+                const isFallback = leagueKey !== queryLeagueID;
+
+                const [rosters, leagueData] = await waitForAll(
+                        loadLeagueRosters(yahooClient, leagueKey),
+                        loadLeagueData(yahooClient, leagueKey),
+                );
+
+                if (rosters === null) return null; // auth error — let the caller handle it
+
+                if (currentSeasonResult === null) currentSeasonResult = rosters;
+
+                const hasPlayers = Object.values(rosters.rosters || {})
+                        .some((r) => (r.players?.length || 0) > 0);
+
+                console.log('[Yahoo Adapter] DIAG roster-fallback', leagueKey,
+                        '| season:', leagueData?.season,
+                        '| hasPlayers:', hasPlayers,
+                        '| previous_league_id:', leagueData?.previous_league_id);
+
+                if (hasPlayers) {
+                        return {
+                                ...rosters,
+                                fromSeason: isFallback ? (leagueData?.season ?? null) : null,
+                                fromLeagueKey: isFallback ? leagueKey : null
+                        };
+                }
+
+                const prev = leagueData?.previous_league_id || null;
+                if (!prev) break;
+                leagueKey = prev;
+        }
+
+        return currentSeasonResult;
+}
+
 export async function loadLeagueUsers(yahooClient = null, queryLeagueID = configuredLeagueID) {
         try {
                 return await getLeagueUsersApi(queryLeagueID, yahooClient);
