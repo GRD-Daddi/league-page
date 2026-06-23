@@ -138,9 +138,8 @@ The application now includes a complete Yahoo OAuth 2.0 authentication system th
 
 **OAuth Routes** (`src/routes/auth/`):
 - `/auth/login` - Initiates Yahoo OAuth flow with CSRF state token protection
-- `/auth/callback` - Handles OAuth callback, exchanges code for tokens, identifies manager
+- `/auth/yahoo/callback` - Handles OAuth callback, exchanges code for tokens, identifies manager
 - `/auth/logout` - Clears session and removes cookies
-- `/auth/session` - Returns current session data as JSON
 
 **Hooks** (`src/hooks.server.js`):
 - Loads session data from cookies on every request
@@ -171,13 +170,20 @@ The application now includes a complete Yahoo OAuth 2.0 authentication system th
 
 #### Optional Configuration
 
-Set `VITE_YAHOO_REDIRECT_URI` environment variable to customize the OAuth redirect URL (defaults to current domain + `/auth/callback`).
+Set `VITE_YAHOO_REDIRECT_URI` environment variable to customize the OAuth redirect URL (defaults to current domain + `/auth/yahoo/callback`).
+
+> **Important**: The redirect URI you register in the [Yahoo Developer Portal](https://developer.yahoo.com/apps/) **must** end with `/auth/yahoo/callback`. For example:
+> - Development: `http://localhost:5000/auth/yahoo/callback`
+> - Replit dev domain: `https://<your-repl-slug>.<username>.repl.co/auth/yahoo/callback`
+> - Production (deployed): `https://<your-deployed-domain>/auth/yahoo/callback`
+>
+> A mismatch between the portal's allowed redirect URIs and the path the app sends will cause a `redirect_uri_mismatch` error and block all logins.
 
 #### How It Works
 
 1. User clicks "LOGIN" button in navigation
 2. Redirected to Yahoo login page
-3. After authentication, Yahoo redirects back to `/auth/callback`
+3. After authentication, Yahoo redirects back to `/auth/yahoo/callback`
 4. App exchanges auth code for access/refresh tokens
 5. App identifies which manager/team the user owns
 6. Session created and stored server-side
