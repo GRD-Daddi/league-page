@@ -19,7 +19,15 @@ export async function getYahooLeagueData(leagueKey, yahooClient = null) {
 function convertLeagueDataToSleeperFormat(meta, settings, leagueKey) {
         try {
                 const yahooLeague = meta.league?.[0] || meta;
-                const yahooSettings = settings.league?.[0]?.settings?.[0] || settings.settings?.[0] || {};
+                const yahooSettings =
+                        settings.league?.[0]?.settings?.[0] ||
+                        settings.league?.settings?.[0] ||
+                        settings.settings?.[0] ||
+                        settings.settings ||
+                        {};
+                console.log('[Yahoo Adapter] league settings keys:', Object.keys(yahooSettings || {}).join(','),
+                        '| num_draft_rounds:', yahooSettings?.num_draft_rounds,
+                        '| has roster_positions:', !!yahooSettings?.roster_positions);
 
                 return {
                         league_id: leagueKey,

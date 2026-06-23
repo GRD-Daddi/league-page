@@ -55,10 +55,24 @@ export async function load({ locals }) {
                 const rosterPositions = Array.isArray(leagueData?.roster_positions)
                         ? leagueData.roster_positions
                         : [];
+                // Largest roster size across loaded teams (counts kept/drafted players)
+                // as a secondary signal when league settings don't expose round counts.
+                const maxRosterSize = Object.values(rostersResult?.rosters ?? {}).reduce((max, r) => {
+                        const size = Array.isArray(r?.players) ? r.players.length : 0;
+                        return Math.max(max, size);
+                }, 0);
+                const DEFAULT_DRAFT_ROUNDS = 15;
                 const draftRounds =
                         leagueData?.settings?.draft_rounds ||
                         rosterPositions.filter((p) => p !== 'IR').length ||
-                        null;
+                        maxRosterSize ||
+                        DEFAULT_DRAFT_ROUNDS;
+                console.log('[homepage] draftRounds debug:', JSON.stringify({
+                        settingsRounds: leagueData?.settings?.draft_rounds ?? null,
+                        rosterPositionsLen: rosterPositions.length,
+                        maxRosterSize,
+                        resolved: draftRounds
+                }));
 
                 // Real per-team upcoming-draft pick ownership. Each team starts with one
                 // pick per round; traded picks move a pick from its original team to its
