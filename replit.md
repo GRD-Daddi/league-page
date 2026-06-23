@@ -101,7 +101,13 @@ To use Yahoo Fantasy instead of Sleeper:
    ```
    VITE_YAHOO_APP_KEY=your_app_id_here
    VITE_YAHOO_APP_SECRET=your_app_secret_here
+   SESSION_SECRET=<random 64-char hex string>
    ```
+   Generate `SESSION_SECRET` with:
+   ```
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   `SESSION_SECRET` is **required** — without it, user login sessions will not work.
 
 3. **Update League Configuration:**
    In `src/lib/utils/leagueInfo.js`:

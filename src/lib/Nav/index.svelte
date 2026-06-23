@@ -3,6 +3,8 @@
 	import NavLarge from './NavLarge.svelte';
 	import AuthButton from './AuthButton.svelte';
 	import { page } from '$app/state';
+
+	let { session = { authenticated: false } } = $props();
 </script>
 
 <svelte:head>
@@ -199,7 +201,7 @@
 			<div class="large">
 				<NavLarge />
 			</div>
-			<AuthButton />
+			<AuthButton {session} />
 			<div class="small">
 				<NavSmall />
 			</div>

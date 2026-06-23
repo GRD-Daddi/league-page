@@ -1,16 +1,13 @@
 import { redirect } from '@sveltejs/kit';
+import { getAuthConfig } from '$lib/server/authConfig.js';
 
 export async function GET({ url, cookies }) {
-	const appKey = process.env.VITE_YAHOO_APP_KEY || import.meta.env.VITE_YAHOO_APP_KEY;
-	const redirectUri = process.env.VITE_YAHOO_REDIRECT_URI || 
-		import.meta.env.VITE_YAHOO_REDIRECT_URI || 
-		`${url.origin}/auth/yahoo/callback`;
+	const { appKey, redirectUri } = getAuthConfig(url.origin);
 
 	if (!appKey) {
-		return new Response('Yahoo API credentials not configured', { status: 500 });
+		throw redirect(302, '/auth/error?reason=credentials_missing');
 	}
 
-	// Save the page to return to after login
 	const returnTo = url.searchParams.get('returnTo') || '/';
 	cookies.set('auth_return_to', returnTo, {
 		httpOnly: true,
@@ -21,10 +18,9 @@ export async function GET({ url, cookies }) {
 	});
 
 	const state = crypto.randomUUID();
-
 	cookies.set('oauth_state', state, {
 		httpOnly: true,
-		secure: false,
+		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax',
 		path: '/',
 		maxAge: 10 * 60

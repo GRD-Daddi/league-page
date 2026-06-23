@@ -1,47 +1,52 @@
-import { getSession, updateSession, isTokenExpired, deleteSession } from '$lib/server/sessionStore.js';
+import { readSessionCookie, setSessionCookie, clearSessionCookie } from '$lib/server/sessionCookie.js';
 import { createAuthenticatedClient, getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
 import { leagueID as configuredLeagueID } from '$lib/utils/leagueInfo.js';
 
+function isTokenExpired(session) {
+	if (!session?.tokens) return true;
+	const { token_time = 0, expires_in = 3600 } = session.tokens;
+	return Date.now() >= token_time + expires_in * 1000 - 5 * 60 * 1000;
+}
+
 export async function handle({ event, resolve }) {
-	const sessionId = event.cookies.get('session_id');
+	let session = readSessionCookie(event.cookies);
 
-	if (sessionId) {
-		const session = getSession(sessionId);
-
-		if (session) {
-			if (isTokenExpired(session)) {
-				try {
-					const yf = getYahooClient();
-					if (yf && session.tokens.refresh_token) {
-						const newTokens = await yf.refreshToken(session.tokens.refresh_token);
-
-						if (newTokens?.access_token) {
-							const updatedTokens = { ...newTokens, token_time: Date.now() };
-							updateSession(sessionId, { tokens: updatedTokens });
-							session.tokens = updatedTokens;
-						} else {
-							deleteSession(sessionId);
-							event.cookies.delete('session_id', { path: '/' });
-							return resolve(event);
-						}
+	if (session) {
+		if (isTokenExpired(session)) {
+			try {
+				const yf = getYahooClient();
+				if (yf && session.tokens?.refresh_token) {
+					const newTokens = await yf.refreshToken(session.tokens.refresh_token);
+					if (newTokens?.access_token) {
+						session = {
+							...session,
+							tokens: { ...newTokens, token_time: Date.now() }
+						};
+						setSessionCookie(event.cookies, session);
+					} else {
+						clearSessionCookie(event.cookies);
+						session = null;
 					}
-				} catch (error) {
-					console.error('[hooks] Token refresh failed:', error.message);
-					deleteSession(sessionId);
-					event.cookies.delete('session_id', { path: '/' });
-					return resolve(event);
+				} else {
+					clearSessionCookie(event.cookies);
+					session = null;
 				}
+			} catch (error) {
+				console.error('[hooks] Token refresh failed:', error.message);
+				clearSessionCookie(event.cookies);
+				session = null;
 			}
-
-			event.locals.session = session;
-			event.locals.yahooClient = createAuthenticatedClient(
-				session.tokens.access_token,
-				session.tokens.refresh_token
-			);
 		}
 	}
 
-	// Determine effective league key: cookie override > configured value
+	if (session) {
+		event.locals.session = session;
+		event.locals.yahooClient = createAuthenticatedClient(
+			session.tokens.access_token,
+			session.tokens.refresh_token
+		);
+	}
+
 	const cookieLeagueKey = event.cookies.get('selected_league_key');
 	event.locals.leagueKey = cookieLeagueKey || configuredLeagueID;
 

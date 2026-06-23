@@ -4,6 +4,8 @@
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
+	let { data } = $props();
+
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 </script>
 
@@ -19,7 +21,7 @@
 </svelte:head>
 
 <main>
-	<Nav />
+	<Nav session={data.session} />
 
 	<slot />
 
