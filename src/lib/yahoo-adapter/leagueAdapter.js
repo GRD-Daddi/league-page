@@ -1,11 +1,12 @@
 import { getYahooClient, withRetry } from './yahooClient.js';
 
-// Yahoo's `renew` metadata field links a league to its previous season using the
-// format "GAME_l_LEAGUEID" (e.g. "449_l_744586"). Convert it to a standard
-// league key ("449.l.744586"). Returns null when absent or malformed.
+// Yahoo's `renew` metadata field links a league to its previous season. Yahoo
+// returns it as "GAME_LEAGUEID" (e.g. "461_744586") — and, in some responses, as
+// "GAME_l_LEAGUEID" (e.g. "449_l_744586"). Accept both and convert to a standard
+// league key ("461.l.744586"). Returns null when absent or malformed.
 export function yahooRenewToKey(renew) {
         if (!renew || typeof renew !== 'string') return null;
-        const m = renew.match(/^(\d+)_l_(\d+)$/);
+        const m = renew.match(/^(\d+)_(?:l_)?(\d+)$/);
         if (!m) return null;
         return `${m[1]}.l.${m[2]}`;
 }
