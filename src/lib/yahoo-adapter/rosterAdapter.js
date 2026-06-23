@@ -26,12 +26,59 @@ async function fetchLeagueTeams(yf, leagueKey) {
         } catch (teamsErr) {
                 console.warn('[Yahoo Adapter] /teams failed, falling back to /standings:',
                         teamsErr?.description || teamsErr?.message);
-                return await withRetry(async () => {
-                        const res = await yf.league.standings(leagueKey);
-                        const arr = res?.standings || null;
-                        return validate(arr, 'standings');
-                });
+                try {
+                        return await withRetry(async () => {
+                                const res = await yf.league.standings(leagueKey);
+                                const arr = res?.standings || null;
+                                return validate(arr, 'standings');
+                        });
+                } catch (standingsErr) {
+                        // Both team-collection endpoints (/teams, /standings) are erroring
+                        // Yahoo-side for this league — common in the offseason / pre-draft
+                        // window. Single-resource endpoints (/league/metadata,
+                        // /team/{key}/metadata) keep working, so enumerate each team
+                        // individually. Team keys are deterministic: {league_key}.t.{N}.
+                        console.warn('[Yahoo Adapter] /standings also failed, enumerating teams individually:',
+                                standingsErr?.description || standingsErr?.message);
+                        return await fetchTeamsIndividually(yf, leagueKey);
+                }
         }
+}
+
+// Build the team list by fetching each team's /metadata endpoint one at a time.
+// Used when the league-level team-collection endpoints fail. Resolves the
+// canonical (numeric game-prefixed) league key and team count from the league
+// metadata call, which is reliable even when /teams and /standings are not.
+async function fetchTeamsIndividually(yf, leagueKey) {
+        const meta = await withRetry(() => yf.league.meta(leagueKey));
+        const leagueMeta = meta?.league?.[0] || meta;
+        const canonicalKey = leagueMeta?.league_key || leagueKey;
+        const numTeams = parseInt(leagueMeta?.num_teams, 10) || 0;
+        if (!numTeams) {
+                const err = new Error('Could not determine num_teams for per-team fallback');
+                err.description = err.message;
+                throw err;
+        }
+
+        const teams = [];
+        for (let n = 1; n <= numTeams; n++) {
+                const teamKey = `${canonicalKey}.t.${n}`;
+                try {
+                        const teamMeta = await withRetry(() => yf.team.meta(teamKey));
+                        if (teamMeta) teams.push(teamMeta);
+                } catch (teamErr) {
+                        console.warn(`[Yahoo Adapter] per-team meta failed for ${teamKey}:`,
+                                teamErr?.description || teamErr?.message);
+                }
+        }
+
+        if (teams.length === 0) {
+                const err = new Error('Per-team metadata fallback returned no teams');
+                err.description = err.message;
+                throw err;
+        }
+        console.log(`[Yahoo Adapter] per-team fallback recovered ${teams.length}/${numTeams} teams`);
+        return teams;
 }
 
 // Yahoo team payloads can arrive either as a flat (already-merged) object or as
