@@ -983,6 +983,7 @@
   }
 
   .pick-chip .rnd { color: #00f0ff; }
+  .pick-chip .pick-count { color: #e5e7eb; font-weight: 800; }
 
   .returning-grid {
     display: grid;
@@ -1239,7 +1240,7 @@
                 </div>
                 <div class="draft-picks">
                   {#each DRAFT_ROUNDS as rnd}
-                    <span class="pick-chip"><span class="rnd">R{rnd}</span> TBD</span>
+                    <span class="pick-chip"><span class="rnd">R{rnd}</span> <span class="pick-count">×1</span></span>
                   {/each}
                 </div>
               </div>
