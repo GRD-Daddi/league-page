@@ -26,6 +26,38 @@ function collectTeamKeys(node, out = []) {
         return out;
 }
 
+// Fetches every team_key the logged-in user owns, trying multiple Yahoo
+// endpoints. game_teams(['nfl']) depends on the "nfl" alias resolving to the
+// current season's game id; user.teams() returns all of the user's teams
+// directly. We union both so a real member is found regardless of which call
+// Yahoo happens to answer correctly.
+async function fetchUserTeamKeys(client) {
+        const attempts = [];
+        if (typeof client?.user?.game_teams === 'function') {
+                attempts.push({ name: 'game_teams(nfl)', run: () => client.user.game_teams(['nfl']) });
+        }
+        if (typeof client?.user?.teams === 'function') {
+                attempts.push({ name: 'teams()', run: () => client.user.teams() });
+        }
+
+        const keys = [];
+        for (const attempt of attempts) {
+                try {
+                        const data = await withRetry(attempt.run);
+                        const found = collectTeamKeys(data);
+                        // TEMP DIAGNOSTIC: surface what each Yahoo endpoint returns.
+                        console.log(`[OAuth] DIAG ${attempt.name} team keys:`, JSON.stringify(found));
+                        if (!found.length) {
+                                console.log(`[OAuth] DIAG ${attempt.name} raw (truncated):`, JSON.stringify(data).slice(0, 2000));
+                        }
+                        keys.push(...found);
+                } catch (err) {
+                        console.error(`[OAuth] team-fetch ${attempt.name} failed:`, err.message);
+                }
+        }
+        return [...new Set(keys)];
+}
+
 // Returns the logged-in user's own team_key within the configured league, or
 // null if they have no team there (i.e. they are not a league member). Yahoo
 // masks manager GUIDs in league listings, so membership is verified from the
@@ -35,27 +67,12 @@ function collectTeamKeys(node, out = []) {
 async function findUsersTeamInLeague(client, configuredLeagueId) {
         const match = String(configuredLeagueId || '').match(/\.l\.(\d+)/);
         const leagueNum = match ? match[1] : null;
-        if (!leagueNum || typeof client?.user?.game_teams !== 'function') return null;
+        if (!leagueNum) return null;
 
-        let data;
-        try {
-                // Retry transient Yahoo failures so a real member is not wrongly
-                // denied access (the gate is otherwise fail-closed).
-                data = await withRetry(() => client.user.game_teams(['nfl']));
-        } catch (err) {
-                console.error('[OAuth] Error fetching user teams:', err.message);
-                return null;
-        }
-
-        const keys = collectTeamKeys(data);
+        const keys = await fetchUserTeamKeys(client);
         const needle = `.l.${leagueNum}.`;
         const matchedKey = keys.find((tk) => tk.includes(needle)) || null;
-        // TEMP DIAGNOSTIC: surface what Yahoo actually returns for this account so
-        // we can see why a real member's team isn't matching the configured league.
-        console.log('[OAuth] DIAG membership check — leagueNum:', leagueNum, '| needle:', needle, '| userTeamKeys:', JSON.stringify(keys), '| matched:', matchedKey);
-        if (!matchedKey) {
-                console.log('[OAuth] DIAG raw game_teams (truncated):', JSON.stringify(data).slice(0, 2500));
-        }
+        console.log('[OAuth] DIAG membership check — leagueNum:', leagueNum, '| needle:', needle, '| allUserTeamKeys:', JSON.stringify(keys), '| matched:', matchedKey);
         return matchedKey;
 }
 
