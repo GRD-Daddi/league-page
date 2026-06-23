@@ -15,6 +15,8 @@ export async function GET({ url, cookies, fetch }) {
         const state = url.searchParams.get('state');
         const storedState = cookies.get('oauth_state');
 
+        console.log('[OAuth] callback received at', new Date().toISOString(), '— hasCode:', !!code, 'hasState:', !!state);
+
         if (!code) {
                 throw redirect(302, '/auth/error?reason=no_code');
         }
