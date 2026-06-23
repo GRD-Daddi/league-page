@@ -51,6 +51,11 @@
 
   $: pot = data?.potData ?? null;
 
+  // Permanent record of who has won (claimed) the carryover pot, newest first.
+  $: potWinners = Array.isArray(data?.potWinners)
+    ? [...data.potWinners].sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
+    : [];
+
   $: loginHref = data?.loginReturnTo
     ? `/auth/login?returnTo=${encodeURIComponent(data.loginReturnTo)}`
     : '/auth/login';
@@ -440,6 +445,32 @@
   .pl-bonus-sub { margin-top: 6px; font-size: 12px; color: #9ca3af; line-height: 1.5; }
 
   .pool-foot { margin-top: auto; padding-top: 16px; font-size: 12px; color: #6b7280; }
+
+  .winners-card {
+    margin-top: 24px;
+    background: linear-gradient(135deg, #1a1d24, #0f1115);
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .winners-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+  .winners-label {
+    font-size: 12px; font-weight: 900; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #ccff00;
+  }
+  .winners-sub { font-size: 12px; color: #6b7280; }
+  .winners-list { display: flex; flex-direction: column; gap: 10px; }
+  .winner-row {
+    display: flex; align-items: center; gap: 12px;
+    background: #0a0a0c; border: 1px solid #1f2937; border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .winner-span {
+    font-family: monospace; font-weight: 800; font-size: 0.85rem; color: #00f0ff;
+    white-space: nowrap;
+  }
+  .winner-name { flex: 1; font-weight: 700; color: #fff; }
+  .winner-amt { font-family: monospace; font-weight: 700; color: #ccff00; }
 
   /* ── Main content ── */
   .content {
@@ -1232,6 +1263,24 @@
 
             <div class="pool-foot">{pot.paidThisYear} member{pot.paidThisYear === 1 ? '' : 's'} paid in this season</div>
           </div>
+
+          {#if potWinners.length}
+            <div class="winners-card">
+              <div class="winners-head">
+                <span class="winners-label">Pot Winners</span>
+                <span class="winners-sub">Back-to-back champions who took it all</span>
+              </div>
+              <div class="winners-list">
+                {#each potWinners as w}
+                  <div class="winner-row">
+                    <span class="winner-span">{w.span ?? w.year ?? '—'}</span>
+                    <span class="winner-name">{w.name ?? 'Unknown'}</span>
+                    <span class="winner-amt">{money(w.amount)}</span>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
 
         </div>
       </div>

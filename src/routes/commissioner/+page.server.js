@@ -9,8 +9,10 @@ import {
         getPotTotal,
         getChampionHistory,
         computeChampionStatus,
-        setManualPotTotal
+        setManualPotTotal,
+        backfillArchive
 } from '$lib/server/pot.js';
+import { getArchivedSeasons } from '$lib/server/archive.js';
 
 function parseYear(value, fallback) {
         const n = parseInt(value, 10);
@@ -43,10 +45,18 @@ export async function load({ locals, url }) {
 
         const data = await getCommissionerData(year, leagueUsers, locals.yahooClient, locals.leagueKey);
 
+        let archivedSeasons = [];
+        try {
+                archivedSeasons = await getArchivedSeasons();
+        } catch (err) {
+                console.error('[commissioner] Error loading archived seasons:', err.message);
+        }
+
         return {
                 commissioner: {
                         ...data,
-                        leagueUsersAvailable: leagueUsers.length > 0
+                        leagueUsersAvailable: leagueUsers.length > 0,
+                        archivedSeasons
                 }
         };
 }
@@ -297,5 +307,22 @@ export const actions = {
                         [reigning.year, winnerTeamKey, winnerName, amount, 'Back-to-back pot awarded']
                 );
                 return { success: true, action: 'awardPot', amount };
+        },
+
+        backfillArchive: async ({ locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                if (!locals.yahooClient || !locals.leagueKey) {
+                        return fail(400, { error: 'Yahoo login is required to backfill the archive.' });
+                }
+
+                const result = await backfillArchive(locals.yahooClient, locals.leagueKey);
+                if (!result.ok) {
+                        return fail(400, {
+                                error: result.error || 'No seasons could be archived. Check that you are logged in to Yahoo.'
+                        });
+                }
+                return { success: true, action: 'backfillArchive', backfill: result };
         }
 };

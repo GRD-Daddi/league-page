@@ -226,6 +226,34 @@
                                         <button class="btn danger" type="submit" disabled={c.potTotal <= 0}>Award {money(c.potTotal)} &amp; Reset</button>
                                 </form>
                         </section>
+
+                        <!-- Backfill the archive -->
+                        <section class="card backfill">
+                                <h2>Backfill League History</h2>
+                                <p class="card-sub">Walks Yahoo's past-season chain and saves every prior season's standings, rosters and matchups into this site's own database — so the history survives even if Yahoo goes away. Safe to run anytime; it updates in place.</p>
+                                <form method="POST" action="?/backfillArchive" use:enhance>
+                                        <button class="btn" type="submit">Backfill all past seasons</button>
+                                </form>
+                                {#if form?.action === 'backfillArchive' && form?.backfill}
+                                        <div class="banner ok">Archived {form.backfill.count} season{form.backfill.count === 1 ? '' : 's'}.</div>
+                                        <ul class="backfill-list">
+                                                {#each form.backfill.seasons as s}
+                                                        <li class="backfill-row {s.ok ? 'ok' : 'bad'}">
+                                                                {#if s.ok}
+                                                                        <span class="bf-year">{s.year}</span>
+                                                                        <span class="bf-detail">{s.name ?? 'Season'} — {s.teams} teams, {s.weeks} weeks</span>
+                                                                {:else}
+                                                                        <span class="bf-year">—</span>
+                                                                        <span class="bf-detail">{s.leagueKey}: {s.error}</span>
+                                                                {/if}
+                                                        </li>
+                                                {/each}
+                                        </ul>
+                                {/if}
+                                {#if c.archivedSeasons?.length}
+                                        <div class="archived-summary">Saved seasons: {c.archivedSeasons.map((a) => a.year).join(', ')}</div>
+                                {/if}
+                        </section>
                 </div>
 
                 <!-- Member buy-ins -->
@@ -374,4 +402,11 @@
         .m-info { display: flex; flex-direction: column; min-width: 0; }
         .m-name { font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .m-manager { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; }
+
+        .backfill-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+        .backfill-row { display: flex; gap: 10px; align-items: baseline; font-size: 0.82rem; padding: 8px 10px; border-radius: 6px; background: #0a0a0c; border: 1px solid #1f2937; }
+        .backfill-row.bad { border-color: rgba(239,68,68,0.4); }
+        .bf-year { font-family: monospace; font-weight: 800; color: #00f0ff; min-width: 48px; }
+        .bf-detail { color: #9ca3af; }
+        .archived-summary { margin-top: 14px; font-size: 0.78rem; color: #6b7280; }
 </style>

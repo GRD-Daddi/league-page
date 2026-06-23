@@ -7,3 +7,4 @@
 - [Session & token refresh design](session-auth-design.md) — sessions in Postgres, cookie holds only an opaque id; Yahoo rotates refresh_token on use so refresh MUST be serialized + DB-re-read before logout.
 - [OAuth in Replit iframe & auth guards](oauth-iframe-and-guards.md) — third-party OAuth cannot complete in the preview iframe; guards must redirect in-app, not to external login. Rewrite does not fix it.
 - [Pot throne + history archive](pot-throne-archive.md) — "person to beat"=last season champ unless pot claimed; awardPot ledger year MUST equal reigning year or throne won't reset.
+- [Matchup archive playoff coverage](matchup-archive-playoff-coverage.md) — durable season matchup snapshots must use loadAllSeasonMatchups (all weeks incl playoffs), not loadMatchupData (regular season only).

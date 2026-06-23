@@ -1,6 +1,6 @@
 import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadNFLState } from '$lib/server/dataLoaders.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
-import { computePotData, getLastSeasonPodium } from '$lib/server/pot.js';
+import { computePotData, getLastSeasonPodium, getPotWinners } from '$lib/server/pot.js';
 import { resolveSeasonPhase } from '$lib/utils/seasonPhase.js';
 import { getYahooTradedPicks } from '$lib/yahoo-adapter/index.js';
 
@@ -22,6 +22,11 @@ export async function load({ locals, url }) {
         const requested = url.searchParams.get('loginRequired');
         const loginReturnTo = requested && /^\/(?!\/)/.test(requested) ? requested : null;
 
+        const potWinners = await getPotWinners().catch((err) => {
+                console.error('[homepage] Error loading pot winners:', err.message);
+                return [];
+        });
+
         if (!isAuthenticated) {
                 const potData = await computePotData().catch((err) => {
                         console.error('[homepage] Error loading pot data:', err.message);
@@ -30,6 +35,7 @@ export async function load({ locals, url }) {
                 return {
                         nflState,
                         potData,
+                        potWinners,
                         loginReturnTo,
                         seasonPhase: resolveSeasonPhase(nflState, null),
                         lastSeasonPodium: null,
@@ -134,6 +140,7 @@ export async function load({ locals, url }) {
                 return {
                         nflState,
                         potData: authedPotData,
+                        potWinners,
                         seasonPhase,
                         lastSeasonPodium,
                         leagueData,
@@ -149,6 +156,7 @@ export async function load({ locals, url }) {
                 return {
                         nflState,
                         potData: authedPotData,
+                        potWinners,
                         seasonPhase: resolveSeasonPhase(nflState, null),
                         lastSeasonPodium: null,
                         leagueData: null,

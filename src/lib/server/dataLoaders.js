@@ -197,6 +197,42 @@ export async function loadMatchupData(yahooClient = null, queryLeagueID = config
         };
 }
 
+// Full-season matchup fetch INCLUDING playoff weeks. loadMatchupData stops at
+// playoff_week_start (regular season only); the durable archive wants every
+// week's score, so this loops the whole schedule. Resilient per week — a week
+// that errors (e.g. beyond the season's end) is skipped, never aborting the run.
+export async function loadAllSeasonMatchups(yahooClient = null, queryLeagueID = configuredLeagueID) {
+        let leagueData;
+        try {
+                leagueData = await getLeagueDataApi(queryLeagueID, yahooClient);
+        } catch (err) {
+                if (isAuthError(err)) return { matchupWeeks: [], year: null, playoffsStart: null, requiresAuth: true };
+                throw err;
+        }
+        if (!leagueData) return { matchupWeeks: [], year: null, playoffsStart: null, requiresAuth: true };
+
+        const year = parseInt(leagueData.season, 10);
+        const playoffsStart = parseInt(leagueData?.settings?.playoff_week_start, 10) || null;
+        const endWeek = parseInt(leagueData?.settings?.end_week, 10) || 18;
+
+        const weekNums = [];
+        for (let i = 1; i <= endWeek; i++) weekNums.push(i);
+
+        const results = await waitForAll(
+                ...weekNums.map((i) => getLeagueMatchupsApi(queryLeagueID, i, yahooClient).catch(() => []))
+        );
+
+        const matchupWeeks = [];
+        for (let idx = 0; idx < results.length; idx++) {
+                const processed = processMatchups(results[idx], weekNums[idx]);
+                if (processed) {
+                        matchupWeeks.push({ matchups: processed.matchups, week: processed.week });
+                }
+        }
+
+        return { matchupWeeks, year: Number.isFinite(year) ? year : null, playoffsStart, requiresAuth: false };
+}
+
 export async function loadBrackets(yahooClient = null, queryLeagueID = configuredLeagueID) {
         let rosterRes, leagueData;
         try {

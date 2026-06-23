@@ -1,6 +1,6 @@
 import { query } from './db.js';
-import { loadLeagueData, loadLeagueRosters } from './dataLoaders.js';
-import { getArchivedChampions, snapshotPodium } from './archive.js';
+import { loadLeagueData, loadLeagueRosters, loadAllSeasonMatchups } from './dataLoaders.js';
+import { getArchivedChampions, snapshotPodium, captureSeason } from './archive.js';
 import { previousLeagueKeys } from '$lib/utils/leagueInfo.js';
 
 /**
@@ -435,4 +435,106 @@ export async function getCommissionerData(year, leagueUsers = [], yahooClient = 
                 getMemberBuyins(year, leagueUsers)
         ]);
         return { ...potData, season, members };
+}
+
+/**
+ * Permanent record of who has won (claimed) the carryover pot, oldest-first. The
+ * pot is only ever awarded after a back-to-back title, so each win's "span" is the
+ * two-season streak that earned it (e.g. "2024–2025"). Reads straight from the
+ * pot_ledger so it survives independent of any live Yahoo call.
+ */
+export async function getPotWinners() {
+        const { rows } = await query(
+                `SELECT year, winner_team_key, winner_name, amount, note, created_at
+                 FROM pot_ledger
+                 WHERE winner_name IS NOT NULL OR winner_team_key IS NOT NULL
+                 ORDER BY year ASC NULLS LAST, created_at ASC`
+        );
+        return rows.map((r) => {
+                const year = Number.isFinite(r.year) ? r.year : parseInt(r.year, 10);
+                const span = Number.isFinite(year) ? `${year - 1}\u2013${year}` : null;
+                return {
+                        year: Number.isFinite(year) ? year : null,
+                        teamKey: r.winner_team_key || null,
+                        name: r.winner_name || null,
+                        amount: num(r.amount),
+                        span,
+                        note: r.note || null,
+                        wonAt: r.created_at
+                };
+        });
+}
+
+/**
+ * Commissioner one-click backfill: walk Yahoo's renew chain (and any explicitly
+ * configured previousLeagueKeys) and snapshot every reachable season's standings,
+ * rosters and matchups into the durable archive. Best-effort per season — one
+ * season failing must not abort the rest. Returns a per-season summary.
+ */
+export async function backfillArchive(yahooClient = null, leagueKey = null) {
+        if (!yahooClient || !leagueKey) {
+                return { ok: false, error: 'Yahoo login required to backfill the archive.', seasons: [] };
+        }
+
+        const visited = new Set();
+        const queue = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
+        const seasons = [];
+        let guard = 0;
+
+        while (queue.length && guard < 20) {
+                guard++;
+                const key = queue.shift();
+                if (!key || visited.has(key)) continue;
+                visited.add(key);
+
+                try {
+                        const [leagueData, rostersResult, matchupData] = await Promise.all([
+                                loadLeagueData(yahooClient, key),
+                                loadLeagueRosters(yahooClient, key),
+                                loadAllSeasonMatchups(yahooClient, key)
+                        ]);
+
+                        if (!leagueData) {
+                                seasons.push({ leagueKey: key, ok: false, error: 'No league data (auth or unavailable).' });
+                                continue;
+                        }
+
+                        const year = parseInt(leagueData.season, 10);
+                        if (!Number.isFinite(year)) {
+                                seasons.push({ leagueKey: key, ok: false, error: 'Could not resolve season year.' });
+                                continue;
+                        }
+
+                        await captureSeason(year, {
+                                leagueData,
+                                rostersResult,
+                                matchupWeeks: matchupData?.matchupWeeks || null,
+                                playoffsStart: matchupData?.playoffsStart || leagueData?.settings?.playoff_week_start || null
+                        });
+
+                        const teamCount = rostersResult?.rosters ? Object.keys(rostersResult.rosters).length : 0;
+                        const weekCount = matchupData?.matchupWeeks?.length || 0;
+                        seasons.push({
+                                leagueKey: key,
+                                year,
+                                ok: true,
+                                teams: teamCount,
+                                weeks: weekCount,
+                                name: leagueData?.name || null
+                        });
+
+                        const prev = leagueData?.previous_league_id || null;
+                        if (prev && !visited.has(prev)) queue.push(prev);
+                } catch (err) {
+                        console.error('[pot] backfill failed for', key, err.message);
+                        seasons.push({ leagueKey: key, ok: false, error: err.message });
+                }
+        }
+
+        const captured = seasons.filter((s) => s.ok);
+        return {
+                ok: captured.length > 0,
+                count: captured.length,
+                seasons: seasons.sort((a, b) => (b.year || 0) - (a.year || 0))
+        };
 }

@@ -142,6 +142,37 @@ CREATE TABLE IF NOT EXISTS team_season_archive (
         captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         PRIMARY KEY (year, team_key)
 );
+
+-- Final roster for an archived season (one row per team per year). The roster's
+-- players are stored as a JSON array of detail objects so the squad survives even
+-- if Yahoo's player data later disappears; no external player map is needed.
+CREATE TABLE IF NOT EXISTS roster_archive (
+        year INT NOT NULL,
+        team_key TEXT NOT NULL,
+        roster_id INT,
+        team_name TEXT,
+        manager_name TEXT,
+        logo_url TEXT,
+        players JSONB NOT NULL DEFAULT '[]'::jsonb,
+        captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (year, team_key)
+);
+
+-- Every matchup score for an archived season, one row per team-side. Two rows
+-- sharing (year, week, matchup_id) are opponents. Keyed by roster_id so re-runs
+-- update in place rather than duplicating.
+CREATE TABLE IF NOT EXISTS matchup_archive (
+        year INT NOT NULL,
+        week INT NOT NULL,
+        matchup_id INT NOT NULL,
+        roster_id INT NOT NULL,
+        team_key TEXT,
+        team_name TEXT,
+        points NUMERIC,
+        is_playoffs BOOLEAN NOT NULL DEFAULT false,
+        captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (year, week, matchup_id, roster_id)
+);
 `;
 
 /**
