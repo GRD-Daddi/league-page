@@ -5,8 +5,14 @@ export async function getYahooDraftResults(leagueKey, yahooClient = null) {
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const draftResults = await withRetry(() => yf.league.draft_results(leagueKey));
-        
-        return convertDraftResultsToSleeperFormat(draftResults, leagueKey);
+
+        const converted = convertDraftResultsToSleeperFormat(draftResults, leagueKey);
+        // TEMP DIAGNOSTIC: how many picks Yahoo returned. 0 picks pre-draft is
+        // expected (draft hasn't happened); >0 means the draft is done.
+        console.log('[Yahoo Adapter] DIAG draft_results for', leagueKey,
+                '→ picks:', converted.length,
+                '| raw keys:', draftResults ? Object.keys(draftResults).join(',') : 'null');
+        return converted;
 }
 
 export async function getYahooDraftData(leagueKey, yahooClient = null) {

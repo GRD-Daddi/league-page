@@ -125,7 +125,19 @@ export async function getYahooLeagueRosters(leagueKey, yahooClient = null) {
         });
         
         const rosters = await Promise.all(rosterPromises);
-        return rosters.filter(r => r !== null);
+        const result = rosters.filter(r => r !== null);
+        // TEMP DIAGNOSTIC: how many players each roster actually came back with,
+        // plus the pre-draft order if Yahoo has set one. Tells us whether rosters
+        // are empty Yahoo-side (pre-draft) or being dropped by parsing.
+        console.log('[Yahoo Adapter] DIAG rosters for', leagueKey, '→',
+                JSON.stringify(result.map(r => ({
+                        roster_id: r.roster_id,
+                        team: r.metadata?.team_name,
+                        players: r.players?.length || 0,
+                        starters: r.starters?.length || 0,
+                        draft_position: r.metadata?.draft_position ?? null
+                }))));
+        return result;
 }
 
 export async function getYahooLeagueUsers(leagueKey, yahooClient = null) {
