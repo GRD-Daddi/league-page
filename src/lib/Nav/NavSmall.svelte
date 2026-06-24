@@ -5,11 +5,15 @@
         import { leagueName } from '$lib/utils/helper';
         import { enableBlog, managers } from '$lib/utils/leagueInfo';
 
-        let { session = { authenticated: false }, potTotal = 0 } = $props();
+        let { session = { authenticated: false } } = $props();
 
         let open = $state(false);
 
-        const money = (n) => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        const teamInitials = () => {
+                const name = session?.managerInfo?.teamName || 'Manager';
+                const parts = name.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).filter(Boolean);
+                return (parts.slice(0, 2).map((w) => w[0]).join('') || 'M').toUpperCase();
+        };
 
         let active = $derived(page.url.pathname);
 
@@ -69,25 +73,21 @@
                 </button>
         </div>
 
-        <div class="drawer-actions">
-                <a class="pot-chip" href="/" onclick={close}>
-                        <span class="pot-amt">{money(potTotal)}</span>
-                        <span class="pot-label">Carryover Pot</span>
-                </a>
+        <div class="drawer-account">
                 {#if session?.authenticated}
-                        <div class="who">
-                                <svg class="who-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="12" cy="7" r="4"/>
-                                </svg>
-                                <span class="who-name">{session.managerInfo?.teamName || 'Manager'}</span>
+                        <div class="acct">
+                                <div class="acct-avatar">{teamInitials()}</div>
+                                <div class="acct-text">
+                                        <span class="acct-name">{session.managerInfo?.teamName || 'Manager'}</span>
+                                        <span class="acct-sub">Signed in</span>
+                                </div>
                         </div>
-                        <div class="auth-links">
-                                <a href="/auth/select-league" class="auth-link">Change League</a>
-                                <a href="/auth/logout" class="auth-link logout">Logout</a>
+                        <div class="acct-actions">
+                                <a href="/auth/select-league" class="acct-btn ghost" onclick={close}>Change League</a>
+                                <a href="/auth/logout" class="acct-btn logout" onclick={close}>Logout</a>
                         </div>
                 {:else}
-                        <a href="/auth/login" class="auth-link login">Login</a>
+                        <a href="/auth/login" class="acct-btn primary" onclick={close}>Log in with Yahoo</a>
                 {/if}
         </div>
 
@@ -255,101 +255,111 @@
                 font-size: 22px;
         }
 
-        .drawer-actions {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
+        .drawer-account {
                 padding: 16px 18px;
                 border-bottom: 1px solid #1f2937;
                 flex-shrink: 0;
         }
 
-        .pot-chip {
-                display: flex;
-                align-items: baseline;
-                gap: 8px;
-                padding: 10px 14px;
-                border: 1px solid rgba(204, 255, 0, 0.25);
-                border-radius: 10px;
-                background: rgba(204, 255, 0, 0.06);
-                text-decoration: none;
-        }
-
-        .pot-amt {
-                font-weight: 900;
-                font-size: 1.15rem;
-                color: #ccff00;
-                letter-spacing: -0.02em;
-        }
-
-        .pot-label {
-                font-size: 10px;
-                font-weight: 700;
-                letter-spacing: 0.14em;
-                text-transform: uppercase;
-                color: #6b7280;
-        }
-
-        .who {
+        .acct {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                color: #fff;
-                font-weight: 700;
-                font-size: 0.9rem;
+                gap: 12px;
+                margin-bottom: 14px;
         }
 
-        .who-icon {
-                color: #00f0ff;
+        .acct-avatar {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 900;
+                font-size: 0.95rem;
+                letter-spacing: -0.02em;
+                color: #000;
+                background: linear-gradient(135deg, #00f0ff, #7000ff);
+                box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
                 flex-shrink: 0;
         }
 
-        .who-name {
+        .acct-text {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+        }
+
+        .acct-name {
+                font-weight: 800;
+                font-size: 0.98rem;
+                color: #fff;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
         }
 
-        .auth-links {
+        .acct-sub {
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+                color: #00f0ff;
+                margin-top: 2px;
+        }
+
+        .acct-actions {
                 display: flex;
-                align-items: center;
                 gap: 10px;
         }
 
-        .auth-link {
+        .acct-btn {
+                flex: 1;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                height: 38px;
-                padding: 0 16px;
-                border-radius: 8px;
+                height: 40px;
+                padding: 0 14px;
+                border-radius: 9px;
                 font-weight: 900;
                 font-size: 11px;
-                letter-spacing: 0.14em;
+                letter-spacing: 0.12em;
                 text-transform: uppercase;
                 text-decoration: none;
                 font-family: inherit;
+                transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
         }
 
-        .auth-link.login {
-                flex: 1;
+        .acct-btn.primary {
                 background: #ccff00;
                 color: #000;
-                box-shadow: 0 0 16px rgba(204, 255, 0, 0.2);
+                box-shadow: 0 0 18px rgba(204, 255, 0, 0.25);
         }
 
-        .auth-link.logout {
-                flex: 1;
+        .acct-btn.primary:hover {
+                box-shadow: 0 0 26px rgba(204, 255, 0, 0.4);
+        }
+
+        .acct-btn.ghost {
+                background: rgba(255, 255, 255, 0.04);
+                color: #cbd5e1;
+                border: 1px solid #2a3340;
+        }
+
+        .acct-btn.ghost:hover {
+                border-color: #00f0ff;
+                color: #00f0ff;
+        }
+
+        .acct-btn.logout {
                 background: transparent;
                 color: #9ca3af;
                 border: 1px solid #374151;
         }
 
-        .auth-link:not(.login):not(.logout) {
-                flex: 1;
-                background: rgba(255, 255, 255, 0.04);
-                color: #9ca3af;
-                border: 1px solid #1f2937;
+        .acct-btn.logout:hover {
+                border-color: #ff5470;
+                color: #ff5470;
         }
 
         .drawer-body {

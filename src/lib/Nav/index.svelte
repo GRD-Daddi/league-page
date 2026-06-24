@@ -148,10 +148,9 @@
                 .pot-pill { padding: 6px 10px; }
         }
 
-        /* On phones the top bar is just brand + hamburger; the pot and
-           login/logout live inside the mobile drawer to avoid overflow. */
+        /* On phones the top bar keeps the brand, pot pill and hamburger; the
+           login/logout controls live inside the mobile drawer to avoid overflow. */
         @media (max-width: 560px) {
-                .pot-pill { display: none; }
                 .auth-wrap { display: none; }
                 .nav-right { gap: 8px; }
         }
@@ -290,7 +289,7 @@
                                 <AuthButton {session} />
                         </div>
                         <div class="small">
-                                <NavSmall {session} {potTotal} />
+                                <NavSmall {session} />
                         </div>
                 </div>
         </div>
