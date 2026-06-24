@@ -13,6 +13,7 @@ import {
         backfillArchive
 } from '$lib/server/pot.js';
 import { getArchivedSeasons } from '$lib/server/archive.js';
+import { getDraftPickOwnership, saveDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
 
 function parseYear(value, fallback) {
         const n = parseInt(value, 10);
@@ -52,11 +53,20 @@ export async function load({ locals, url }) {
                 console.error('[commissioner] Error loading archived seasons:', err.message);
         }
 
+        let draftPicks = { rounds: DRAFT_ROUNDS, teams: [] };
+        try {
+                draftPicks = await getDraftPickOwnership(year);
+        } catch (err) {
+                console.error('[commissioner] Error loading draft pick ownership:', err.message);
+        }
+
         return {
                 commissioner: {
                         ...data,
                         leagueUsersAvailable: leagueUsers.length > 0,
-                        archivedSeasons
+                        archivedSeasons,
+                        draftPicks,
+                        draftRounds: DRAFT_ROUNDS
                 }
         };
 }
@@ -324,5 +334,24 @@ export const actions = {
                         });
                 }
                 return { success: true, action: 'backfillArchive', backfill: result };
+        },
+
+        saveDraftPicks: async ({ request, locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                const form = await request.formData();
+                const year = parseYear(form.get('year'), getCurrentSeasonYear());
+
+                let entries = [];
+                try {
+                        entries = JSON.parse(form.get('payload') || '[]');
+                } catch {
+                        entries = [];
+                }
+                if (!Array.isArray(entries)) entries = [];
+
+                await saveDraftPickOwnership(year, entries);
+                return { success: true, action: 'saveDraftPicks' };
         }
 };

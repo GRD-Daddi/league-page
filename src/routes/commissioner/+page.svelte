@@ -42,6 +42,63 @@
         });
 
         const submitting = $state({});
+
+        // Best-effort prefill transcribed from the league's Grid View screenshot.
+        // Keyed by a normalized team name (lowercase, alphanumeric only). These are a
+        // starting point only — the commissioner must verify each value before saving.
+        const PREFILL = {
+                bbldaddi: [1, 0, 0, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1],
+                '4aces': [1, 2, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+                bblcriffy: [0, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ceedeznuts: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                miamitropics: [2, 1, 2, 2, 2, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0],
+                handicappedhitlers: [1, 1, 1, 0, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                kenkaniff: [1, 2, 1, 2, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+                knuckifyoubuck: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                lamarstbrown: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                playedtheslicedidntslice: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                younghoestubtoe: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                mostunderwhelming: [1, 0, 1, 0, 0, 1, 2, 1, 1, 2, 1, 1, 1, 1, 2]
+        };
+
+        function normalizeName(s) {
+                return (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+
+        let draftRounds = $derived(c.draftRounds || 15);
+        let roundList = $derived(Array.from({ length: draftRounds }, (_, i) => i + 1));
+        let draftGrid = $state([]);
+        let draftPrefilled = $state(false);
+
+        $effect(() => {
+                const saved = c.draftPicks?.teams || [];
+                const rounds = c.draftRounds || 15;
+                if (saved.length) {
+                        draftGrid = saved.map((t) => ({
+                                teamKey: t.teamKey,
+                                teamName: t.teamName,
+                                picks: Array.from({ length: rounds }, (_, i) => Number(t.picks?.[i]) || 0)
+                        }));
+                        draftPrefilled = false;
+                } else {
+                        let usedPrefill = false;
+                        draftGrid = (c.members || []).map((m) => {
+                                const pre = PREFILL[normalizeName(m.name)];
+                                if (pre) usedPrefill = true;
+                                const picks = Array.from({ length: rounds }, (_, i) =>
+                                        pre ? Number(pre[i]) || 0 : 1
+                                );
+                                return { teamKey: m.teamKey, teamName: m.name, picks };
+                        });
+                        draftPrefilled = usedPrefill;
+                }
+        });
+
+        let draftPayload = $derived(JSON.stringify(draftGrid));
+        let roundTotals = $derived(
+                roundList.map((_, i) => draftGrid.reduce((sum, t) => sum + (Number(t.picks?.[i]) || 0), 0))
+        );
+        let teamTotal = (team) => team.picks.reduce((s, n) => s + (Number(n) || 0), 0);
 </script>
 
 <svelte:head>
@@ -282,6 +339,64 @@
                                 </div>
                         {/if}
                 </section>
+
+                <!-- Draft pick ownership editor -->
+                <section class="card full draftpicks">
+                        <h2>{c.year} Draft Picks by Team</h2>
+                        <p class="card-sub">Set how many picks each team owns in each round of the upcoming draft. <strong>1</strong> is a standard pick, <strong>0</strong> means it was traded away, <strong>2+</strong> means picks were acquired. This is what powers the public "Draft Picks by Team" board.</p>
+                        {#if draftPrefilled}
+                                <div class="banner warn">Pre-filled from your Grid View screenshot as a starting point. The screenshot is low-resolution — <strong>please verify every number before saving.</strong> Each round column should total {draftGrid.length}.</div>
+                        {/if}
+                        {#if !draftGrid.length}
+                                <div class="banner error">Could not load league teams from Yahoo. Make sure you're logged in and the league is connected.</div>
+                        {:else}
+                                <form method="POST" action="?/saveDraftPicks" use:enhance>
+                                        <input type="hidden" name="year" value={c.year} />
+                                        <input type="hidden" name="payload" value={draftPayload} />
+                                        <div class="draft-scroll">
+                                                <table class="draft-grid">
+                                                        <thead>
+                                                                <tr>
+                                                                        <th class="th-team">Team</th>
+                                                                        {#each roundList as r}<th>R{r}</th>{/each}
+                                                                        <th class="th-total">Total</th>
+                                                                </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                                {#each draftGrid as team, i}
+                                                                        <tr>
+                                                                                <td class="td-team">{team.teamName}</td>
+                                                                                {#each team.picks as _, r}
+                                                                                        <td>
+                                                                                                <input
+                                                                                                        type="number"
+                                                                                                        min="0"
+                                                                                                        max="20"
+                                                                                                        class:zero={(Number(draftGrid[i].picks[r]) || 0) === 0}
+                                                                                                        class:multi={(Number(draftGrid[i].picks[r]) || 0) > 1}
+                                                                                                        bind:value={draftGrid[i].picks[r]}
+                                                                                                />
+                                                                                        </td>
+                                                                                {/each}
+                                                                                <td class="td-total">{teamTotal(team)}</td>
+                                                                        </tr>
+                                                                {/each}
+                                                        </tbody>
+                                                        <tfoot>
+                                                                <tr>
+                                                                        <td class="td-team">Per round</td>
+                                                                        {#each roundTotals as total}
+                                                                                <td class="rt {total === draftGrid.length ? 'good' : 'bad'}">{total}</td>
+                                                                        {/each}
+                                                                        <td class="td-total">{roundTotals.reduce((a, b) => a + b, 0)}</td>
+                                                                </tr>
+                                                        </tfoot>
+                                                </table>
+                                        </div>
+                                        <button class="btn" type="submit">Save Draft Picks</button>
+                                </form>
+                        {/if}
+                </section>
         </div>
 </div>
 
@@ -331,6 +446,40 @@
                 background: #0f1115; border: 1px solid #1f2937; border-radius: 12px; padding: 24px;
         }
         .card.full { margin-top: 16px; }
+
+        .banner.warn { background: rgba(255,193,7,0.12); color: #ffd24a; border: 1px solid rgba(255,193,7,0.3); }
+        .banner.warn strong { color: #fff; }
+
+        .draftpicks .draft-scroll { overflow-x: auto; margin-bottom: 18px; border: 1px solid #1f2937; border-radius: 10px; }
+        .draft-grid { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+        .draft-grid th, .draft-grid td { text-align: center; padding: 7px 4px; border-bottom: 1px solid #15181f; }
+        .draft-grid thead th {
+                position: sticky; top: 0; background: #14171d; color: #9ca3af;
+                font-size: 10px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase;
+                white-space: nowrap;
+        }
+        .draft-grid .th-team, .draft-grid .td-team {
+                text-align: left; white-space: nowrap; padding-left: 14px;
+                position: sticky; left: 0; background: #0f1115; z-index: 1;
+        }
+        .draft-grid thead .th-team { background: #14171d; z-index: 2; }
+        .draft-grid .td-team { font-weight: 700; color: #fff; min-width: 150px; }
+        .draft-grid .th-total, .draft-grid .td-total { color: #ccff00; font-family: monospace; font-weight: 900; }
+        .draft-grid tbody tr:hover .td-team { color: #00f0ff; }
+        .draft-grid input {
+                width: 42px; box-sizing: border-box; text-align: center;
+                background: #0a0a0c; border: 1px solid #2a3340; color: #fff;
+                border-radius: 6px; padding: 6px 2px; font-size: 0.9rem; font-family: monospace;
+                -moz-appearance: textfield;
+        }
+        .draft-grid input::-webkit-outer-spin-button,
+        .draft-grid input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .draft-grid input:focus { outline: none; border-color: #00f0ff; }
+        .draft-grid input.zero { color: #6b7280; border-color: #2a2326; }
+        .draft-grid input.multi { color: #ccff00; border-color: rgba(204,255,0,0.5); }
+        .draft-grid tfoot td { border-top: 2px solid #1f2937; font-weight: 900; font-family: monospace; }
+        .draft-grid tfoot .rt.good { color: #4ade80; }
+        .draft-grid tfoot .rt.bad { color: #ff8080; }
         .card.award { border-color: rgba(112,0,255,0.35); }
         .card h2 { font-size: 1.1rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; margin: 0 0 6px; }
         .card-sub { color: #6b7280; font-size: 0.82rem; margin: 0 0 18px; line-height: 1.5; }

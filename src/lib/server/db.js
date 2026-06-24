@@ -173,6 +173,20 @@ CREATE TABLE IF NOT EXISTS matchup_archive (
         captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         PRIMARY KEY (year, week, matchup_id, roster_id)
 );
+
+-- Commissioner-maintained draft pick ownership for an upcoming draft. Stores how
+-- many picks each team owns in each round (1 = standard, 0 = traded away, 2+ =
+-- acquired). One row per team per round per year. This is manual data because the
+-- platform's predicted draft board is unreliable before the draft happens.
+CREATE TABLE IF NOT EXISTS draft_pick_ownership (
+        year INT NOT NULL,
+        team_key TEXT NOT NULL,
+        team_name TEXT,
+        round INT NOT NULL,
+        picks INT NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (year, team_key, round)
+);
 `;
 
 /**
