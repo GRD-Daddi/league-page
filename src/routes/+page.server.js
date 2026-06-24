@@ -1,8 +1,9 @@
 import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadNFLState } from '$lib/server/dataLoaders.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
-import { computePotData, getLastSeasonPodium, getPotWinners } from '$lib/server/pot.js';
+import { computePotData, getLastSeasonPodium, getPotWinners, getCurrentSeasonYear } from '$lib/server/pot.js';
 import { resolveSeasonPhase } from '$lib/utils/seasonPhase.js';
 import { getYahooTradedPicks } from '$lib/yahoo-adapter/index.js';
+import { getDraftPickOwnership } from '$lib/server/draftPicks.js';
 
 // Numeric Yahoo team number (the "N" in "...t.N") from a team key.
 function teamNumFromKey(teamKey) {
@@ -74,7 +75,7 @@ export async function load({ locals, url }) {
                         return Math.max(max, size);
                 }, 0);
                 const DEFAULT_DRAFT_ROUNDS = 15;
-                const draftRounds =
+                let draftRounds =
                         leagueData?.settings?.draft_rounds ||
                         rosterPositions.filter((p) => p !== 'IR').length ||
                         maxRosterSize ||
@@ -116,6 +117,33 @@ export async function load({ locals, url }) {
                                 draftPicksByTeam = null;
                         }
                 }
+
+                // The commissioner-maintained pick ownership (set on the commissioner page
+                // and stored in the DB) is authoritative. When present, it overrides the
+                // Yahoo traded-pick estimate so the homepage matches what was entered.
+                let draftPicksSource = draftPicksByTeam ? 'yahoo' : null;
+                try {
+                        const ownership = await getDraftPickOwnership(getCurrentSeasonYear());
+                        if (ownership?.teams?.length) {
+                                const map = {};
+                                for (const t of ownership.teams) {
+                                        const num = teamNumFromKey(t.teamKey);
+                                        if (num == null) continue;
+                                        const rounds = {};
+                                        for (let i = 1; i <= ownership.rounds; i++) {
+                                                rounds[i] = t.picks[i - 1] ?? 0;
+                                        }
+                                        map[num] = rounds;
+                                }
+                                if (Object.keys(map).length > 0) {
+                                        draftPicksByTeam = map;
+                                        draftRounds = ownership.rounds;
+                                        draftPicksSource = 'commissioner';
+                                }
+                        }
+                } catch (err) {
+                        console.error('[homepage] Error loading commissioner draft picks:', err.message);
+                }
                 // Pre-draft pick order (set by the commissioner in Yahoo), keyed by
                 // Yahoo team number -> draft slot (1 = first overall). Null when no
                 // order has been assigned yet.
@@ -146,6 +174,7 @@ export async function load({ locals, url }) {
                         leagueData,
                         draftRounds,
                         draftPicksByTeam,
+                        draftPicksSource,
                         draftOrder,
                         rosters: rostersResult?.rosters ?? null,
                         users,

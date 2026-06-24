@@ -1403,7 +1403,9 @@
             {#if hasDraftOrder}
               Ordered by draft slot.
             {/if}
-            {#if draftPicksByTeam}
+            {#if draftPicksByTeam && data?.draftPicksSource === 'commissioner'}
+              Pick ownership set by the commissioner.
+            {:else if draftPicksByTeam}
               Live pick ownership from Yahoo, including traded picks.
             {:else}
               Picks are tradeable — final pick ownership will appear here once entered.
