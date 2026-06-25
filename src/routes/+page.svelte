@@ -52,6 +52,14 @@
 
   $: pot = data?.potData ?? null;
 
+  // Projection: until every member has paid their buy-in, the pot and pool read
+  // low (only collected funds count). Show the projected figures with a clear
+  // "estimated" flag, and the real numbers once all funds are in.
+  $: projection = pot?.projection ?? null;
+  $: poolIsEstimate = !!projection && !projection.fullyCollected && projection.expectedMembers > 0;
+  $: displayPotTotal = poolIsEstimate ? projection.potTotalProjected : pot?.potTotal ?? 0;
+  $: displayPoolTotal = poolIsEstimate ? projection.payoutPoolProjected : pot?.payoutPool?.remaining ?? 0;
+
   // Permanent record of who has won (claimed) the carryover pot, newest first.
   $: potWinners = Array.isArray(data?.potWinners)
     ? [...data.potWinners].sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
@@ -352,6 +360,34 @@
     color: #ccff00;
     text-shadow: 0 0 40px rgba(204,255,0,0.25);
     letter-spacing: -0.02em;
+  }
+
+  .proj-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #facc15;
+    background: rgba(250, 204, 21, 0.12);
+    border: 1px solid rgba(250, 204, 21, 0.35);
+  }
+
+  .proj-badge.confirmed {
+    color: #ccff00;
+    background: rgba(204, 255, 0, 0.1);
+    border-color: rgba(204, 255, 0, 0.35);
+  }
+
+  .proj-note {
+    margin-top: 8px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    line-height: 1.5;
   }
 
   .pot-desc {
@@ -1218,7 +1254,13 @@
           <!-- Carryover pot + person to beat -->
           <div class="pot-main">
             <div class="pot-label"><span class="pot-dot"></span> The Carryover Pot</div>
-            <div class="pot-amount">{money(pot.potTotal)}</div>
+            <div class="pot-amount">{money(displayPotTotal)}</div>
+            {#if poolIsEstimate}
+              <div class="proj-badge">Projected — {projection.paidMembers}/{projection.expectedMembers} buy-ins collected</div>
+              <div class="proj-note">{money(pot.potTotal)} in the account now · {money(projection.unpaidMembers * pot.settings.potShare)} still to come once everyone pays in.</div>
+            {:else if projection && projection.fullyCollected}
+              <div class="proj-badge confirmed">All {projection.expectedMembers} buy-ins collected</div>
+            {/if}
             <div class="pot-desc">
               Half of every buy-in builds this pot. It keeps growing until a champion
               goes <strong>back-to-back</strong> — then they take it all and it resets to zero.
@@ -1255,9 +1297,12 @@
           <div class="pool-card">
             <div class="pool-head">
               <span class="pool-label">{pot.year} Payout Pool</span>
-              <span class="pool-total">{money(pot.payoutPool.remaining)}</span>
+              <span class="pool-total">{money(displayPoolTotal)}</span>
             </div>
             <div class="pool-sub">Split among the top finishers</div>
+            {#if poolIsEstimate}
+              <div class="proj-badge">Projected · estimated from {projection.expectedMembers} buy-ins</div>
+            {/if}
 
             <div class="pool-rows">
               {#if pot.payoutPool.first.enabled}
@@ -1299,7 +1344,13 @@
               </div>
             {/if}
 
-            <div class="pool-foot">{pot.paidThisYear} member{pot.paidThisYear === 1 ? '' : 's'} paid in this season</div>
+            <div class="pool-foot">
+              {#if poolIsEstimate}
+                {projection.paidMembers} of {projection.expectedMembers} members paid in · {money(projection.outstanding)} outstanding
+              {:else}
+                {pot.paidThisYear} member{pot.paidThisYear === 1 ? '' : 's'} paid in this season
+              {/if}
+            </div>
           </div>
 
           {#if potWinners.length}

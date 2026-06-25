@@ -377,6 +377,28 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
                 [year]
         );
         const pointsLeaderMembers = memberCountRows[0]?.c ?? 0;
+
+        // Projection for the upcoming/active season. Buy-ins are collected over
+        // time, so the pool and carryover pot read $0 until members actually pay.
+        // We infer what they WILL be once everyone pays, using the league's team
+        // count as the expected member count, and flag the figures as estimates
+        // until all funds are in.
+        const { rows: teamCountRows } = await query(
+                'SELECT num_teams FROM season_archive WHERE year = $1',
+                [year]
+        );
+        const expectedMembers = num(teamCountRows[0]?.num_teams) || pointsLeaderMembers || 0;
+        const unpaidMembers = Math.max(0, expectedMembers - paidThisYear);
+        const fullyCollected = expectedMembers > 0 && paidThisYear >= expectedMembers;
+        const projection = {
+                expectedMembers,
+                paidMembers: paidThisYear,
+                unpaidMembers,
+                fullyCollected,
+                outstanding: unpaidMembers * settings.buyIn,
+                payoutPoolProjected: Math.max(0, expectedMembers * settings.poolShare - paidOut),
+                potTotalProjected: Math.max(0, potTotal + unpaidMembers * settings.potShare)
+        };
         const pointsLeaderContributors = Math.max(0, pointsLeaderMembers - 1);
         const pointsLeader = {
                 amount: settings.pointsLeaderAmount,
@@ -425,6 +447,7 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
                         third: { amount: season.payoutThird, paid: season.thirdPaid, enabled: season.thirdEnabled }
                 },
                 pointsLeader,
+                projection,
                 champion: { ...championStatus, potClaimed },
                 championHistory: history
         };
