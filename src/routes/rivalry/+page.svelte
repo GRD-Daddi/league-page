@@ -295,12 +295,15 @@
         }
 
         .rival-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
                 gap: 16px;
         }
 
         .rival-card {
+                flex: 1 1 260px;
+                max-width: 320px;
                 position: relative;
                 display: flex;
                 flex-direction: column;
