@@ -16,6 +16,12 @@
         $: sameTeam = teamA && teamB && teamA === teamB;
         $: hasTeams = owners.length >= 2;
 
+        const MEETING_PREVIEW = 5;
+        let showAllMeetings = false;
+        // Collapse the meeting log back to a preview whenever the opponent changes.
+        $: teamB, (showAllMeetings = false);
+        $: visibleMeetings = showAllMeetings ? meetings : meetings.slice(0, MEETING_PREVIEW);
+
         $: nameFor = (key) => owners.find((o) => o.owner === key)?.ownerName ?? key;
         $: displayA = h2h?.teamAName ?? nameFor(teamA);
         $: displayB = h2h?.teamBName ?? nameFor(teamB);
@@ -100,18 +106,21 @@
 
                                 <div class="rival-grid">
                                         {#each rivalAwards as a}
-                                                <button type="button" class="sn-card sn-card-pad rival-card rival-{a.key}" on:click={() => openRival(a.owner)}>
-                                                        <div class="rival-emoji">{a.emoji}</div>
-                                                        <div class="rival-title">{a.title}</div>
-                                                        <div class="rival-tagline">{a.tagline}</div>
-                                                        <div class="rival-owner">{a.ownerName}</div>
-                                                        <div class="rival-stat">{a.stat}</div>
-                                                        <div class="rival-sub">{a.sub}</div>
+                                                <button type="button" class="sn-card rival-card rival-{a.key}" on:click={() => openRival(a.owner)} title={a.tagline}>
+                                                        <span class="rival-emoji">{a.emoji}</span>
+                                                        <span class="rival-body">
+                                                                <span class="rival-title">{a.title}</span>
+                                                                <span class="rival-line">
+                                                                        <span class="rival-owner">{a.ownerName}</span>
+                                                                        <span class="rival-stat">{a.stat}</span>
+                                                                </span>
+                                                                <span class="rival-sub">{a.sub}</span>
+                                                        </span>
                                                 </button>
                                         {/each}
                                 </div>
 
-                                <div class="sn-section-header" style="margin-top:56px;margin-bottom:20px;">
+                                <div class="sn-section-header" style="margin-top:40px;margin-bottom:20px;">
                                         <h2 class="sn-section-title">
                                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                                 Settle The Score
@@ -178,11 +187,12 @@
                                                 </div>
                                         </div>
 
-                                        <div class="sn-section-header" style="margin-top:56px;">
+                                        <div class="sn-section-header" style="margin-top:40px;">
                                                 <h2 class="sn-section-title">
                                                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
                                                         Every Meeting
                                                 </h2>
+                                                <span class="sn-badge">{meetings.length} game{meetings.length === 1 ? '' : 's'}</span>
                                         </div>
 
                                         <div class="sn-card">
@@ -198,7 +208,7 @@
                                                                         </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                        {#each meetings as m}
+                                                                        {#each visibleMeetings as m}
                                                                                 <tr>
                                                                                         <td class="sn-num">{m.year}{m.isPlayoffs ? ' 🏆' : ''}</td>
                                                                                         <td class="center sn-num">{m.week}</td>
@@ -212,6 +222,11 @@
                                                                 </tbody>
                                                         </table>
                                                 </div>
+                                                {#if meetings.length > MEETING_PREVIEW}
+                                                        <button type="button" class="meetings-toggle" on:click={() => (showAllMeetings = !showAllMeetings)}>
+                                                                {showAllMeetings ? 'Show less' : `Show all ${meetings.length} meetings`}
+                                                        </button>
+                                                {/if}
                                         </div>
                                 {:else}
                                         <div class="sn-empty" style="margin-top:36px;">
@@ -302,13 +317,15 @@
         }
 
         .rival-card {
-                flex: 1 1 260px;
-                max-width: 320px;
+                flex: 1 1 280px;
+                max-width: 360px;
                 position: relative;
-                display: flex;
-                flex-direction: column;
+                display: grid;
+                grid-template-columns: auto 1fr;
                 align-items: center;
-                text-align: center;
+                gap: 14px;
+                padding: 14px 16px;
+                text-align: left;
                 cursor: pointer;
                 border: 1px solid var(--sn-border);
                 background: var(--sn-surface-2);
@@ -317,7 +334,7 @@
                 color: inherit;
         }
         .rival-card:hover {
-                transform: translateY(-3px);
+                transform: translateY(-2px);
                 border-color: rgba(204, 255, 0, 0.5);
                 box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
         }
@@ -326,42 +343,75 @@
                 outline-offset: 2px;
         }
 
-        .rival-emoji { font-size: 2rem; line-height: 1; margin-bottom: 10px; }
+        .rival-emoji {
+                font-size: 1.75rem;
+                line-height: 1;
+                width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 12px;
+                background: var(--sn-surface-3);
+                border: 1px solid var(--sn-border);
+        }
 
+        .rival-body {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                min-width: 0;
+        }
         .rival-title {
                 font-weight: 900;
                 font-style: italic;
                 text-transform: uppercase;
-                letter-spacing: 0.02em;
-                font-size: 1.05rem;
+                letter-spacing: 0.04em;
+                font-size: 0.72rem;
                 color: var(--sn-lime);
         }
-        .rival-tagline {
-                font-size: 11px;
-                color: var(--sn-text-faint);
-                margin-top: 2px;
-                font-style: italic;
+        .rival-line {
+                display: flex;
+                align-items: baseline;
+                gap: 8px;
+                flex-wrap: wrap;
         }
         .rival-owner {
                 font-weight: 900;
                 font-style: italic;
                 text-transform: uppercase;
-                font-size: 1.25rem;
+                font-size: 1.05rem;
                 color: #fff;
-                margin-top: 14px;
+                line-height: 1.1;
         }
         .rival-stat {
                 font-family: monospace;
                 font-weight: 900;
-                font-size: 1.1rem;
+                font-size: 0.92rem;
                 color: var(--sn-cyan, #00f0ff);
-                margin-top: 6px;
         }
         .rival-sub {
-                font-size: 11px;
+                font-size: 10px;
                 color: var(--sn-text-faint);
-                margin-top: 4px;
+                margin-top: 1px;
         }
+
+        .meetings-toggle {
+                width: 100%;
+                padding: 12px;
+                background: transparent;
+                border: none;
+                border-top: 1px solid var(--sn-border);
+                color: var(--sn-cyan, #00f0ff);
+                font: inherit;
+                font-size: 12px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                cursor: pointer;
+                transition: background 0.12s ease;
+        }
+        .meetings-toggle:hover { background: var(--sn-surface-3); }
 
         .rival-card.rival-nemesis .rival-title,
         .rival-card.rival-kryptonite .rival-title { color: #ff5470; }
