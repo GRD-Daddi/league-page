@@ -21,18 +21,39 @@ function num(value, fallback = 0) {
 }
 
 export async function getSettings() {
-        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pot_adjustment, points_leader_amount FROM pot_settings WHERE id = 1');
+        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pool_share, pot_adjustment, points_leader_amount FROM pot_settings WHERE id = 1');
         const row = rows[0] || {};
         const buyIn = num(row.buy_in_amount, 150);
-        const potSplitPct = num(row.pot_split_pct, 50);
+        const legacyPct = num(row.pot_split_pct, 50);
+
+        // pool_share (per-member dollars to the payout pool) is the authoritative
+        // driver. Fall back to the legacy percentage if a row predates it. The
+        // carryover-pot share is simply the remainder of the buy-in.
+        let poolShare = row.pool_share == null ? buyIn * ((100 - legacyPct) / 100) : num(row.pool_share);
+        poolShare = Math.min(buyIn, Math.max(0, poolShare));
+        const potShare = Math.max(0, buyIn - poolShare);
+
         return {
                 buyIn,
-                potSplitPct,
+                poolShare,
+                potShare,
+                potSplitPct: buyIn > 0 ? (potShare / buyIn) * 100 : 0,
                 potAdjustment: num(row.pot_adjustment, 0),
-                pointsLeaderAmount: num(row.points_leader_amount, 10),
-                potShare: buyIn * (potSplitPct / 100),
-                poolShare: buyIn * ((100 - potSplitPct) / 100)
+                pointsLeaderAmount: num(row.points_leader_amount, 10)
         };
+}
+
+/**
+ * Expected paying members for a season — used to convert the total payout pool to
+ * a per-member share. Prefers the league's archived team count, then the number
+ * of buy-in rows on file, and finally a sane default.
+ */
+export async function getExpectedMembers(year) {
+        const { rows } = await query('SELECT num_teams FROM season_archive WHERE year = $1', [year]);
+        const fromArchive = num(rows[0]?.num_teams);
+        if (fromArchive > 0) return fromArchive;
+        const { rows: cnt } = await query('SELECT COUNT(*)::int AS c FROM member_buyins WHERE year = $1', [year]);
+        return cnt[0]?.c > 0 ? cnt[0].c : 12;
 }
 
 /**
@@ -64,6 +85,9 @@ async function getSeasonRecord(year) {
                         payoutFirst: 0,
                         payoutSecond: 0,
                         payoutThird: 0,
+                        payoutFirstPct: 0,
+                        payoutSecondPct: 0,
+                        payoutThirdPct: 0,
                         firstPaid: false,
                         secondPaid: false,
                         thirdPaid: false,
@@ -85,6 +109,9 @@ async function getSeasonRecord(year) {
                 payoutFirst: num(row.payout_first),
                 payoutSecond: num(row.payout_second),
                 payoutThird: num(row.payout_third),
+                payoutFirstPct: num(row.payout_first_pct),
+                payoutSecondPct: num(row.payout_second_pct),
+                payoutThirdPct: num(row.payout_third_pct),
                 firstPaid: row.first_paid,
                 secondPaid: row.second_paid,
                 thirdPaid: row.third_paid,

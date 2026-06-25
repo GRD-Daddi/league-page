@@ -10,6 +10,8 @@ import {
         getChampionHistory,
         computeChampionStatus,
         setManualPotTotal,
+        getSettings,
+        getExpectedMembers,
         backfillArchive
 } from '$lib/server/pot.js';
 import { getArchivedSeasons } from '$lib/server/archive.js';
@@ -138,16 +140,20 @@ export const actions = {
 
                 const form = await request.formData();
                 const buyIn = parseMoney(form.get('buyIn'));
-                let split = parseFloat(form.get('potSplitPct'));
-                if (!Number.isFinite(split) || split < 0) split = 0;
-                if (split > 100) split = 100;
                 const pointsLeaderAmount = parseMoney(form.get('pointsLeaderAmount'));
+
+                // The payout amounts drive the pool (see setPayouts), so here we only
+                // update the buy-in / bonus and keep pot_split_pct in sync with the
+                // existing pool share. pool_share is re-clamped to the new buy-in.
+                const settings = await getSettings();
+                const poolShare = Math.min(buyIn, Math.max(0, settings.poolShare));
+                const potSplitPct = buyIn > 0 ? ((buyIn - poolShare) / buyIn) * 100 : 0;
 
                 await query(
                         `UPDATE pot_settings
-                         SET buy_in_amount = $1, pot_split_pct = $2, points_leader_amount = $3, updated_at = now()
+                         SET buy_in_amount = $1, pool_share = $2, pot_split_pct = $3, points_leader_amount = $4, updated_at = now()
                          WHERE id = 1`,
-                        [buyIn, split, pointsLeaderAmount]
+                        [buyIn, poolShare, potSplitPct, pointsLeaderAmount]
                 );
                 return { success: true, action: 'updateSettings' };
         },
@@ -195,13 +201,38 @@ export const actions = {
                 const second = parseMoney(form.get('second'));
                 const third = parseMoney(form.get('third'));
 
+                // Payout dollars drive the pool. The total payout pool is the sum of the
+                // place payouts; the per-member pool share = total / members, and the
+                // remainder of the buy-in feeds the carryover pot. We also derive each
+                // place's % of the pool for redisplay.
+                const settings = await getSettings();
+                const members = await getExpectedMembers(year);
+                const totalPool = first + second + third;
+                const firstPct = totalPool > 0 ? (first / totalPool) * 100 : 0;
+                const secondPct = totalPool > 0 ? (second / totalPool) * 100 : 0;
+                const thirdPct = totalPool > 0 ? (third / totalPool) * 100 : 0;
+
                 await upsertSeason(year);
                 await query(
                         `UPDATE season_records
-                         SET payout_first = $2, payout_second = $3, payout_third = $4, updated_at = now()
+                         SET payout_first = $2, payout_second = $3, payout_third = $4,
+                                 payout_first_pct = $5, payout_second_pct = $6, payout_third_pct = $7,
+                                 updated_at = now()
                          WHERE year = $1`,
-                        [year, first, second, third]
+                        [year, first, second, third, firstPct, secondPct, thirdPct]
                 );
+
+                // The active season's payouts set the global pool share / split. Past
+                // seasons are left alone so editing history can't clobber current settings.
+                if (year === getCurrentSeasonYear()) {
+                        let poolShare = members > 0 ? totalPool / members : 0;
+                        poolShare = Math.min(settings.buyIn, Math.max(0, poolShare));
+                        const potSplitPct = settings.buyIn > 0 ? ((settings.buyIn - poolShare) / settings.buyIn) * 100 : 0;
+                        await query(
+                                `UPDATE pot_settings SET pool_share = $1, pot_split_pct = $2, updated_at = now() WHERE id = 1`,
+                                [poolShare, potSplitPct]
+                        );
+                }
                 return { success: true, action: 'setPayouts' };
         },
 

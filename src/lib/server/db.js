@@ -105,6 +105,24 @@ ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_name TEXT;
 ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_recorded BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_paid BOOLEAN NOT NULL DEFAULT false;
 
+-- Payouts-driven split. The commissioner sets 1st/2nd/3rd payouts in dollars; the
+-- total payout pool is their sum, and the per-member share that feeds the pool is
+-- pool_share = pool_total / members. The remainder of each buy-in
+-- (buy_in - pool_share) feeds the carryover pot. pool_share is stored as the
+-- per-member dollar contribution to the pool (pot_split_pct is kept in sync only
+-- for legacy readers).
+ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS pool_share NUMERIC;
+UPDATE pot_settings
+SET pool_share = buy_in_amount * ((100 - pot_split_pct) / 100.0)
+WHERE pool_share IS NULL;
+
+-- Payouts are entered as dollar amounts (payout_first/second/third), which are the
+-- authoritative figures for paid-tracking and history. payout_*_pct holds each
+-- place's derived share of the payout pool (amount / pool_total * 100) for redisplay.
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS payout_first_pct NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS payout_second_pct NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE season_records ADD COLUMN IF NOT EXISTS payout_third_pct NUMERIC NOT NULL DEFAULT 0;
+
 -- Durable league history — the league's OWN copy of season results, independent
 -- of Yahoo. Captured from final standings so the "person to beat", Trophy Room,
 -- and records keep working even if the Yahoo API becomes unavailable or a past

@@ -19,12 +19,17 @@
                 return '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
         }
 
+        let expectedMembers = $derived(c.projection?.expectedMembers || 12);
+
+        function round2(n) {
+                return Math.round((Number(n) || 0) * 100) / 100;
+        }
+
         let buyIn = $state(0);
-        let potSplitPct = $state(50);
         let pointsLeaderAmount = $state(10);
-        let first = $state(0);
-        let second = $state(0);
-        let third = $state(0);
+        let firstAmt = $state(0);
+        let secondAmt = $state(0);
+        let thirdAmt = $state(0);
         let championName = $state('');
         let championTeamKey = $state('');
         let winnerName = $state('');
@@ -33,14 +38,20 @@
         let pointsLeaderName = $state('');
         let pointsLeaderTeamKey = $state('');
 
+        // Live previews. The payout pool is the sum of the place payouts, which drives
+        // the per-member pool share (clamped to the buy-in for the carryover split).
+        let livePoolTotal = $derived(round2(firstAmt + secondAmt + thirdAmt));
+        let livePerMemberPool = $derived(expectedMembers > 0 ? round2(livePoolTotal / expectedMembers) : 0);
+        let perMemberPool = $derived(Math.min(buyIn, c.settings?.poolShare || 0));
+        let poolExceedsBuyIn = $derived(livePerMemberPool > buyIn);
+
         $effect(() => {
                 buyIn = c.settings.buyIn;
-                potSplitPct = c.settings.potSplitPct;
                 pointsLeaderAmount = c.settings.pointsLeaderAmount;
                 potTotalInput = c.potTotal;
-                first = c.season.payoutFirst;
-                second = c.season.payoutSecond;
-                third = c.season.payoutThird;
+                firstAmt = c.season.payoutFirst;
+                secondAmt = c.season.payoutSecond;
+                thirdAmt = c.season.payoutThird;
                 championName = c.season.championName || '';
                 championTeamKey = c.season.championTeamKey || '';
                 pointsLeaderName = c.season.pointsLeaderName || '';
@@ -225,20 +236,17 @@
                         <!-- Settings -->
                         <section class="card">
                                 <h2>Buy-in &amp; Split</h2>
-                                <p class="card-sub">Each buy-in splits into the carryover pot and this year's payout pool.</p>
+                                <p class="card-sub">Each buy-in splits into the carryover pot and this year's payout pool. The pool is set by the 1st/2nd/3rd payouts you enter under Payout Amounts.</p>
                                 <form method="POST" action="?/updateSettings" use:enhance={keepValues}>
                                         <label class="field">
                                                 <span>Buy-in amount ($)</span>
                                                 <input type="number" name="buyIn" min="0" step="1" bind:value={buyIn} />
                                         </label>
-                                        <label class="field">
-                                                <span>Pot split (% of buy-in to carryover pot)</span>
-                                                <input type="number" name="potSplitPct" min="0" max="100" step="1" bind:value={potSplitPct} />
-                                        </label>
                                         <div class="split-preview">
-                                                <div><strong>{money(buyIn * (potSplitPct / 100))}</strong><span>to pot</span></div>
-                                                <div><strong>{money(buyIn * ((100 - potSplitPct) / 100))}</strong><span>to payout pool</span></div>
+                                                <div><strong>{money(perMemberPool)}</strong><span>per member to pool</span></div>
+                                                <div><strong>{money(buyIn - perMemberPool)}</strong><span>per member to pot</span></div>
                                         </div>
+                                        <p class="card-sub note">Across {expectedMembers} members: {money(perMemberPool * expectedMembers)} to the payout pool, {money((buyIn - perMemberPool) * expectedMembers)} to the carryover pot.</p>
                                         <label class="field">
                                                 <span>Points-leader bonus per member ($)</span>
                                                 <input type="number" name="pointsLeaderAmount" min="0" step="1" bind:value={pointsLeaderAmount} />
@@ -262,12 +270,20 @@
                         <!-- Payouts -->
                         <section class="card">
                                 <h2>{c.year} Payout Amounts</h2>
-                                <p class="card-sub">Enter the exact 1st / 2nd / 3rd place dollar amounts, then mark each as paid.</p>
+                                <p class="card-sub">Enter each place's payout in dollars. The total becomes this year's payout pool, which sets the per-member split above.</p>
                                 <form method="POST" action="?/setPayouts" use:enhance={keepValues}>
                                         <input type="hidden" name="year" value={c.year} />
-                                        <label class="field"><span>1st place ($)</span><input type="number" name="first" min="0" step="1" bind:value={first} /></label>
-                                        <label class="field"><span>2nd place ($)</span><input type="number" name="second" min="0" step="1" bind:value={second} /></label>
-                                        <label class="field"><span>3rd place ($)</span><input type="number" name="third" min="0" step="1" bind:value={third} /></label>
+                                        <label class="field"><span>1st place ($)</span><input type="number" name="first" min="0" step="1" bind:value={firstAmt} /></label>
+                                        <label class="field"><span>2nd place ($)</span><input type="number" name="second" min="0" step="1" bind:value={secondAmt} /></label>
+                                        <label class="field"><span>3rd place ($)</span><input type="number" name="third" min="0" step="1" bind:value={thirdAmt} /></label>
+                                        <div class="split-preview">
+                                                <div><strong>{money(livePoolTotal)}</strong><span>total payout pool</span></div>
+                                                <div><strong>{money(livePerMemberPool)}</strong><span>per member to pool</span></div>
+                                                <div><strong>{money(buyIn - livePerMemberPool)}</strong><span>per member to pot</span></div>
+                                        </div>
+                                        {#if poolExceedsBuyIn}
+                                                <p class="card-sub note warn">Payouts total {money(livePoolTotal)} — that's {money(livePerMemberPool)}/member, more than the {money(buyIn)} buy-in, so the extra must come from the carryover pot.</p>
+                                        {/if}
                                         <button class="btn" type="submit">Save Payouts</button>
                                 </form>
 
@@ -622,6 +638,7 @@
         .split-preview div { display: flex; flex-direction: column; }
         .split-preview strong { font-family: monospace; font-size: 1.2rem; color: #ccff00; }
         .split-preview span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; }
+        .note.warn { color: #f87171; }
 
         .btn {
                 display: inline-flex; align-items: center; justify-content: center;
