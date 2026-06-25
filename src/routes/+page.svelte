@@ -84,8 +84,13 @@
       const m = typeof teamKey === 'string' ? teamKey.match(/\.t\.(\d+)/) : null;
       const teamNum = m ? parseInt(m[1]) : null;
       const draftSlot = data?.draftOrder?.[teamNum] ?? r.metadata?.draft_position ?? null;
+      const user = Array.isArray(data.users)
+        ? data.users.find((u) => u.user_id === r.owner_id)
+        : null;
+      const nickname = user?.metadata?.manager_nickname ?? null;
       return {
         name: teamName,
+        owner: nickname && nickname !== teamName ? nickname : null,
         logo: r.metadata?.team_logo ?? null,
         rosterId: r.roster_id ?? teamKey ?? teamName,
         teamNum,
@@ -622,6 +627,18 @@
 
   tr:hover .team-name { color: #00f0ff; }
 
+  .draft-team-id { min-width: 0; }
+
+  .team-sub {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .manager-name {
     font-size: 11px;
     color: #6b7280;
@@ -998,6 +1015,16 @@
     color: #fff;
   }
 
+  .trophy-sub {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #9ca3af;
+    margin-top: 3px;
+  }
+
   .trophy-meta {
     font-family: monospace;
     font-size: 0.85rem;
@@ -1316,9 +1343,10 @@
               <div class="trophy-place {PLACE_TONE[place]}">{PLACE_LABELS[place]} Place</div>
               {#if t}
                 <div class="trophy-avatar">
-                  {#if t.logo}<img src={t.logo} alt={t.name} />{:else}{initials(t.name)}{/if}
+                  {#if t.logo}<img src={t.logo} alt={t.ownerName ?? t.name} />{:else}{initials(t.ownerName ?? t.name)}{/if}
                 </div>
-                <div class="trophy-team">{t.name}</div>
+                <div class="trophy-team">{t.ownerName ?? t.name}</div>
+                {#if t.ownerName && t.name}<div class="trophy-sub">{t.name}</div>{/if}
                 {#if t.wins != null}
                   <div class="trophy-meta">{t.wins}-{t.losses}{#if t.pointsFor != null} &bull; {t.pointsFor.toFixed(0)} PF{/if}</div>
                 {/if}
@@ -1393,9 +1421,12 @@
                     <div class="draft-slot" title="Draft pick #{team.draftSlot}">{team.draftSlot}</div>
                   {/if}
                   <div class="avatar">
-                    {#if team.logo}<img src={team.logo} alt={team.name} style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />{:else}{initials(team.name)}{/if}
+                    {#if team.logo}<img src={team.logo} alt={team.owner ?? team.name} style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />{:else}{initials(team.owner ?? team.name)}{/if}
                   </div>
-                  <div class="team-name" style="font-size:0.95rem;">{team.name}</div>
+                  <div class="draft-team-id">
+                    <div class="team-name" style="font-size:0.95rem;">{team.owner ?? team.name}</div>
+                    {#if team.owner}<div class="team-sub">{team.name}</div>{/if}
+                  </div>
                 </div>
                 <div class="draft-picks">
                   {#each DRAFT_ROUNDS as rnd}

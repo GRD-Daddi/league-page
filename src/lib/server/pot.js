@@ -1,4 +1,5 @@
 import { query } from './db.js';
+import { ownerDisplayName } from '../utils/ownerNames.js';
 import { loadLeagueData, loadLeagueRosters } from './dataLoaders.js';
 import { getArchivedChampions, snapshotPodium, snapshotSeasonHeader, snapshotStandings, snapshotMatchups } from './archive.js';
 import { enumerateLeagueSeasons, fetchLeagueMeta, fetchSeasonArchiveData } from './historyBackfill.js';
@@ -253,6 +254,34 @@ export async function getLastSeasonPodium(yahooClient = null, leagueKey = null) 
                         losses: null,
                         pointsFor: null
                 }));
+
+                // Attach the OWNER (manager nickname) to each podium entry from the
+                // durable archive so the UI can lead with the owner, not the team name.
+                // Match on place (1/2/3) against the archived final_rank, which is the
+                // authoritative final placement and carries manager_name. Best effort.
+                if (Number.isFinite(year) && podium.length) {
+                        try {
+                                const { rows } = await query(
+                                        `SELECT final_rank, team_name, manager_name
+                                         FROM team_season_archive
+                                         WHERE year = $1 AND final_rank BETWEEN 1 AND 3
+                                           AND manager_name IS NOT NULL AND trim(manager_name) <> ''`,
+                                        [year]
+                                );
+                                const byPlace = new Map(rows.map((r) => [r.final_rank, r]));
+                                for (const p of podium) {
+                                        const a = byPlace.get(p.place);
+                                        if (!a) continue;
+                                        p.owner = a.manager_name;
+                                        p.ownerName = ownerDisplayName(a.manager_name);
+                                        // The archived team name is last season's actual name; prefer it
+                                        // over the current-season roster name (which may have been renamed).
+                                        if (a.team_name) p.name = a.team_name;
+                                }
+                        } catch (err) {
+                                console.error('[pot] podium owner enrich failed:', err.message);
+                        }
+                }
 
                 // Persist last season's podium into the durable archive so the champion
                 // (and "person to beat") survive even if Yahoo later goes dark. Best
