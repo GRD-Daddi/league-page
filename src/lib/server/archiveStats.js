@@ -189,12 +189,29 @@ function assignPlayoffBrackets(weeks) {
  */
 export async function getTrophyRoom() {
         const { rows } = await query(
-                `SELECT year, num_teams, champion_name, champion_team_key,
-                        runner_up_name, third_name
+                `SELECT year, num_teams,
+                        champion_name, champion_team_key,
+                        runner_up_name, runner_up_team_key,
+                        third_name, third_team_key
                  FROM season_archive
                  WHERE champion_name IS NOT NULL
                  ORDER BY year DESC`
         );
+
+        // Map (year, team_key) -> OWNER (manager nickname) so each trophy can show
+        // the underlying owner beneath the team name, consistent with the rest of the
+        // site's owner-grouped history.
+        const { rows: teamRows } = await query(
+                `SELECT year, team_key, manager_name
+                 FROM team_season_archive
+                 WHERE manager_name IS NOT NULL AND trim(manager_name) <> ''`
+        );
+        const ownerByKey = new Map();
+        for (const t of teamRows) ownerByKey.set(`${t.year}::${t.team_key}`, t.manager_name);
+        const ownerName = (year, key) => {
+                const o = key ? ownerByKey.get(`${year}::${key}`) : null;
+                return o ? ownerDisplayName(o) : null;
+        };
 
         const out = [];
         for (const r of rows) {
@@ -203,12 +220,18 @@ export async function getTrophyRoom() {
                                 (SELECT team_name FROM team_season_archive
                                  WHERE year = $1 AND points_for IS NOT NULL
                                  ORDER BY points_for DESC NULLS LAST LIMIT 1) AS points_leader,
+                                (SELECT manager_name FROM team_season_archive
+                                 WHERE year = $1 AND points_for IS NOT NULL
+                                 ORDER BY points_for DESC NULLS LAST LIMIT 1) AS points_leader_owner,
                                 (SELECT points_for FROM team_season_archive
                                  WHERE year = $1 AND points_for IS NOT NULL
                                  ORDER BY points_for DESC NULLS LAST LIMIT 1) AS points_leader_pf,
                                 (SELECT team_name FROM team_season_archive
                                  WHERE year = $1 AND final_rank IS NOT NULL
-                                 ORDER BY final_rank DESC NULLS LAST LIMIT 1) AS wooden_spoon`,
+                                 ORDER BY final_rank DESC NULLS LAST LIMIT 1) AS wooden_spoon,
+                                (SELECT manager_name FROM team_season_archive
+                                 WHERE year = $1 AND final_rank IS NOT NULL
+                                 ORDER BY final_rank DESC NULLS LAST LIMIT 1) AS wooden_spoon_owner`,
                         [r.year]
                 );
                 const e = extra[0] || {};
@@ -217,11 +240,16 @@ export async function getTrophyRoom() {
                         numTeams: r.num_teams,
                         champion: r.champion_name,
                         championTeamKey: r.champion_team_key,
+                        championOwner: ownerName(r.year, r.champion_team_key),
                         runnerUp: r.runner_up_name,
+                        runnerUpOwner: ownerName(r.year, r.runner_up_team_key),
                         third: r.third_name,
+                        thirdOwner: ownerName(r.year, r.third_team_key),
                         pointsLeader: e.points_leader || null,
+                        pointsLeaderOwner: e.points_leader_owner ? ownerDisplayName(e.points_leader_owner) : null,
                         pointsLeaderPf: e.points_leader_pf != null ? Number(e.points_leader_pf) : null,
-                        woodenSpoon: e.wooden_spoon || null
+                        woodenSpoon: e.wooden_spoon || null,
+                        woodenSpoonOwner: e.wooden_spoon_owner ? ownerDisplayName(e.wooden_spoon_owner) : null
                 });
         }
         return out;
