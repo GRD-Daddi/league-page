@@ -22,6 +22,14 @@ each pick has `original_team_key` / `source_team_key` / `destination_team_key` /
 `round:originalTeam` to get net current ownership. A Yahoo league key is one season,
 so all traded picks in the current league key belong to that league's draft.
 
+**Where it is / isn't wired:** the homepage "Draft Picks by Team" board DOES consume
+`getYahooTradedPicks` (commissioner-entered ownership overrides it when present). The
+Transactions-feed adapter (`transactionAdapter.convertSingleTransaction`) still
+outputs `draft_picks: []` — it only parses the `players` segment, never `picks` — so
+traded picks do NOT appear as line items on the Transactions history page. Closing
+that gap requires both parsing picks into Sleeper-shaped `draft_picks` AND teaching
+the trade-render pipeline (moves/TransactionMove) to display pick rows.
+
 ## rostersResult.rosters is a MAP, not an array
 `loadLeagueRosters` → `processRosters` returns `{ rosters: rosterMap, ... }` where
 `rosters` is an object keyed by id, not an array. Always iterate with
