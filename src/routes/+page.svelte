@@ -1,5 +1,6 @@
 <script>
   import { leagueName, enableBlog } from '$lib/utils/helper';
+  import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
   import { HomePost } from '$lib/components';
 
   export let data;
@@ -1079,6 +1080,16 @@
   }
   .pick-chip.extra .pick-count { color: #00f0ff; }
 
+  /* Team is over the league's per-round pick limit (invalid) */
+  .pick-chip.over {
+    border-style: solid;
+    border-color: #ff5050;
+    background: rgba(255, 80, 80, 0.12);
+    color: #ff8080;
+  }
+  .pick-chip.over .rnd,
+  .pick-chip.over .pick-count { color: #ff8080; }
+
   /* Team traded away its pick in this round */
   .pick-chip.traded {
     opacity: 0.4;
@@ -1390,7 +1401,7 @@
                   {#each DRAFT_ROUNDS as rnd}
                     {@const count = picksForRound(team, rnd)}
                     {#if count > 0}
-                      <span class="pick-chip" class:extra={count > 1}><span class="rnd">R{rnd}</span> <span class="pick-count">×{count}</span></span>
+                      <span class="pick-chip" class:extra={count > 1 && count <= MAX_PICKS_PER_ROUND} class:over={count > MAX_PICKS_PER_ROUND} title={count > MAX_PICKS_PER_ROUND ? `Over the ${MAX_PICKS_PER_ROUND}-pick round limit` : ''}><span class="rnd">R{rnd}</span> <span class="pick-count">×{count}</span></span>
                     {:else}
                       <span class="pick-chip traded"><span class="rnd">R{rnd}</span> <span class="pick-count">—</span></span>
                     {/if}
@@ -1399,7 +1410,10 @@
               </div>
             {/each}
           </div>
-          <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
+          <p style="color:#00f0ff; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em; font-weight:800;">
+            League rule: max {MAX_PICKS_PER_ROUND} picks per round.
+          </p>
+          <p style="color:#4b5563; font-size:12px; margin-top:8px; text-transform:uppercase; letter-spacing:0.08em;">
             {#if hasDraftOrder}
               Ordered by draft slot.
             {/if}

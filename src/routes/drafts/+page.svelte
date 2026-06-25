@@ -1,4 +1,5 @@
 <script>
+        import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
         export let data;
         const { upcomingDraftData, previousDraftsData, leagueTeamManagersData, playersData, draftPickOwnership, draftPickYear } = data;
 
@@ -130,7 +131,8 @@
                         <p class="picks-intro">
                                 Who owns what heading into the {draftPickYear} draft. Numbers show how many picks each
                                 team holds per round — <span class="lg-zero">0</span> means traded away,
-                                <span class="lg-multi">2+</span> means acquired.
+                                <span class="lg-multi">{MAX_PICKS_PER_ROUND}</span> is the max a team may hold in a round.
+                                <span class="lg-rule">League rule: max {MAX_PICKS_PER_ROUND} picks per round.</span>
                         </p>
                         <div class="picks-grid">
                                 {#each pickTeams as team}
@@ -146,7 +148,7 @@
                                                 <div class="picks-rounds">
                                                         {#each Array(pickRounds) as _, r}
                                                                 {@const count = Number(team.picks?.[r]) || 0}
-                                                                <div class="picks-cell {count === 0 ? 'zero' : count > 1 ? 'multi' : ''}">
+                                                                <div class="picks-cell {count === 0 ? 'zero' : count > MAX_PICKS_PER_ROUND ? 'over' : count > 1 ? 'multi' : ''}" title={count > MAX_PICKS_PER_ROUND ? `Over the ${MAX_PICKS_PER_ROUND}-pick round limit` : ''}>
                                                                         <span class="pc-round">R{r + 1}</span>
                                                                         <span class="pc-count">{count}</span>
                                                                 </div>
@@ -237,6 +239,15 @@
         }
         .picks-intro .lg-zero { color: var(--sn-text-faint); font-weight: 800; }
         .picks-intro .lg-multi { color: var(--sn-lime); font-weight: 800; }
+        .picks-intro .lg-rule {
+                display: block;
+                margin-top: 6px;
+                color: var(--sn-cyan);
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                font-size: 0.8rem;
+        }
 
         .picks-grid {
                 display: grid;
@@ -314,6 +325,12 @@
                 background: rgba(204, 255, 0, 0.08);
         }
         .picks-cell.multi .pc-count { color: var(--sn-lime); }
+
+        .picks-cell.over {
+                border-color: rgba(255, 80, 80, 0.6);
+                background: rgba(255, 80, 80, 0.12);
+        }
+        .picks-cell.over .pc-count { color: #ff8080; }
 
         .draft-board {
                 display: flex;

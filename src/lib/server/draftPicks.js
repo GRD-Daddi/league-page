@@ -1,4 +1,5 @@
 import { query, getPool, initDb } from './db.js';
+import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
 
 // Hard cap on how many team rows a single save may carry — guards against a
 // malformed or oversized payload writing unbounded rows.
@@ -10,7 +11,7 @@ export const DRAFT_ROUNDS = 15;
 function clampPicks(value) {
         let n = parseInt(value, 10);
         if (!Number.isFinite(n) || n < 0) n = 0;
-        if (n > 20) n = 20;
+        if (n > MAX_PICKS_PER_ROUND) n = MAX_PICKS_PER_ROUND;
         return n;
 }
 

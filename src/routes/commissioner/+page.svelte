@@ -1,5 +1,6 @@
 <script>
         import { enhance } from '$app/forms';
+        import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
 
         let { data, form } = $props();
 
@@ -99,6 +100,18 @@
                 roundList.map((_, i) => draftGrid.reduce((sum, t) => sum + (Number(t.picks?.[i]) || 0), 0))
         );
         let teamTotal = (team) => team.picks.reduce((s, n) => s + (Number(n) || 0), 0);
+
+        // League rule: a team may hold at most MAX_PICKS_PER_ROUND picks in any round.
+        // A trade that would push a receiving team past this is invalid — surface every
+        // offending cell so the commissioner can't save an illegal pick distribution.
+        let pickViolations = $derived(
+                draftGrid.flatMap((team) =>
+                        team.picks
+                                .map((n, i) => ({ count: Number(n) || 0, round: i + 1 }))
+                                .filter((p) => p.count > MAX_PICKS_PER_ROUND)
+                                .map((p) => ({ teamName: team.teamName, round: p.round, count: p.count }))
+                )
+        );
 </script>
 
 <svelte:head>
@@ -343,9 +356,18 @@
                 <!-- Draft pick ownership editor -->
                 <section class="card full draftpicks">
                         <h2>{c.year} Draft Picks by Team</h2>
-                        <p class="card-sub">Set how many picks each team owns in each round of the upcoming draft. <strong>1</strong> is a standard pick, <strong>0</strong> means it was traded away, <strong>2+</strong> means picks were acquired. This is what powers the public "Draft Picks by Team" board.</p>
+                        <p class="card-sub">Set how many picks each team owns in each round of the upcoming draft. <strong>1</strong> is a standard pick, <strong>0</strong> means it was traded away, <strong>2</strong> means a pick was acquired. League rule: a team may hold <strong>at most {MAX_PICKS_PER_ROUND} picks per round</strong> — a trade that would give a team 3 in a round is invalid. This is what powers the public "Draft Picks by Team" board.</p>
                         {#if draftPrefilled}
                                 <div class="banner warn">Pre-filled from your Grid View screenshot as a starting point. The screenshot is low-resolution — <strong>please verify every number before saving.</strong> Each round column should total {draftGrid.length}.</div>
+                        {/if}
+                        {#if pickViolations.length}
+                                <div class="banner error">
+                                        <strong>Invalid pick distribution — over the {MAX_PICKS_PER_ROUND}-per-round limit:</strong>
+                                        {#each pickViolations as v}
+                                                <div>{v.teamName} has {v.count} picks in Round {v.round}.</div>
+                                        {/each}
+                                        Fix these before saving — a trade can't leave a team with more than {MAX_PICKS_PER_ROUND} picks in a round.
+                                </div>
                         {/if}
                         {#if !draftGrid.length}
                                 <div class="banner error">Could not load league teams from Yahoo. Make sure you're logged in and the league is connected.</div>
@@ -371,9 +393,10 @@
                                                                                                 <input
                                                                                                         type="number"
                                                                                                         min="0"
-                                                                                                        max="20"
+                                                                                                        max={MAX_PICKS_PER_ROUND}
                                                                                                         class:zero={(Number(draftGrid[i].picks[r]) || 0) === 0}
-                                                                                                        class:multi={(Number(draftGrid[i].picks[r]) || 0) > 1}
+                                                                                                        class:multi={(Number(draftGrid[i].picks[r]) || 0) > 1 && (Number(draftGrid[i].picks[r]) || 0) <= MAX_PICKS_PER_ROUND}
+                                                                                                        class:over={(Number(draftGrid[i].picks[r]) || 0) > MAX_PICKS_PER_ROUND}
                                                                                                         bind:value={draftGrid[i].picks[r]}
                                                                                                 />
                                                                                         </td>
@@ -393,7 +416,7 @@
                                                         </tfoot>
                                                 </table>
                                         </div>
-                                        <button class="btn" type="submit">Save Draft Picks</button>
+                                        <button class="btn" type="submit" disabled={pickViolations.length > 0}>Save Draft Picks</button>
                                 </form>
                         {/if}
                 </section>
@@ -477,6 +500,7 @@
         .draft-grid input:focus { outline: none; border-color: #00f0ff; }
         .draft-grid input.zero { color: #6b7280; border-color: #2a2326; }
         .draft-grid input.multi { color: #ccff00; border-color: rgba(204,255,0,0.5); }
+        .draft-grid input.over { color: #ff8080; border-color: #ff5050; background: rgba(255,80,80,0.12); }
         .draft-grid tfoot td { border-top: 2px solid #1f2937; font-weight: 900; font-family: monospace; }
         .draft-grid tfoot .rt.good { color: #4ade80; }
         .draft-grid tfoot .rt.bad { color: #ff8080; }

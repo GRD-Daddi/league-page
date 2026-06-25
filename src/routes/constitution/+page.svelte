@@ -1,6 +1,6 @@
 <script>
     import { dues } from '$lib/utils/helper';
-    let one, oneOne, oneOneOne, oneTwo, oneTwoOne, oneTwoTwo, oneTwoThree, oneTwoFour, oneTwoFive, oneThree;
+    let one, oneOne, oneOneOne, oneTwo, oneTwoOne, oneTwoTwo, oneTwoThree, oneTwoFour, oneTwoFive, oneTwoSix, oneThree;
     let two, twoOne, twoTwo, twoThree;
     let three, threeOne;
     let four, fourOne, fourTwo;
@@ -38,6 +38,7 @@
                     <button class="toc-subsub clickable" onclick={() => goToSection(oneTwoThree)}>1.2.3 Trade Deadline</button>
                     <button class="toc-subsub clickable" onclick={() => goToSection(oneTwoFour)}>1.2.4 Trade Restrictions</button>
                     <button class="toc-subsub clickable" onclick={() => goToSection(oneTwoFive)}>1.2.5 Veto/Trade Process</button>
+                    <button class="toc-subsub clickable" onclick={() => goToSection(oneTwoSix)}>1.2.6 Draft Pick Round Limit</button>
                 <button class="toc-sub clickable" onclick={() => goToSection(oneThree)}>1.3 Waiver Wire</button>
 
             <button class="toc-section clickable" onclick={() => goToSection(two)}>Section 2: Drafting</button>
@@ -146,6 +147,11 @@
             <h4 class="sub-title" bind:this={oneTwoFive}>1.2.5 Veto/Trade Process</h4>
             <div class="subBlock">
                 <p>A total of 7 veto votes are required to veto a trade. Vetoes are only appropriate in instances of collusion or an egregious mismatch of value (i.e. CMC for a backup kicker). Not liking a trade does not warrant a veto.</p>
+            </div>
+
+            <h4 class="sub-title" bind:this={oneTwoSix}>1.2.6 Draft Pick Round Limit</h4>
+            <div class="subBlock">
+                <p>No team may hold more than <strong>2 draft picks in any single round</strong>. Any trade that would leave the receiving team with 3 or more picks in the same round is invalid and will not be processed. This cap applies to every round of the draft.</p>
             </div>
 
             <h3 class="art-title" bind:this={oneThree}>1.3 Waiver Wire</h3>
