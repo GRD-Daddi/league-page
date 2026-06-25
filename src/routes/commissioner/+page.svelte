@@ -44,6 +44,17 @@
 
         const submitting = $state({});
 
+        // SvelteKit's default use:enhance calls form.reset() on a successful action,
+        // which yanks every bind:value input back to its SSR default (e.g. 0 / 50)
+        // instead of the value just saved. Our $effect re-syncs inputs from the DB,
+        // but when the synced value already equals the saved value the effect doesn't
+        // re-fire — so the reset default stays on screen and the save looks like it
+        // reverted. Re-running invalidateAll WITHOUT the reset keeps saved values
+        // visible.
+        const keepValues = () => async ({ update }) => {
+                await update({ reset: false });
+        };
+
         // Best-effort prefill transcribed from the league's Grid View screenshot.
         // Keyed by a normalized team name (lowercase, alphanumeric only). These are a
         // starting point only — the commissioner must verify each value before saving.
@@ -199,7 +210,7 @@
                         <section class="card">
                                 <h2>Buy-in &amp; Split</h2>
                                 <p class="card-sub">Each buy-in splits into the carryover pot and this year's payout pool.</p>
-                                <form method="POST" action="?/updateSettings" use:enhance>
+                                <form method="POST" action="?/updateSettings" use:enhance={keepValues}>
                                         <label class="field">
                                                 <span>Buy-in amount ($)</span>
                                                 <input type="number" name="buyIn" min="0" step="1" bind:value={buyIn} />
@@ -222,7 +233,7 @@
 
                                 <div class="hr"></div>
 
-                                <form method="POST" action="?/setPotTotal" use:enhance>
+                                <form method="POST" action="?/setPotTotal" use:enhance={keepValues}>
                                         <label class="field">
                                                 <span>Set carryover pot total ($)</span>
                                                 <input type="number" name="potTotal" min="0" step="1" bind:value={potTotalInput} />
@@ -236,7 +247,7 @@
                         <section class="card">
                                 <h2>{c.year} Payout Amounts</h2>
                                 <p class="card-sub">Enter the exact 1st / 2nd / 3rd place dollar amounts, then mark each as paid.</p>
-                                <form method="POST" action="?/setPayouts" use:enhance>
+                                <form method="POST" action="?/setPayouts" use:enhance={keepValues}>
                                         <input type="hidden" name="year" value={c.year} />
                                         <label class="field"><span>1st place ($)</span><input type="number" name="first" min="0" step="1" bind:value={first} /></label>
                                         <label class="field"><span>2nd place ($)</span><input type="number" name="second" min="0" step="1" bind:value={second} /></label>
@@ -270,7 +281,7 @@
                         <section class="card">
                                 <h2>Record Champion</h2>
                                 <p class="card-sub">Confirm the {c.year} champion. Used to determine the "person to beat" and back-to-back status.</p>
-                                <form method="POST" action="?/recordChampion" use:enhance>
+                                <form method="POST" action="?/recordChampion" use:enhance={keepValues}>
                                         <input type="hidden" name="year" value={c.year} />
                                         <label class="field"><span>Champion name</span><input type="text" name="championName" placeholder="Team or manager name" bind:value={championName} /></label>
                                         <label class="field"><span>Team key (optional)</span><input type="text" name="championTeamKey" placeholder="nfl.l.xxxxxx.t.x" bind:value={championTeamKey} /></label>
@@ -291,7 +302,7 @@
                         <section class="card">
                                 <h2>{c.year} Points Leader</h2>
                                 <p class="card-sub">The regular-season points leader collects {money(c.pointsLeader.amount)} from every other member, on top of dues.</p>
-                                <form method="POST" action="?/recordPointsLeader" use:enhance>
+                                <form method="POST" action="?/recordPointsLeader" use:enhance={keepValues}>
                                         <input type="hidden" name="year" value={c.year} />
                                         <label class="field"><span>Points leader name</span><input type="text" name="pointsLeaderName" placeholder="Team or manager name" bind:value={pointsLeaderName} /></label>
                                         <label class="field"><span>Team key (optional)</span><input type="text" name="pointsLeaderTeamKey" placeholder="nfl.l.xxxxxx.t.x" bind:value={pointsLeaderTeamKey} /></label>
@@ -323,7 +334,7 @@
                                 {#if c.champion?.backToBackAchieved}
                                         <div class="banner hotbanner">🏆 {c.champion.reigning.name} has gone back-to-back and can claim the pot.</div>
                                 {/if}
-                                <form method="POST" action="?/awardPot" use:enhance>
+                                <form method="POST" action="?/awardPot" use:enhance={keepValues}>
                                         <input type="hidden" name="year" value={c.year} />
                                         <label class="field"><span>Winner name</span><input type="text" name="winnerName" bind:value={winnerName} /></label>
                                         <label class="field"><span>Winner team key (optional)</span><input type="text" name="winnerTeamKey" bind:value={winnerTeamKey} /></label>
@@ -420,7 +431,7 @@
                         {#if !draftGrid.length}
                                 <div class="banner error">Could not load league teams from Yahoo. Make sure you're logged in and the league is connected.</div>
                         {:else}
-                                <form method="POST" action="?/saveDraftPicks" use:enhance>
+                                <form method="POST" action="?/saveDraftPicks" use:enhance={keepValues}>
                                         <input type="hidden" name="year" value={c.year} />
                                         <input type="hidden" name="payload" value={draftPayload} />
                                         <div class="draft-scroll">
