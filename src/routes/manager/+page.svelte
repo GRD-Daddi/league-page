@@ -1,6 +1,7 @@
 <script>
 	export let data;
-	$: team = data?.team ?? null;
+	$: owner = data?.owner ?? null;
+	$: ownerName = data?.ownerName ?? owner;
 	$: seasons = data?.seasons ?? [];
 	$: career = data?.career ?? null;
 
@@ -30,11 +31,11 @@
 </script>
 
 <svelte:head>
-	<title>{team ? `${team} | ` : ''}Manager Profile | Minnesota Slopes</title>
+	<title>{ownerName ? `${ownerName} | ` : ""}Manager Profile | Minnesota Slopes</title>
 </svelte:head>
 
 <div class="sn-page">
-	{#if team && (career || seasons.length)}
+	{#if owner && (career || seasons.length)}
 		<div class="sn-pagehead">
 			<div class="sn-pagehead-inner">
 				<a href="/managers" class="back-link">
@@ -42,10 +43,10 @@
 					All Managers
 				</a>
 				<div class="profile-header">
-					<div class="sn-avatar xl">{initials(team)}</div>
+					<div class="sn-avatar xl">{initials(ownerName)}</div>
 					<div class="profile-id">
 						<div class="sn-eyebrow profile-eyebrow">{career?.seasons ?? seasons.length} Season{(career?.seasons ?? seasons.length) === 1 ? '' : 's'}</div>
-						<h1 class="sn-pagetitle profile-title">{team}</h1>
+						<h1 class="sn-pagetitle profile-title">{ownerName}</h1>
 						{#if career?.titles > 0}
 							<span class="sn-badge lime">{career.titles}× Champion</span>
 						{/if}
@@ -94,6 +95,7 @@
 							<thead>
 								<tr>
 									<th>Season</th>
+									<th>Team</th>
 									<th class="center">W-L-T</th>
 									<th class="right">PF</th>
 									<th class="right">PA</th>
@@ -105,6 +107,7 @@
 								{#each seasons as s}
 									<tr>
 										<td class="sn-num">{s.year}</td>
+										<td class="sn-team-name">{s.teamName ?? '—'}</td>
 										<td class="center sn-num">{s.wins ?? 0}-{s.losses ?? 0}{s.ties ? `-${s.ties}` : ''}</td>
 										<td class="right sn-num lime">{fmt1(s.pointsFor)}</td>
 										<td class="right sn-num">{fmt1(s.pointsAgainst)}</td>

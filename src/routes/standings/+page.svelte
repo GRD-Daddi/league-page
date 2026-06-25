@@ -1,6 +1,7 @@
 <script>
         import { goto } from '$app/navigation';
         import { page } from '$app/stores';
+        import { ownerDisplayName } from '$lib/utils/ownerNames.js';
 
         export let data;
 
@@ -50,7 +51,7 @@
                                 return {
                                         rank: i + 1,
                                         team: teamName,
-                                        manager: nickname && nickname !== teamName ? nickname : null,
+                                        manager: nickname ? ownerDisplayName(nickname) : null,
                                         logo: r.metadata?.team_logo ?? null,
                                         w,
                                         l,

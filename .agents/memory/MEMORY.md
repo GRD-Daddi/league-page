@@ -11,3 +11,4 @@
 - [Draft pick ownership model](draft-pick-ownership.md) — upcoming-draft picks board is manual counts-per-round (commissioner-entered), not Yahoo; don't replace with Yahoo predicted picks.
 - [Yahoo league history archive](yahoo-history-archive.md) — recover real multi-season Yahoo history: enumerate by name + raw REST, not renew chains or offseason library helpers.
 - [Indentation conventions](indentation-conventions.md) — src/routes/** = TABS; src/lib/server/*.js = 8-space (no tabs). Match the sibling or get noisy diffs.
+- [Owner-grouped league history](owner-vs-team-history.md) — history pages group by OWNER (manager_name nickname), not team_name; wrap nicknames in ownerDisplayName(); records join matchup_archive→team_season_archive on year+team_key.

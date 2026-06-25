@@ -1,4 +1,5 @@
 import { query } from './db.js';
+import { ownerDisplayName } from '../utils/ownerNames.js';
 
 /**
  * Cross-season analytics computed over the durable archive (season_archive,
@@ -7,11 +8,13 @@ import { query } from './db.js';
  * so history stays available year-round — even in the offseason or if a past
  * Yahoo league is deleted.
  *
- * Identity note: Yahoo masks manager GUIDs/nicknames ("--hidden--"), so
- * `manager_name` is never populated. The only stable cross-season identity we
- * have is the TEAM NAME, which the league reuses year to year. All "manager"
- * aggregation here keys on team_name. It is a proxy — a manager who renames
- * their team reads as a new identity — but it is the best signal the data offers.
+ * Identity note: Yahoo masks manager GUIDs ("--hidden--") but exposes each
+ * manager's first-name NICKNAME, which is stable across every season. That
+ * nickname (stored in team_season_archive.manager_name) is the OWNER identity
+ * all cross-season aggregation keys on, so a manager who renames their team year
+ * to year still reads as one person. The team name used in a given season is
+ * carried alongside as sub-detail. Raw nicknames are turned into display labels
+ * with ownerDisplayName().
  *
  * "Completed seasons" = season_archive.status = 'complete'. The in-progress /
  * predraft current season carries zeroed stats and is excluded from all-time
@@ -85,17 +88,28 @@ export async function getTrophyRoom() {
         return out;
 }
 
-/** Champions tallied by team name, most titles first (completed seasons only). */
+/**
+ * Champions tallied by OWNER (manager nickname), most titles first (completed
+ * seasons only). The team name used for each title is carried as sub-detail.
+ */
 export async function getChampionshipCounts() {
         const { rows } = await query(
-                `SELECT champion_name AS team_name, count(*)::int AS titles,
-                        array_agg(year ORDER BY year) AS years
-                 FROM season_archive
-                 WHERE champion_name IS NOT NULL AND status = 'complete'
-                 GROUP BY champion_name
-                 ORDER BY titles DESC, team_name ASC`
+                `SELECT manager_name AS owner,
+                        count(*)::int AS titles,
+                        array_agg(year ORDER BY year) AS years,
+                        array_agg(team_name ORDER BY year) AS team_names
+                 FROM team_season_archive
+                 WHERE final_rank = 1 AND manager_name IS NOT NULL AND year IN ${COMPLETED}
+                 GROUP BY manager_name
+                 ORDER BY titles DESC, owner ASC`
         );
-        return rows.map((r) => ({ teamName: r.team_name, titles: r.titles, years: r.years }));
+        return rows.map((r) => ({
+                owner: r.owner,
+                ownerName: ownerDisplayName(r.owner),
+                titles: r.titles,
+                years: r.years,
+                teamNames: r.team_names || []
+        }));
 }
 
 const numRow = (r) =>
@@ -103,6 +117,8 @@ const numRow = (r) =>
                 ? {
                                 year: r.year,
                                 week: r.week ?? null,
+                                owner: r.owner ?? null,
+                                ownerName: r.owner ? ownerDisplayName(r.owner) : null,
                                 teamName: r.team_name,
                                 value: r.value != null ? Number(r.value) : null,
                                 detail: r.detail || null
@@ -110,9 +126,10 @@ const numRow = (r) =>
                 : null;
 
 /**
- * All-time league records, each attributed to a team_name + season (+ week for
- * single-game marks). Computed only over completed seasons. Returns a flat,
- * UI-ready list of { key, label, teamName, value, year, week, detail }.
+ * All-time league records, each attributed to an OWNER (manager nickname) plus
+ * the team name + season (+ week for single-game marks) it was set under.
+ * Computed only over completed seasons. Returns a flat, UI-ready list of
+ * { key, label, owner, ownerName, teamName, value, year, week, detail }.
  */
 export async function getAllTimeRecords() {
         const single = async (sql, params = []) => {
@@ -131,63 +148,68 @@ export async function getAllTimeRecords() {
                 highCombined
         ] = await Promise.all([
                 single(
-                        `SELECT year, week, team_name, points AS value
-                         FROM matchup_archive
-                         WHERE points > 0 AND year IN ${COMPLETED}
-                         ORDER BY points DESC LIMIT 1`
+                        `SELECT m.year, m.week, m.team_name, ts.manager_name AS owner, m.points AS value
+                         FROM matchup_archive m
+                         LEFT JOIN team_season_archive ts ON ts.year = m.year AND ts.team_key = m.team_key
+                         WHERE m.points > 0 AND m.year IN ${COMPLETED}
+                         ORDER BY m.points DESC LIMIT 1`
                 ),
                 single(
-                        `SELECT year, week, team_name, points AS value
-                         FROM matchup_archive
-                         WHERE points > 0 AND year IN ${COMPLETED}
-                         ORDER BY points ASC LIMIT 1`
+                        `SELECT m.year, m.week, m.team_name, ts.manager_name AS owner, m.points AS value
+                         FROM matchup_archive m
+                         LEFT JOIN team_season_archive ts ON ts.year = m.year AND ts.team_key = m.team_key
+                         WHERE m.points > 0 AND m.year IN ${COMPLETED}
+                         ORDER BY m.points ASC LIMIT 1`
                 ),
                 single(
-                        `SELECT year, team_name, points_for AS value
+                        `SELECT year, team_name, manager_name AS owner, points_for AS value
                          FROM team_season_archive
                          WHERE points_for IS NOT NULL AND year IN ${COMPLETED}
                          ORDER BY points_for DESC LIMIT 1`
                 ),
                 single(
-                        `SELECT year, team_name, points_for AS value
+                        `SELECT year, team_name, manager_name AS owner, points_for AS value
                          FROM team_season_archive
                          WHERE points_for IS NOT NULL AND points_for > 0 AND year IN ${COMPLETED}
                          ORDER BY points_for ASC LIMIT 1`
                 ),
                 single(
-                        `SELECT year, team_name, wins AS value,
+                        `SELECT year, team_name, manager_name AS owner, wins AS value,
                                 (wins || '-' || losses || (CASE WHEN ties > 0 THEN '-' || ties ELSE '' END)) AS detail
                          FROM team_season_archive
                          WHERE wins IS NOT NULL AND year IN ${COMPLETED}
                          ORDER BY wins DESC, losses ASC LIMIT 1`
                 ),
                 single(
-                        `SELECT a.year, a.week, a.team_name,
+                        `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
                                 (a.points - b.points) AS value,
                                 ('def. ' || b.team_name || ' ' || round(a.points::numeric, 2) || '–' || round(b.points::numeric, 2)) AS detail
                          FROM matchup_archive a
                          JOIN matchup_archive b
                            ON a.year = b.year AND a.week = b.week AND a.matchup_id = b.matchup_id AND a.roster_id <> b.roster_id
+                         LEFT JOIN team_season_archive ts ON ts.year = a.year AND ts.team_key = a.team_key
                          WHERE a.points > b.points AND b.points > 0 AND a.year IN ${COMPLETED}
                          ORDER BY (a.points - b.points) DESC LIMIT 1`
                 ),
                 single(
-                        `SELECT a.year, a.week, a.team_name,
+                        `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
                                 (a.points - b.points) AS value,
                                 ('vs ' || b.team_name || ' ' || round(a.points::numeric, 2) || '–' || round(b.points::numeric, 2)) AS detail
                          FROM matchup_archive a
                          JOIN matchup_archive b
                            ON a.year = b.year AND a.week = b.week AND a.matchup_id = b.matchup_id AND a.roster_id <> b.roster_id
+                         LEFT JOIN team_season_archive ts ON ts.year = a.year AND ts.team_key = a.team_key
                          WHERE a.points > b.points AND b.points > 0 AND a.year IN ${COMPLETED}
                          ORDER BY (a.points - b.points) ASC LIMIT 1`
                 ),
                 single(
-                        `SELECT a.year, a.week, a.team_name,
+                        `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
                                 (a.points + b.points) AS value,
                                 ('vs ' || b.team_name || ' ' || round(a.points::numeric, 2) || ' + ' || round(b.points::numeric, 2)) AS detail
                          FROM matchup_archive a
                          JOIN matchup_archive b
                            ON a.year = b.year AND a.week = b.week AND a.matchup_id = b.matchup_id AND a.roster_id <> b.roster_id
+                         LEFT JOIN team_season_archive ts ON ts.year = a.year AND ts.team_key = a.team_key
                          WHERE a.points > 0 AND b.points > 0 AND a.roster_id < b.roster_id AND a.year IN ${COMPLETED}
                          ORDER BY (a.points + b.points) DESC LIMIT 1`
                 )
@@ -206,13 +228,14 @@ export async function getAllTimeRecords() {
 }
 
 /**
- * Career totals for every team identity (by name) over completed seasons:
- * seasons played, record, points, titles, podiums and best finish. Sorted by
- * win percentage then total wins.
+ * Career totals for every OWNER (manager nickname) over completed seasons:
+ * seasons played, record, points, titles, podiums and best finish, plus the
+ * list of team names they've used and a per-season breakdown. Sorted by win
+ * percentage then total wins.
  */
 export async function getManagerCareers() {
         const { rows } = await query(
-                `SELECT team_name,
+                `SELECT manager_name AS owner,
                         count(*)::int AS seasons,
                         COALESCE(sum(wins), 0)::int AS wins,
                         COALESCE(sum(losses), 0)::int AS losses,
@@ -221,10 +244,20 @@ export async function getManagerCareers() {
                         COALESCE(sum(points_against), 0) AS points_against,
                         count(*) FILTER (WHERE final_rank = 1)::int AS titles,
                         count(*) FILTER (WHERE final_rank <= 3)::int AS podiums,
-                        min(final_rank) AS best_finish
+                        min(final_rank) AS best_finish,
+                        (array_agg(team_name ORDER BY year DESC))[1] AS latest_team,
+                        json_agg(json_build_object(
+                                'year', year,
+                                'teamName', team_name,
+                                'finalRank', final_rank,
+                                'wins', wins,
+                                'losses', losses,
+                                'ties', ties,
+                                'pointsFor', points_for
+                        ) ORDER BY year DESC) AS season_rows
                  FROM team_season_archive
-                 WHERE team_name IS NOT NULL AND year IN ${COMPLETED}
-                 GROUP BY team_name`
+                 WHERE manager_name IS NOT NULL AND year IN ${COMPLETED}
+                 GROUP BY manager_name`
         );
 
         return rows
@@ -233,8 +266,19 @@ export async function getManagerCareers() {
                         const losses = r.losses;
                         const ties = r.ties;
                         const games = wins + losses + ties;
+                        const seasonsList = (r.season_rows || []).map((s) => ({
+                                year: s.year,
+                                teamName: s.teamName,
+                                finalRank: s.finalRank,
+                                wins: s.wins,
+                                losses: s.losses,
+                                ties: s.ties,
+                                pointsFor: s.pointsFor != null ? Number(s.pointsFor) : null
+                        }));
                         return {
-                                teamName: r.team_name,
+                                owner: r.owner,
+                                ownerName: ownerDisplayName(r.owner),
+                                latestTeam: r.latest_team,
                                 seasons: r.seasons,
                                 wins,
                                 losses,
@@ -245,22 +289,26 @@ export async function getManagerCareers() {
                                 pointsAgainst: Number(r.points_against),
                                 titles: r.titles,
                                 podiums: r.podiums,
-                                bestFinish: r.best_finish
+                                bestFinish: r.best_finish,
+                                seasonsList
                         };
                 })
                 .sort((a, b) => b.winPct - a.winPct || b.wins - a.wins);
 }
 
-/** Per-season finishes for a single team identity (by name), newest first. */
-export async function getManagerSeasons(teamName) {
-        if (!teamName) return [];
+/**
+ * Per-season finishes for a single OWNER (manager nickname), newest first. Each
+ * row carries the team name used that year. Includes the in-progress season.
+ */
+export async function getManagerSeasons(owner) {
+        if (!owner) return [];
         const { rows } = await query(
                 `SELECT year, team_name, final_rank, wins, losses, ties,
                         points_for, points_against, playoff_seed
                  FROM team_season_archive
-                 WHERE team_name = $1
+                 WHERE manager_name = $1
                  ORDER BY year DESC`,
-                [teamName]
+                [owner]
         );
         return rows.map((r) => ({
                 year: r.year,
@@ -275,34 +323,55 @@ export async function getManagerSeasons(teamName) {
         }));
 }
 
-/** Distinct team names that appear in the archive, alphabetical. */
-export async function getArchiveTeamNames() {
+/**
+ * Distinct OWNERS in the archive, sorted by display name. Each entry is
+ * { owner (raw nickname / key), ownerName (display label) }.
+ */
+export async function getArchiveOwners() {
         const { rows } = await query(
-                `SELECT DISTINCT team_name FROM team_season_archive
-                 WHERE team_name IS NOT NULL ORDER BY team_name ASC`
+                `SELECT DISTINCT manager_name AS owner FROM team_season_archive
+                 WHERE manager_name IS NOT NULL`
         );
-        return rows.map((r) => r.team_name);
+        return rows
+                .map((r) => ({ owner: r.owner, ownerName: ownerDisplayName(r.owner) }))
+                .sort((a, b) => a.ownerName.localeCompare(b.ownerName));
+}
+
+/** Resolve an owner (manager nickname) from a team name, most recent year first. */
+export async function getOwnerByTeamName(teamName) {
+        if (!teamName) return null;
+        const { rows } = await query(
+                `SELECT manager_name FROM team_season_archive
+                 WHERE team_name = $1 AND manager_name IS NOT NULL
+                 ORDER BY year DESC LIMIT 1`,
+                [teamName]
+        );
+        return rows[0]?.manager_name || null;
 }
 
 /**
- * Head-to-head history between two team identities (by name): every meeting,
+ * Head-to-head history between two OWNERS (by manager nickname): every meeting,
  * plus an aggregate record. Meetings are matchup_archive sides sharing
- * (year, week, matchup_id); only games where both sides actually scored count.
+ * (year, week, matchup_id), resolved to owners via team_season_archive; only
+ * games where both sides actually scored count.
  */
-export async function getHeadToHead(nameA, nameB) {
-        if (!nameA || !nameB || nameA === nameB) {
-                return { teamA: nameA || null, teamB: nameB || null, meetings: [], summary: null };
+export async function getHeadToHead(ownerA, ownerB) {
+        if (!ownerA || !ownerB || ownerA === ownerB) {
+                return { teamA: ownerA || null, teamB: ownerB || null, meetings: [], summary: null };
         }
 
         const { rows } = await query(
                 `SELECT a.year, a.week, a.is_playoffs,
-                        a.points AS points_a, b.points AS points_b
+                        a.points AS points_a, b.points AS points_b,
+                        a.team_name AS team_a_name, b.team_name AS team_b_name
                  FROM matchup_archive a
                  JOIN matchup_archive b
                    ON a.year = b.year AND a.week = b.week AND a.matchup_id = b.matchup_id AND a.roster_id <> b.roster_id
-                 WHERE a.team_name = $1 AND b.team_name = $2 AND a.points > 0 AND b.points > 0
+                 JOIN team_season_archive ta ON ta.year = a.year AND ta.team_key = a.team_key
+                 JOIN team_season_archive tb ON tb.year = b.year AND tb.team_key = b.team_key
+                 WHERE ta.manager_name = $1 AND tb.manager_name = $2 AND a.points > 0 AND b.points > 0
                  ORDER BY a.year ASC, a.week ASC`,
-                [nameA, nameB]
+                [ownerA, ownerB]
         );
 
         let winsA = 0;
@@ -318,12 +387,22 @@ export async function getHeadToHead(nameA, nameB) {
                 if (pa > pb) winsA++;
                 else if (pb > pa) winsB++;
                 else ties++;
-                return { year: r.year, week: r.week, isPlayoffs: r.is_playoffs, pointsA: pa, pointsB: pb };
+                return {
+                        year: r.year,
+                        week: r.week,
+                        isPlayoffs: r.is_playoffs,
+                        pointsA: pa,
+                        pointsB: pb,
+                        teamAName: r.team_a_name,
+                        teamBName: r.team_b_name
+                };
         });
 
         return {
-                teamA: nameA,
-                teamB: nameB,
+                teamA: ownerA,
+                teamB: ownerB,
+                teamAName: ownerDisplayName(ownerA),
+                teamBName: ownerDisplayName(ownerB),
                 meetings,
                 summary: {
                         games: meetings.length,
