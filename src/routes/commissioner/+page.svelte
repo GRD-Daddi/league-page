@@ -71,9 +71,30 @@
         let draftGrid = $state([]);
         let draftPrefilled = $state(false);
 
+        // Guard so we only seed the editable grid when the underlying source data
+        // genuinely changes. Plain (non-reactive) variable on purpose — it must not
+        // be a dependency of the effect below.
+        let lastSeedKey = null;
+
         $effect(() => {
                 const saved = c.draftPicks?.teams || [];
                 const rounds = c.draftRounds || 15;
+                const members = c.members || [];
+
+                // Re-seed only when the DB/prefill source actually changes. Every other
+                // form on this page submits with use:enhance, which runs invalidateAll()
+                // and re-runs this effect. Without this guard, an unrelated save (e.g.
+                // marking a buy-in paid) would reset draftGrid and silently wipe the
+                // commissioner's in-progress draft-pick edits before they hit Save.
+                const seedKey = JSON.stringify({
+                        year: c.year,
+                        teams: saved.map((t) => [t.teamKey, t.picks]),
+                        rounds,
+                        members: members.map((m) => m.teamKey)
+                });
+                if (seedKey === lastSeedKey) return;
+                lastSeedKey = seedKey;
+
                 if (saved.length) {
                         draftGrid = saved.map((t) => ({
                                 teamKey: t.teamKey,
@@ -83,7 +104,7 @@
                         draftPrefilled = false;
                 } else {
                         let usedPrefill = false;
-                        draftGrid = (c.members || []).map((m) => {
+                        draftGrid = members.map((m) => {
                                 const pre = PREFILL[normalizeName(m.name)];
                                 if (pre) usedPrefill = true;
                                 const picks = Array.from({ length: rounds }, (_, i) =>
