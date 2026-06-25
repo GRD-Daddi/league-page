@@ -6,6 +6,15 @@
 
         let c = $derived(data.commissioner);
 
+        let activeTab = $state('pot');
+        const TABS = [
+            { id: 'pot', label: 'Pot & Payouts' },
+            { id: 'champion', label: 'Champion & Points' },
+            { id: 'members', label: 'Buy-ins' },
+            { id: 'draft', label: 'Draft Picks' },
+            { id: 'history', label: 'History' }
+        ];
+
         function money(n) {
                 return '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
         }
@@ -205,7 +214,14 @@
                         </div>
                 </div>
 
+                <nav class="tabnav">
+                    {#each TABS as t}
+                        <button type="button" class="tabbtn" class:active={activeTab === t.id} onclick={() => (activeTab = t.id)}>{t.label}</button>
+                    {/each}
+                </nav>
+
                 <div class="grid">
+                    {#if activeTab === 'pot'}
                         <!-- Settings -->
                         <section class="card">
                                 <h2>Buy-in &amp; Split</h2>
@@ -277,6 +293,8 @@
                                 </div>
                         </section>
 
+                    {/if}
+                    {#if activeTab === 'champion'}
                         <!-- Champion -->
                         <section class="card">
                                 <h2>Record Champion</h2>
@@ -327,6 +345,8 @@
                                 {/if}
                         </section>
 
+                    {/if}
+                    {#if activeTab === 'pot'}
                         <!-- Award pot -->
                         <section class="card award">
                                 <h2>Award the Pot</h2>
@@ -343,6 +363,8 @@
                                 </form>
                         </section>
 
+                    {/if}
+                    {#if activeTab === 'history'}
                         <!-- Backfill the archive -->
                         <section class="card backfill">
                                 <h2>Backfill League History</h2>
@@ -381,8 +403,10 @@
                                         <div class="archived-summary">Saved seasons: {c.archivedSeasons.map((a) => a.year).join(', ')}</div>
                                 {/if}
                         </section>
+                    {/if}
                 </div>
 
+                {#if activeTab === 'members'}
                 <!-- Member buy-ins -->
                 <section class="card full">
                         <h2>{c.year} Buy-ins</h2>
@@ -410,6 +434,8 @@
                         {/if}
                 </section>
 
+                {/if}
+                {#if activeTab === 'draft'}
                 <!-- Draft pick ownership editor -->
                 <section class="card full draftpicks">
                         <h2>{c.year} Draft Picks by Team</h2>
@@ -479,6 +505,7 @@
                                 </form>
                         {/if}
                 </section>
+                {/if}
         </div>
 </div>
 
@@ -487,6 +514,20 @@
         .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px 96px; }
 
         .page-head { margin-bottom: 32px; }
+
+        .tabnav {
+                display: flex; flex-wrap: wrap; gap: 4px;
+                margin-bottom: 28px; border-bottom: 1px solid #1f2937;
+        }
+        .tabbtn {
+                appearance: none; background: transparent; border: 0; cursor: pointer;
+                color: #9ca3af; font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em;
+                text-transform: uppercase; padding: 12px 16px;
+                border-bottom: 2px solid transparent; margin-bottom: -1px;
+                transition: color .15s, border-color .15s;
+        }
+        .tabbtn:hover { color: #fff; }
+        .tabbtn.active { color: #ccff00; border-bottom-color: #ccff00; }
         .eyebrow {
                 display: inline-flex; align-items: center; gap: 8px;
                 color: #ccff00; font-size: 11px; font-weight: 900; letter-spacing: 0.2em;
