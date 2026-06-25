@@ -99,7 +99,7 @@
                         </div>
                         <div class="sn-grid-2">
                                 {#each trophyRoom as s}
-                                        <div class="sn-card sn-card-pad season-card">
+                                        <a class="sn-card sn-card-pad season-card" href="/standings?year={s.year}">
                                                 <div class="season-head">
                                                         <span class="season-year">{s.year}</span>
                                                         <span class="sn-badge">{s.numTeams ? `${s.numTeams} teams` : ''}</span>
@@ -107,45 +107,31 @@
                                                 <div class="season-rows">
                                                         <div class="season-row champ-row">
                                                                 <span class="rank-tag lime">🏆 Champion</span>
-                                                                <span class="team-cell">
-                                                                        <span class="team-name">{s.champion || '—'}</span>
-                                                                        {#if s.championOwner}<span class="owner-name">{s.championOwner}</span>{/if}
-                                                                </span>
+                                                                <span class="team-name" title={s.championOwner ? `Owner: ${s.championOwner}` : ''}>{s.champion || '—'}</span>
                                                         </div>
                                                         <div class="season-row">
                                                                 <span class="rank-tag cyan">Runner-Up</span>
-                                                                <span class="team-cell">
-                                                                        <span class="team-name">{s.runnerUp || '—'}</span>
-                                                                        {#if s.runnerUpOwner}<span class="owner-name">{s.runnerUpOwner}</span>{/if}
-                                                                </span>
+                                                                <span class="team-name" title={s.runnerUpOwner ? `Owner: ${s.runnerUpOwner}` : ''}>{s.runnerUp || '—'}</span>
                                                         </div>
                                                         <div class="season-row">
                                                                 <span class="rank-tag purple">Third</span>
-                                                                <span class="team-cell">
-                                                                        <span class="team-name">{s.third || '—'}</span>
-                                                                        {#if s.thirdOwner}<span class="owner-name">{s.thirdOwner}</span>{/if}
-                                                                </span>
+                                                                <span class="team-name" title={s.thirdOwner ? `Owner: ${s.thirdOwner}` : ''}>{s.third || '—'}</span>
                                                         </div>
                                                         {#if s.pointsLeader}
                                                                 <div class="season-row sub-row">
                                                                         <span class="rank-tag muted">Scoring Title</span>
-                                                                        <span class="team-cell">
-                                                                                <span class="team-name">{s.pointsLeader} <span class="dim">({fmt(s.pointsLeaderPf)})</span></span>
-                                                                                {#if s.pointsLeaderOwner}<span class="owner-name">{s.pointsLeaderOwner}</span>{/if}
-                                                                        </span>
+                                                                        <span class="team-name" title={s.pointsLeaderOwner ? `Owner: ${s.pointsLeaderOwner}` : ''}>{s.pointsLeader} <span class="dim">({fmt(s.pointsLeaderPf)})</span></span>
                                                                 </div>
                                                         {/if}
                                                         {#if s.woodenSpoon}
                                                                 <div class="season-row sub-row">
                                                                         <span class="rank-tag muted">Toilet Bowl</span>
-                                                                        <span class="team-cell">
-                                                                                <span class="team-name">{s.woodenSpoon}</span>
-                                                                                {#if s.woodenSpoonOwner}<span class="owner-name">{s.woodenSpoonOwner}</span>{/if}
-                                                                        </span>
+                                                                        <span class="team-name" title={s.woodenSpoonOwner ? `Owner: ${s.woodenSpoonOwner}` : ''}>{s.woodenSpoon}</span>
                                                                 </div>
                                                         {/if}
                                                 </div>
-                                        </div>
+                                                <span class="season-cta">View {s.year} season →</span>
+                                        </a>
                                 {/each}
                         </div>
                 {/if}
@@ -232,7 +218,30 @@
                 margin-top: 6px;
                 line-height: 1.5;
         }
-        .season-card { display: flex; flex-direction: column; gap: 14px; }
+        .season-card {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                text-decoration: none;
+                color: inherit;
+                transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+        }
+        .season-card:hover {
+                transform: translateY(-3px);
+                border-color: rgba(204, 255, 0, 0.5);
+                box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        }
+        .season-card:hover .season-cta { color: var(--sn-lime); }
+        .season-cta {
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--sn-text-faint);
+                text-align: right;
+                margin-top: 2px;
+                transition: color 0.12s ease;
+        }
         .season-head {
                 display: flex;
                 align-items: center;
@@ -266,24 +275,12 @@
         .rank-tag.cyan { color: var(--sn-cyan); }
         .rank-tag.purple { color: #b388ff; }
         .rank-tag.muted { color: var(--sn-text-faint); }
-        .team-cell {
-                display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-                gap: 2px;
-        }
         .team-name {
                 font-weight: 700;
                 color: #fff;
                 text-align: right;
         }
         .team-name .dim { color: var(--sn-text-mute); font-weight: 600; font-family: monospace; }
-        .owner-name {
-                font-size: 11px;
-                font-weight: 600;
-                color: var(--sn-text-mute);
-                text-align: right;
-        }
         .podium-owner {
                 font-size: 12px;
                 font-weight: 600;
