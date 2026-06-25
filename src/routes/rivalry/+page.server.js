@@ -5,8 +5,14 @@ export async function load({ url, locals }) {
 	requireAuth(locals, url);
 
 	const teamNames = await getArchiveTeamNames();
-	const teamA = url.searchParams.get('team_a') || teamNames[0] || null;
-	const teamB = url.searchParams.get('team_b') || teamNames[1] || null;
+
+	// Default the first team to the logged-in user's own team when it appears in
+	// the archive (team identity is by name); otherwise fall back to the first.
+	const myTeam = locals.session?.managerInfo?.metadata?.team_name || null;
+	const defaultA = myTeam && teamNames.includes(myTeam) ? myTeam : teamNames[0] || null;
+
+	const teamA = url.searchParams.get('team_a') || defaultA;
+	const teamB = url.searchParams.get('team_b') || teamNames.find((n) => n !== teamA) || null;
 
 	const h2h = teamA && teamB && teamA !== teamB ? await getHeadToHead(teamA, teamB) : null;
 
