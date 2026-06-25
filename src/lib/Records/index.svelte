@@ -1,5 +1,4 @@
 <script>
-    import Button, { Group, Label } from '@smui/button';
     import { getLeagueRecords, getLeagueTransactions } from '$lib/utils/helper';
     import AllTimeRecords from './AllTimeRecords.svelte';
     import PerSeasonRecords from './PerSeasonRecords.svelte';
@@ -80,6 +79,8 @@
         margin: 2em 0 0;
     }
 
+    .sn-btn-group { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+
     /* Start button resizing */
 
     @media (max-width: 540px) {
@@ -108,23 +109,23 @@
 <div class="rankingsWrapper">
 
     <div class="buttonHolder">
-        <Group variant="outlined">
-            <Button class="selectionButtons" onclick={() => key = "regularSeasonData"} variant="{key == "regularSeasonData" ? "raised" : "outlined"}">
-                <Label>Regular Season</Label>
-            </Button>
-            <Button class="selectionButtons" onclick={() => key = "playoffData"} variant="{key == "playoffData" ? "raised" : "outlined"}">
-                <Label>Playoffs</Label>
-            </Button>
-        </Group>
+        <div class="sn-btn-group">
+            <button class="sn-btn ghost selectionButtons" class:active={key == "regularSeasonData"} onclick={() => key = "regularSeasonData"}>
+                <span>Regular Season</span>
+            </button>
+            <button class="sn-btn ghost selectionButtons" class:active={key == "playoffData"} onclick={() => key = "playoffData"}>
+                <span>Playoffs</span>
+            </button>
+        </div>
         <br />
-        <Group variant="outlined">
-            <Button class="selectionButtons" onclick={() => display = "allTime"} variant="{display == "allTime" ? "raised" : "outlined"}">
-                <Label>All-Time Records</Label>
-            </Button>
-            <Button class="selectionButtons" onclick={() => display = "season"} variant="{display == "season" ? "raised" : "outlined"}">
-                <Label>Season Records</Label>
-            </Button>
-        </Group>
+        <div class="sn-btn-group">
+            <button class="sn-btn ghost selectionButtons" class:active={display == "allTime"} onclick={() => display = "allTime"}>
+                <span>All-Time Records</span>
+            </button>
+            <button class="sn-btn ghost selectionButtons" class:active={display == "season"} onclick={() => display = "season"}>
+                <span>Season Records</span>
+            </button>
+        </div>
     </div>
 
     {#if display == "allTime"}

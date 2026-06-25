@@ -1,5 +1,4 @@
 <script>
-	import { Icon } from '@smui/tab';
     export let total, perPage, page, target, scroll = true;
 
     let pageLabels = [];
@@ -100,7 +99,7 @@
 {#if total > 0 && totPages > 1 }
     <div class="paginationBar">
         {#if page > 0}
-            <Icon class="material-icons button" onclick={() => changePage(page - 1)}>chevron_left</Icon>
+            <span class="material-icons button" onclick={() => changePage(page - 1)} role="button" tabindex="0">chevron_left</span>
         {:else}
             <span class="placeholder" />
         {/if}
@@ -116,7 +115,7 @@
             {/each}
         </div>
         {#if page < totPages - 1}
-            <Icon class="material-icons button" onclick={() => changePage(page + 1)}>chevron_right</Icon>
+            <span class="material-icons button" onclick={() => changePage(page + 1)} role="button" tabindex="0">chevron_right</span>
         {:else}
             <span class="placeholder" />
         {/if}

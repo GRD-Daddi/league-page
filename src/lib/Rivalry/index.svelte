@@ -1,15 +1,15 @@
 <script>
-	import Matchup from "$lib/Matchups/Matchup.svelte";
-	import TradeTransaction from "$lib/Transactions/TradeTransaction.svelte";
-	import { getLeagueRecords, getLeagueTransactions, getRivalryMatchups, loadPlayers, round } from "$lib/utils/helper";
-	import { getRosterIDFromManagerIDAndYear } from "$lib/utils/helperFunctions/universalFunctions";
-	import LinearProgress from '@smui/linear-progress';
-	import { onMount } from "svelte";
-	import ComparissonBar from "./ComparissonBar.svelte";
-	import ManagerSelectors from "./ManagerSelectors.svelte";
-	import RivalryControls from "./RivalryControls.svelte";
+        import Matchup from "$lib/Matchups/Matchup.svelte";
+        import TradeTransaction from "$lib/Transactions/TradeTransaction.svelte";
+        import { getLeagueRecords, getLeagueTransactions, getRivalryMatchups, loadPlayers, round } from "$lib/utils/helper";
+        import { getRosterIDFromManagerIDAndYear } from "$lib/utils/helperFunctions/universalFunctions";
+        import LinearProgress from '$lib/LinearProgress.svelte';
+        import { onMount } from "svelte";
+        import ComparissonBar from "./ComparissonBar.svelte";
+        import ManagerSelectors from "./ManagerSelectors.svelte";
+        import RivalryControls from "./RivalryControls.svelte";
 
-	export let leagueTeamManagers, playersInfo, transactionsInfo, recordsInfo, playerOne, playerTwo;
+        export let leagueTeamManagers, playersInfo, transactionsInfo, recordsInfo, playerOne, playerTwo;
 
     // refresh stale data
     onMount(async () => {
@@ -127,12 +127,12 @@
         max-width: 750px;
         margin: 2em auto;
     }
-	.loading {
-		display: block;
-		width: 85%;
-		max-width: 500px;
-		margin: 80px auto;
-	}
+        .loading {
+                display: block;
+                width: 85%;
+                max-width: 500px;
+                margin: 80px auto;
+        }
     .center {
         text-align: center;
     }

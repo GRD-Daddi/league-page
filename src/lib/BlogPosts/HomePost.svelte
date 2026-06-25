@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-	import LinearProgress from '@smui/linear-progress';
+        import LinearProgress from '$lib/LinearProgress.svelte';
     import Post from "./Post.svelte";
     import { getBlogPosts, getLeagueTeamManagers, waitForAll } from "$lib/utils/helper";
 
@@ -14,7 +14,7 @@
 
     onMount(async() => {
         const [{posts, fresh}, leagueTeamManagersData] = await waitForAll(getBlogPosts(null), getLeagueTeamManagers());
-		leagueTeamManagers = leagueTeamManagersData;
+                leagueTeamManagers = leagueTeamManagersData;
         for(const singlePost of posts) {
             if(singlePost.fields.featured) {
                 createdAt = singlePost.sys.createdAt;
@@ -25,7 +25,7 @@
         }
 
         if(!fresh) {
-		    const {posts} = await getBlogPosts(null, true);
+                    const {posts} = await getBlogPosts(null, true);
             for(const singlePost of posts) {
                 if(singlePost.fields.featured) {
                     createdAt = singlePost.sys.createdAt;

@@ -2,7 +2,7 @@
     import { goto } from "$app/navigation";
     import Pagination from "$lib/Pagination.svelte";
     import { getBlogPosts, leagueName, waitForAll } from "$lib/utils/helper";
-    import LinearProgress from "@smui/linear-progress";
+    import LinearProgress from "$lib/LinearProgress.svelte";
     import { onMount } from "svelte";
     import Post from "./Post.svelte";
     import { browser } from '$app/environment';
@@ -79,7 +79,7 @@
         }
     }
 
-	$: changePage(page);
+        $: changePage(page);
 </script>
 
 <style>
@@ -88,14 +88,14 @@
         text-align: center;
         margin-bottom: 0.2em;
     }
-	.loading {
-		display: block;
-		position: relative;
-		z-index: 1;
-		width: 85%;
-		max-width: 500px;
-		margin: 80px auto;
-	}
+        .loading {
+                display: block;
+                position: relative;
+                z-index: 1;
+                width: 85%;
+                max-width: 500px;
+                margin: 80px auto;
+        }
     .filter {
         display: inline-flex;
         color: #fff;

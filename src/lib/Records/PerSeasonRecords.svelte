@@ -1,7 +1,6 @@
 <script>
-    import Button, { Group, Label } from '@smui/button';
     import {round} from '$lib/utils/helper'
-  	import RecordsAndRankings from './RecordsAndRankings.svelte';
+        import RecordsAndRankings from './RecordsAndRankings.svelte';
 
     export let leagueRosterRecords, seasonWeekRecords, leagueTeamManagers, currentYear, lastYear, transactionTotals, key;
 
@@ -130,6 +129,8 @@
         margin: 0;
     }
 
+    .sn-btn-group { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+
     /* Start button resizing */
 
     @media (max-width: 540px) {
@@ -156,13 +157,13 @@
 </style>
 
 <div class="buttonHolder">
-    <Group variant="outlined">
+    <div class="sn-btn-group">
         {#each years as {year}, ix}
-            <Button class="selectionButtons" onclick={() => display = ix} variant="{display == ix ? "raised" : "outlined"}">
-                <Label>{year}</Label>
-            </Button>
+            <button class="sn-btn ghost selectionButtons" class:active={display == ix} onclick={() => display = ix}>
+                <span>{year}</span>
+            </button>
         {/each}
-    </Group>
+    </div>
 </div>
 
 <RecordsAndRankings

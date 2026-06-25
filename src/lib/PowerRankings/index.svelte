@@ -1,7 +1,7 @@
 <script>
     import {getNflState, getLeagueRosters, getLeagueTeamManagers, waitForAll, loadPlayers, getLeagueData} from '$lib/utils/helper';
     import PowerRankingsDisplay from './PowerRankingsDisplay.svelte';
-    import LinearProgress from '@smui/linear-progress';
+    import LinearProgress from '$lib/LinearProgress.svelte';
     
     const helperPromises = waitForAll(
         getNflState(),
@@ -33,8 +33,8 @@
         <PowerRankingsDisplay {nflState} {rostersData} {leagueTeamManagers} {leagueData} {playersInfo} />
     {/if}
 {:catch error}
-	<!-- promise was rejected -->
-	<p>Something went wrong: {error.message}</p>
+        <!-- promise was rejected -->
+        <p>Something went wrong: {error.message}</p>
 {/await}
 
 

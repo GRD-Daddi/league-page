@@ -1,6 +1,5 @@
 <script>
-    import Button, { Group, Label } from '@smui/button';
-	import Bar from './Bar.svelte';
+        import Bar from './Bar.svelte';
 
     export let graphs, leagueTeamManagers, curGraph = 0;
 
@@ -27,7 +26,7 @@
 
 <style>
     .chartWrapper {
-		background-color: var(--fff);
+                background-color: var(--fff);
         padding: 1em 0 0.5em;
         margin: 0 auto;
         max-width: 950px;
@@ -51,6 +50,12 @@
     .buttonHolderG {
         text-align: center;
         margin: 1em 0 2em;
+    }
+
+    .sn-btn-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     /* Start button resizing */
@@ -108,24 +113,24 @@
 
 {#if graphs.length > 1}
     <div class="buttonHolderG">
-        <Group variant="outlined">
+        <div class="sn-btn-group">
             {#each graphs as graph, ix}
                 {#if ix < 4}
-                    <Button class="selectionButtons" onclick={() => curGraph = ix} variant="{curGraph == ix ? "raised" : "outlined"}">
-                        <Label>{graph.short}</Label>
-                    </Button>
+                    <button class="sn-btn ghost selectionButtons" class:active={curGraph == ix} onclick={() => curGraph = ix}>
+                        <span>{graph.short}</span>
+                    </button>
                 {/if}
             {/each}
-        </Group>
+        </div>
         <br />
-        <Group variant="outlined">
+        <div class="sn-btn-group">
             {#each graphs as graph, ix}
                 {#if ix > 3}
-                    <Button class="selectionButtons" onclick={() => curGraph = ix} variant="{curGraph == ix ? "raised" : "outlined"}">
-                        <Label>{graph.short}</Label>
-                    </Button>
+                    <button class="sn-btn ghost selectionButtons" class:active={curGraph == ix} onclick={() => curGraph = ix}>
+                        <span>{graph.short}</span>
+                    </button>
                 {/if}
             {/each}
-        </Group>
+        </div>
     </div>
 {/if}

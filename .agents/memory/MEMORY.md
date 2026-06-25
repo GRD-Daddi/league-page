@@ -19,3 +19,4 @@
 - [Live matchups Yahoo bracket mismatch](live-matchups-brackets-yahoo-mismatch.md) — current-year /matchups uses legacy Sleeper MatchupsAndBrackets; loadBrackets (Yahoo) has no `champs` → crashed tab. Live playoff bracket UI is dead under Yahoo; only archived path has champ/consol split.
 - [Yahoo→Sleeper player id bridge](yahoo-sleeper-player-id-bridge.md) — Yahoo player_key "{game}.p.{id}" ≠ Sleeper-keyed players map; bridge via Sleeper `yahoo_id` (numeric after ".p."). Used for draft picks; never print raw key.
 - [Pot projection from uncollected buy-ins](pot-projection-uncollected-funds.md) — upcoming-season pot/pool projected from expected members (season_archive.num_teams), flagged Projected; real potTotal/getPotTotal stay collected-only.
+- [Design system](design-system.md) — SMUI fully removed; build UI with plain Svelte + stadium.css (.sn-* classes) + LinearProgress.svelte, never reintroduce @smui.

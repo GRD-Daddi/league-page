@@ -1,9 +1,6 @@
 <script>
     import { getAuthor, getAvatar, parseDate } from "$lib/utils/helper";
-    import Icon from "@smui/textfield/icon";
     import CreateComment from "./CreateComment.svelte";
-    import Dialog, { Title, Content, Actions } from '@smui/dialog';
-    import Button, {Label} from "@smui/button";
 
     const lang = "en-US";
 
@@ -94,38 +91,73 @@
         vertical-align: middle;
         padding: 0.3em;
     }
-	
-	.teamAvatar {
-		vertical-align: middle;
-		border-radius: 50%;
-		height: 30px;
-		margin-right: 5px;
-		border: 0.25px solid #777;
-	}
+        
+        .teamAvatar {
+                vertical-align: middle;
+                border-radius: 50%;
+                height: 30px;
+                margin-right: 5px;
+                border: 0.25px solid #777;
+        }
 
     .author {
         font-weight: 700;
     }
+
+    .sn-dialog-scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    .sn-dialog {
+        background: var(--sn-surface);
+        border: 1px solid var(--sn-border);
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 420px;
+        width: 90%;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+
+    .sn-dialog-title {
+        margin: 0 0 12px;
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: #fff;
+    }
+
+    .sn-dialog-content {
+        color: var(--sn-text-dim);
+        margin-bottom: 20px;
+    }
+
+    .sn-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
 </style>
 
-<Dialog
-  bind:open
-  aria-labelledby="simple-title"
-  aria-describedby="simple-content"
->
-  <!-- Title cannot contain leading whitespace due to mdc-typography-baseline-top() -->
-  <Title id="simple-title">Error</Title>
-  <Content id="simple-content">{errorMessage}</Content>
-  <Actions>
-    <Button>
-      <Label>Ok</Label>
-    </Button>
-  </Actions>
-</Dialog>
+{#if open}
+  <div class="sn-dialog-scrim" onclick={() => open = false} role="presentation">
+    <div class="sn-dialog" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
+      <h2 class="sn-dialog-title">Error</h2>
+      <div class="sn-dialog-content">{errorMessage}</div>
+      <div class="sn-dialog-actions">
+        <button class="sn-btn secondary" onclick={() => open = false}><span>Ok</span></button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <div class="comments">
     <div class="commentHeader">
-        <Icon class="material-icons commentIcon">comment</Icon> Comments ({total})
+        <span class="material-icons commentIcon">comment</span> Comments ({total})
     </div>
     {#each comments as comment}
         <div class="comment">

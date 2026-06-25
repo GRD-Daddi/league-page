@@ -1,6 +1,4 @@
 <script>
-    import Paper, { Title, Content } from '@smui/paper';
-
     export let article;
 </script>
 
@@ -113,16 +111,16 @@
 </style>
 
 
-<Paper class="article" elevation=3>
-    <Title class="article-title">
+<div class="sn-card sn-card-pad article">
+    <div class="article-title">
         <img class="icon" src="{article.icon}" alt="article thumbnial" />
         {#if article.link}
             <a href="{article.link}" target="_blank" class="title-link">{article.title}</a>
         {:else}
             {article.title}
         {/if}
-    </Title>
-    <Content>
+    </div>
+    <div>
         <div class="body">
             <div class="body-text">{@html article.article}</div>
         </div>
@@ -133,5 +131,5 @@
             </span>
         {/if}
         <span class="date">{article.date}</span>
-    </Content>
-</Paper>
+    </div>
+</div>

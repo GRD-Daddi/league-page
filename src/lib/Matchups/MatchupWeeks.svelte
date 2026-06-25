@@ -1,5 +1,4 @@
 <script>
-	import { Icon } from '@smui/tab';
     import Matchup from './Matchup.svelte'
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
@@ -107,13 +106,13 @@
 <div class="matchups">
     <div class="weekContainer">
         {#if displayWeek > 1}
-            <Icon class="material-icons changeWeek" onclick={() => changeWeek(displayWeek - 1)}>chevron_left</Icon>
+            <span class="material-icons changeWeek" onclick={() => changeWeek(displayWeek - 1)} role="button" tabindex="0">chevron_left</span>
         {:else}
             <span class="spacer" />
         {/if}
         <h3 class="weekText">{year} Week {displayWeek} Matchups</h3>
         {#if displayWeek < matchupWeeks.length}
-            <Icon class="material-icons changeWeek" onclick={() => changeWeek(displayWeek + 1)}>chevron_right</Icon>
+            <span class="material-icons changeWeek" onclick={() => changeWeek(displayWeek + 1)} role="button" tabindex="0">chevron_right</span>
         {:else}
             <span class="spacer" />
         {/if}

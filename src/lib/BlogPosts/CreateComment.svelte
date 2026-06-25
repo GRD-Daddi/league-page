@@ -1,11 +1,9 @@
 <script>
-    import Button, {Label} from "@smui/button";
-    import Textfield from "@smui/textfield";
-	import { createEventDispatcher } from 'svelte';
+        import { createEventDispatcher } from 'svelte';
 
     export let showWrite;
 
-	const dispatch = createEventDispatcher();
+        const dispatch = createEventDispatcher();
 
     const submit = () => {
         dispatch('createComment', {comment, author});
@@ -50,18 +48,12 @@
     </div>
 
     <div class="submitArea">
-        <Textfield class="shaped-outlined" variant="outlined"bind:value={author} label="Your Sleeper Username" />
-        <Button onclick={() => submit()} variant="unelevated">
-            <Label>Submit Comment</Label>
-        </Button>
-        <Button onclick={() => toggleShow()} color="secondary" variant="unelevated">
-            <Label>Cancel</Label>
-        </Button>
+        <input class="sn-input shaped-outlined" bind:value={author} placeholder="Your Sleeper Username" aria-label="Your Sleeper Username" />
+        <button class="sn-btn primary" onclick={() => submit()}><span>Submit Comment</span></button>
+        <button class="sn-btn secondary" onclick={() => toggleShow()}><span>Cancel</span></button>
     </div>
 {:else}
     <div class="submitArea">
-        <Button onclick={() => toggleShow()} variant="unelevated">
-            <Label>Leave a Comment</Label>
-        </Button>
+        <button class="sn-btn primary" onclick={() => toggleShow()}><span>Leave a Comment</span></button>
     </div>
 {/if}

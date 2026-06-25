@@ -1,9 +1,8 @@
 
 <script>
-        import LinearProgress from '@smui/linear-progress';
+        import LinearProgress from '$lib/LinearProgress.svelte';
         import MatchupWeeks from './MatchupWeeks.svelte';
         import Brackets from './Brackets.svelte';
-    import Button, { Group, Label } from '@smui/button';
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
     import { loadPlayers } from '$lib/utils/helper';
@@ -59,6 +58,13 @@
         flex-direction: column;
         align-items: center;
         margin: 3em 0;
+        gap: 12px;
+    }
+
+    .sn-btn-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 </style>
 
@@ -73,27 +79,27 @@
 {:else}
     {#if matchupWeeks.length}
         <div class="buttonHolder">
-            <Group variant="outlined">
+            <div class="sn-btn-group">
                 <!-- Regular Season -->
-                <Button class="selectionButtons" onclick={() => changeSelection('regular')} variant="{selection == 'regular' ? "raised" : "outlined"}">
-                    <Label>Regular Season</Label>
-                </Button>
+                <button class="sn-btn ghost selectionButtons" class:active={selection == 'regular'} onclick={() => changeSelection('regular')}>
+                    <span>Regular Season</span>
+                </button>
                 <!-- Championship Bracket -->
-                <Button class="selectionButtons" onclick={() => changeSelection('champions')} variant="{selection == 'champions' || selection == 'losers' ? "raised" : "outlined"}">
-                    <Label>Playoffs</Label>
-                </Button>
-            </Group>
+                <button class="sn-btn ghost selectionButtons" class:active={selection == 'champions' || selection == 'losers'} onclick={() => changeSelection('champions')}>
+                    <span>Playoffs</span>
+                </button>
+            </div>
             {#if selection == 'champions' || selection == 'losers'}
-                <Group variant="outlined">
+                <div class="sn-btn-group">
                     <!-- Championship Bracket -->
-                    <Button class="selectionButtons" onclick={() => changeSelection('champions')} variant="{selection == 'champions' ? "raised" : "outlined"}">
-                        <Label>Champions' Bracket</Label>
-                    </Button>
+                    <button class="sn-btn ghost selectionButtons" class:active={selection == 'champions'} onclick={() => changeSelection('champions')}>
+                        <span>Champions' Bracket</span>
+                    </button>
                     <!-- Losers Bracket -->
-                    <Button class="selectionButtons" onclick={() => changeSelection('losers')} variant="{selection == 'losers' ? "raised" : "outlined"}">
-                        <Label>Losers' Bracket</Label>
-                    </Button>
-                </Group>
+                    <button class="sn-btn ghost selectionButtons" class:active={selection == 'losers'} onclick={() => changeSelection('losers')}>
+                        <span>Losers' Bracket</span>
+                    </button>
+                </div>
             {/if}
         </div>
         {#if selection == 'regular'}

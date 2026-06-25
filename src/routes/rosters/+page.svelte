@@ -1,5 +1,5 @@
 <script>
-        import LinearProgress from '@smui/linear-progress';
+        import LinearProgress from '$lib/LinearProgress.svelte';
 
         export let data;
         const rostersInfo = data.rostersInfo;

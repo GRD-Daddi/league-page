@@ -1,7 +1,6 @@
 <script>
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
-    import Button, { Group, Label } from '@smui/button';
     import BracketsColumn from "./BracketsColumn.svelte";
     import Matchup from "./Matchup.svelte";
 
@@ -97,6 +96,13 @@
         flex-direction: column;
         align-items: center;
         margin: 3em 0;
+        gap: 12px;
+    }
+
+    .sn-btn-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 </style>
 
@@ -120,16 +126,16 @@
     {#if matchup}
         {#if matchup[0].starters[2] }
             <div class="buttonHolder">
-                <Group variant="outlined">
+                <div class="sn-btn-group">
                     <!-- Regular Season -->
-                    <Button class="selectionButtons" onclick={() => changeMatchupGame(1)} variant="{matchupWeek == 1 ? "raised" : "outlined"}">
-                        <Label>First Week</Label>
-                    </Button>
+                    <button class="sn-btn ghost selectionButtons" class:active={matchupWeek == 1} onclick={() => changeMatchupGame(1)}>
+                        <span>First Week</span>
+                    </button>
                     <!-- Championship Bracket -->
-                    <Button class="selectionButtons" onclick={() => changeMatchupGame(2)} variant="{matchupWeek == 2 ? "raised" : "outlined"}">
-                        <Label>Second Week</Label>
-                    </Button>
-                </Group>
+                    <button class="sn-btn ghost selectionButtons" class:active={matchupWeek == 2} onclick={() => changeMatchupGame(2)}>
+                        <span>Second Week</span>
+                    </button>
+                </div>
             </div>
         {/if}
         <Matchup ix={selected} active={selected} {matchup} {matchupWeek} {players} {displayWeek} expandOverride={true} {leagueTeamManagers} />

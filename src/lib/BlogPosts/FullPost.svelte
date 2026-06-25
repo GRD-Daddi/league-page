@@ -1,9 +1,9 @@
 <script>
-	import LinearProgress from '@smui/linear-progress';
+        import LinearProgress from '$lib/LinearProgress.svelte';
     import { generateParagraph, waitForAll } from "$lib/utils/helper";
     import { onMount } from "svelte";
     import Comments from "./Comments.svelte";
-	import AuthorAndDate from './AuthorAndDate.svelte';
+        import AuthorAndDate from './AuthorAndDate.svelte';
 
     export let leagueTeamManagersData, postsData, postID;
 
@@ -145,7 +145,7 @@
     :global(.body table) {
         margin: 1em 2em;
         min-width: 80%;
-	    border: 1px solid var(--ddd);
+            border: 1px solid var(--ddd);
         border-collapse: collapse;
     }
 
@@ -155,7 +155,7 @@
 
     :global(.body td) {
         padding: 0.5em 0;
-	    text-align:center;
+            text-align:center;
     }
 
     :global(.body th) {

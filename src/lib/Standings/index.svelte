@@ -1,8 +1,7 @@
 <script>
     import { leagueName, round } from '$lib/utils/helper';
-	import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
-  	import DataTable, { Head, Body, Row, Cell } from '@smui/data-table';
-	import LinearProgress from '@smui/linear-progress';
+        import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
+        import LinearProgress from '$lib/LinearProgress.svelte';
     import { onMount } from 'svelte';
     import Standing from './Standing.svelte';
 
@@ -92,21 +91,21 @@
 </div>
 {:else}
     <div class="standingsTable">
-        <DataTable table$aria-label="League Standings" >
-            <Head> <!-- Team name  -->
-                <Row>
-                    <Cell class="center">Team</Cell>
+        <table class="sn-table" aria-label="League Standings">
+            <thead> <!-- Team name  -->
+                <tr>
+                    <th class="center">Team</th>
                     {#each columnOrder as column}
-                        <Cell class="center wrappable">{column.name}</Cell>
+                        <th class="center wrappable">{column.name}</th>
                     {/each}
-                </Row>
-            </Head>
-            <Body>
-                <!-- 	Standing	 -->
+                </tr>
+            </thead>
+            <tbody>
+                <!--    Standing         -->
                 {#each standings as standing}
                     <Standing {columnOrder} {standing} {leagueTeamManagers} team={getTeamFromTeamManagers(leagueTeamManagers, standing.rosterID)} />
                 {/each}
-            </Body>
-        </DataTable>
+            </tbody>
+        </table>
     </div>
 {/if}

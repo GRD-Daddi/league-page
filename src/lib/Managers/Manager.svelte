@@ -1,14 +1,13 @@
 <script>
-    import Button, { Group, Label } from '@smui/button';
-	import LinearProgress from '@smui/linear-progress';
+        import LinearProgress from '$lib/LinearProgress.svelte';
     import {loadPlayers, getLeagueTransactions} from '$lib/utils/helper';
-	import Roster from '../Rosters/Roster.svelte';
-	import TransactionsPage from '../Transactions/TransactionsPage.svelte';
+        import Roster from '../Rosters/Roster.svelte';
+        import TransactionsPage from '../Transactions/TransactionsPage.svelte';
     import { goto } from '$app/navigation';
     import ManagerFantasyInfo from './ManagerFantasyInfo.svelte';
     import ManagerAwards from './ManagerAwards.svelte';
     import { onMount } from 'svelte';
-	import { getDatesActive, getRosterIDFromManagerID, getTeamNameFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
+        import { getDatesActive, getRosterIDFromManagerID, getTeamNameFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
 
     export let manager, managers, rostersData, leagueTeamManagers, rosterPositions, transactionsData, awards, records;
 
@@ -155,6 +154,12 @@
         text-align: center;
     }
 
+    .sn-btn-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
     .upper {
         margin-top: 0;
     }
@@ -191,7 +196,7 @@
         }
     }
 
-	@media (max-width: 450px) {
+        @media (max-width: 450px) {
 
         .basicInfo {
             height: 20px;
@@ -204,7 +209,7 @@
         .infoTeam {
             height: 30px;
         }
-	}
+        }
 
     @media (max-width: 370px) {
 
@@ -264,29 +269,29 @@
         </div>
 
         <div class="managerNav upper">
-            <Group variant="outlined">
+            <div class="sn-btn-group">
                 {#if manager == 0}
-                    <Button disabled class="selectionButtons" onclick={() => changeManager(parseInt(manager) - 1, true)} variant="outlined">
-                        <Label>Previous Manager</Label>
-                    </Button>
+                    <button disabled class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) - 1, true)}>
+                        <span>Previous Manager</span>
+                    </button>
                 {:else}
-                    <Button class="selectionButtons" onclick={() => changeManager(parseInt(manager) - 1, true)} variant="outlined">
-                        <Label>Previous Manager</Label>
-                    </Button>
+                    <button class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) - 1, true)}>
+                        <span>Previous Manager</span>
+                    </button>
                 {/if}
-                <Button class="selectionButtons" onclick={() => goto('/managers')} variant="outlined">
-                    <Label>All Managers</Label>
-                </Button>
+                <button class="sn-btn secondary selectionButtons" onclick={() => goto('/managers')}>
+                    <span>All Managers</span>
+                </button>
                 {#if manager == managers.length - 1}
-                    <Button disabled class="selectionButtons" onclick={() => changeManager(parseInt(manager) + 1, true)} variant="outlined">
-                        <Label>Next Manager</Label>
-                    </Button>
+                    <button disabled class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) + 1, true)}>
+                        <span>Next Manager</span>
+                    </button>
                 {:else}
-                    <Button class="selectionButtons" onclick={() => changeManager(parseInt(manager) + 1, true)} variant="outlined">
-                        <Label>Next Manager</Label>
-                    </Button>
+                    <button class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) + 1, true)}>
+                        <span>Next Manager</span>
+                    </button>
                 {/if}
-            </Group>
+            </div>
         </div>
 
         <p class="bio">{@html viewManager.bio}</p>
@@ -329,29 +334,29 @@
     </div>
 
     <div class="managerNav">
-        <Group variant="outlined">
+        <div class="sn-btn-group">
             {#if manager == 0}
-                <Button disabled class="selectionButtons" onclick={() => changeManager(parseInt(manager) - 1)} variant="outlined">
-                    <Label>Previous Manager</Label>
-                </Button>
+                <button disabled class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) - 1)}>
+                    <span>Previous Manager</span>
+                </button>
             {:else}
-                <Button class="selectionButtons" onclick={() => changeManager(parseInt(manager) - 1)} variant="outlined">
-                    <Label>Previous Manager</Label>
-                </Button>
+                <button class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) - 1)}>
+                    <span>Previous Manager</span>
+                </button>
             {/if}
-            <Button class="selectionButtons" onclick={() => goto('/managers')} variant="outlined">
-                <Label>All Managers</Label>
-            </Button>
+            <button class="sn-btn secondary selectionButtons" onclick={() => goto('/managers')}>
+                <span>All Managers</span>
+            </button>
             {#if manager == managers.length - 1}
-                <Button disabled class="selectionButtons" onclick={() => changeManager(parseInt(manager) + 1)} variant="outlined">
-                    <Label>Next Manager</Label>
-                </Button>
+                <button disabled class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) + 1)}>
+                    <span>Next Manager</span>
+                </button>
             {:else}
-                <Button class="selectionButtons" onclick={() => changeManager(parseInt(manager) + 1)} variant="outlined">
-                    <Label>Next Manager</Label>
-                </Button>
+                <button class="sn-btn secondary selectionButtons" onclick={() => changeManager(parseInt(manager) + 1)}>
+                    <span>Next Manager</span>
+                </button>
             {/if}
-        </Group>
+        </div>
     </div>
 
 </div>
