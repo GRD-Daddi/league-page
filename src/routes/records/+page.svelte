@@ -3,6 +3,14 @@
         $: records = data?.records ?? [];
         $: titleCounts = data?.titleCounts ?? [];
         $: careers = data?.careers ?? [];
+        $: podiums = data?.podiums ?? [];
+
+        const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
+        function seasonHref(year, teamName) {
+                const p = new URLSearchParams({ year: String(year) });
+                if (teamName) p.set('team', teamName);
+                return `/standings?${p.toString()}`;
+        }
 
         let currentOnly = false;
         $: hasCurrentFlag = careers.some((c) => c.isCurrent);
@@ -100,6 +108,35 @@
                                                         {#if t.teamNames && t.teamNames.length}
                                                                 <div class="title-teams">{[...new Set(t.teamNames)].join(' · ')}</div>
                                                         {/if}
+                                                </div>
+                                        {/each}
+                                </div>
+                        </section>
+                {/if}
+
+                {#if podiums.length}
+                        <section class="records-section">
+                                <div class="sn-section-header">
+                                        <h2 class="sn-section-title">SEASON PODIUMS</h2>
+                                </div>
+                                <div class="sn-grid-3">
+                                        {#each podiums as s}
+                                                <div class="sn-card sn-card-pad podium-card">
+                                                        <div class="podium-head">
+                                                                <span class="podium-year">{s.year}</span>
+                                                                {#if s.numTeams}<span class="sn-badge lime">{s.numTeams} teams</span>{/if}
+                                                        </div>
+                                                        <div class="podium-list">
+                                                                {#each s.podium as p}
+                                                                        <a class="podium-row" href={seasonHref(s.year, p.teamName)} data-sveltekit-preload-data="hover">
+                                                                                <span class="podium-medal">{MEDALS[p.rank] ?? `#${p.rank}`}</span>
+                                                                                <span class="podium-info">
+                                                                                        <span class="podium-name">{p.ownerName ?? p.teamName ?? '—'}</span>
+                                                                                        {#if p.teamName}<span class="podium-team">{p.teamName}</span>{/if}
+                                                                                </span>
+                                                                        </a>
+                                                                {/each}
+                                                        </div>
                                                 </div>
                                         {/each}
                                 </div>
@@ -220,6 +257,26 @@
         .title-name { font-weight: 800; color: #fff; margin-top: 6px; }
         .title-years { font-size: 12px; color: var(--sn-text-mute); margin-top: 4px; font-family: monospace; }
         .title-teams { font-size: 11px; color: var(--sn-text-faint); margin-top: 6px; }
+
+        .podium-card { display: flex; flex-direction: column; gap: 14px; }
+        .podium-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .podium-year { font-family: monospace; font-size: 1.6rem; font-weight: 900; color: #fff; line-height: 1; }
+        .podium-list { display: flex; flex-direction: column; gap: 2px; }
+        .podium-row {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 9px 8px;
+                border-radius: 8px;
+                text-decoration: none;
+                color: inherit;
+                transition: background 0.12s;
+        }
+        .podium-row:hover { background: var(--sn-surface-2); }
+        .podium-medal { font-size: 1.25rem; width: 26px; text-align: center; flex-shrink: 0; }
+        .podium-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .podium-name { font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .podium-team { font-size: 12px; color: var(--sn-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .standings-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
         .member-toggle {

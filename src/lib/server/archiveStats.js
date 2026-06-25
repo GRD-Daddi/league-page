@@ -251,6 +251,56 @@ export async function getChampionshipCounts() {
         }));
 }
 
+/**
+ * Per-season podium (1st / 2nd / 3rd) for every completed season, most recent
+ * first. Sourced from season_archive's champion/runner_up/third columns — these
+ * are the canonical FINAL playoff finishers and stay correct even when a season's
+ * team_season_archive.final_rank backfill is corrupted. Each finisher is mapped
+ * to its OWNER (manager nickname) via team_key so display stays owner-grouped,
+ * with the team name carried as sub-detail.
+ */
+export async function getSeasonPodiums() {
+        const { rows } = await query(
+                `SELECT year, num_teams,
+                        champion_name, champion_team_key,
+                        runner_up_name, runner_up_team_key,
+                        third_name, third_team_key
+                 FROM season_archive
+                 WHERE status = 'complete' AND champion_name IS NOT NULL
+                 ORDER BY year DESC`
+        );
+
+        const { rows: teamRows } = await query(
+                `SELECT year, team_key, manager_name
+                 FROM team_season_archive
+                 WHERE manager_name IS NOT NULL AND trim(manager_name) <> ''`
+        );
+        const ownerByKey = new Map();
+        for (const t of teamRows) ownerByKey.set(`${t.year}::${t.team_key}`, t.manager_name);
+
+        const spot = (year, rank, name, teamKey) => {
+                if (!name && !teamKey) return null;
+                const owner = teamKey ? ownerByKey.get(`${year}::${teamKey}`) : null;
+                return {
+                        rank,
+                        owner: owner || null,
+                        ownerName: owner ? ownerDisplayName(owner) : null,
+                        teamName: name || null,
+                        teamKey: teamKey || null
+                };
+        };
+
+        return rows.map((r) => ({
+                year: r.year,
+                numTeams: r.num_teams,
+                podium: [
+                        spot(r.year, 1, r.champion_name, r.champion_team_key),
+                        spot(r.year, 2, r.runner_up_name, r.runner_up_team_key),
+                        spot(r.year, 3, r.third_name, r.third_team_key)
+                ].filter(Boolean)
+        }));
+}
+
 const numRow = (r) =>
         r
                 ? {
