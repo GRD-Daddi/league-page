@@ -287,14 +287,33 @@ export async function getLastSeasonPodium(yahooClient = null, leagueKey = null) 
                 // (and "person to beat") survive even if Yahoo later goes dark. Best
                 // effort — a snapshot failure must never break the live podium.
                 if (Number.isFinite(year)) {
+                        // Never re-snapshot a season the authoritative backfill already
+                        // captured as complete. This podium is derived from the CURRENT
+                        // league's rosters (current-league team keys, no manager_name), so
+                        // writing it into a finalized past season re-stamps that season with
+                        // wrong-league team keys and null-owner rows AND flips
+                        // season_archive's champion back to the current-league key — silently
+                        // re-corrupting the finalized standings on every authenticated load.
+                        let alreadyArchived = false;
                         try {
-                                await snapshotPodium(year, podium, {
-                                        leagueKey,
-                                        leagueName: leagueData?.name || null,
-                                        numTeams: rosters.length || null
-                                });
+                                const { rows: ex } = await query(
+                                        `SELECT status FROM season_archive WHERE year = $1`,
+                                        [year]
+                                );
+                                alreadyArchived = ex?.[0]?.status === 'complete';
                         } catch (err) {
-                                console.error('[pot] podium snapshot failed:', err.message);
+                                console.error('[pot] podium archive-status check failed:', err.message);
+                        }
+                        if (!alreadyArchived) {
+                                try {
+                                        await snapshotPodium(year, podium, {
+                                                leagueKey,
+                                                leagueName: leagueData?.name || null,
+                                                numTeams: rosters.length || null
+                                        });
+                                } catch (err) {
+                                        console.error('[pot] podium snapshot failed:', err.message);
+                                }
                         }
                 }
 

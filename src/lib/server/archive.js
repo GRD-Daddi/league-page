@@ -43,6 +43,23 @@ export async function getArchivedSeasons() {
 export async function snapshotPodium(year, podium, meta = {}) {
         if (!Number.isFinite(year) || !Array.isArray(podium) || podium.length === 0) return;
 
+        // Defense-in-depth: never overwrite a finalized season with data from a
+        // DIFFERENT league key. The authoritative backfill writes each season under
+        // its real historical key; a caller passing the current league's key (e.g.
+        // the live "last season podium" derived from current rosters) must not
+        // re-stamp a completed past season's champion/standings. Mirrors captureSeason.
+        const incomingKey = meta.leagueKey || null;
+        if (incomingKey) {
+                const { rows: existing } = await query(
+                        `SELECT league_key, status FROM season_archive WHERE year = $1`,
+                        [year]
+                );
+                const prior = existing?.[0];
+                if (prior && prior.status === 'complete' && prior.league_key && prior.league_key !== incomingKey) {
+                        return;
+                }
+        }
+
         const byPlace = new Map(podium.map((p) => [p.place, p]));
         const first = byPlace.get(1) || null;
         const second = byPlace.get(2) || null;

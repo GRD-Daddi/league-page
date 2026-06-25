@@ -59,3 +59,21 @@ duplicate rows. Until then, re-running the backfill silently re-corrupts the sea
 **Ground-truth check for the 2025 champion (from real game scores in matchup_archive,
 key `461.l.744586`):** wk17 final t.6 lamar st.brown 158.94 beat t.4 Knuck 135 =>
 1=Ivan(t.6), 2=Jamieson(t.4); 3rd-place game t.1 BBL Daddi beat t.10 => 3=matthew(t.1).
+
+# UPDATE — root cause found & guarded (supersedes the "backfill" guess above)
+
+The recurring 3-junk-row re-corruption was NOT the commissioner backfill (that
+writes each season under its REAL historical league key, correctly). It was
+`getLastSeasonPodium` (runs on every authenticated homepage load): it derives last
+season's podium from the CURRENT league's rosters (current-league team keys, no
+manager_name) and called `snapshotPodium` unconditionally — re-stamping the finalized
+prior season with wrong-league-key rows and, via `COALESCE(EXCLUDED, existing)`,
+flipping `season_archive.champion_team_key` back to the current-league key.
+
+**Now fixed with two guards (durable rule):** a finalized season (`season_archive.status
+= 'complete'`) must never be re-written from current-league-derived data.
+(1) `getLastSeasonPodium` skips `snapshotPodium` when the year is already complete.
+(2) `snapshotPodium` itself returns early when the year is complete AND the stored
+league_key differs from the incoming meta.leagueKey (mirrors `captureSeason`).
+**Why it matters:** any new code that snapshots a past season from live rosters will
+silently corrupt finalized standings unless it respects this complete-season invariant.
