@@ -6,6 +6,9 @@
         $: owners = data?.owners ?? [];
         $: teamA = data?.teamA ?? null;
         $: teamB = data?.teamB ?? null;
+        $: myOwner = data?.myOwner ?? null;
+        $: myRivals = data?.myRivals ?? null;
+        $: rivalAwards = myRivals?.awards ?? [];
         $: h2h = data?.h2h ?? null;
         $: summary = h2h?.summary ?? null;
         $: meetings = (h2h?.meetings ?? []).slice().reverse();
@@ -40,6 +43,10 @@
         function onB(e) {
                 navigate(teamA, e.target.value);
         }
+
+        function openRival(opponentOwner) {
+                if (myOwner && opponentOwner) navigate(myOwner, opponentOwner);
+        }
 </script>
 
 <svelte:head>
@@ -67,6 +74,37 @@
                                 <p>Once at least two seasons of games are in the archive, you'll be able to pit teams against each other here.</p>
                         </div>
                 {:else}
+                        {#if rivalAwards.length}
+                                <div class="sn-section-header" style="margin-bottom:20px;">
+                                        <h2 class="sn-section-title">
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                                                {myRivals?.ownerName ? `${myRivals.ownerName}'s Rivals` : 'Your Rivals'}
+                                        </h2>
+                                        <p class="sn-section-sub">Your personal hall of heroes and villains across league history. Tap any card for the full series.</p>
+                                </div>
+
+                                <div class="rival-grid">
+                                        {#each rivalAwards as a}
+                                                <button type="button" class="sn-card sn-card-pad rival-card rival-{a.key}" on:click={() => openRival(a.owner)}>
+                                                        <div class="rival-emoji">{a.emoji}</div>
+                                                        <div class="rival-title">{a.title}</div>
+                                                        <div class="rival-tagline">{a.tagline}</div>
+                                                        <div class="rival-owner">{a.ownerName}</div>
+                                                        <div class="rival-stat">{a.stat}</div>
+                                                        <div class="rival-sub">{a.sub}</div>
+                                                </button>
+                                        {/each}
+                                </div>
+
+                                <div class="sn-section-header" style="margin-top:56px;margin-bottom:20px;">
+                                        <h2 class="sn-section-title">
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                                Settle The Score
+                                        </h2>
+                                        <p class="sn-section-sub">Pick any two managers to see every head-to-head meeting.</p>
+                                </div>
+                        {/if}
+
                         <div class="rivalry-selectors">
                                 <select class="sn-select" value={teamA} on:change={onA} aria-label="Select first manager">
                                         {#each owners as o}
@@ -181,6 +219,85 @@
                 flex-wrap: wrap;
         }
         .rivalry-selectors .sn-select { min-width: 220px; }
+
+        .sn-section-sub {
+                margin: 6px 0 0;
+                font-size: 0.9rem;
+                color: var(--sn-text-faint);
+                max-width: 640px;
+        }
+
+        .rival-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+        }
+
+        .rival-card {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                cursor: pointer;
+                border: 1px solid var(--sn-border);
+                background: var(--sn-surface-2);
+                transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+                font: inherit;
+                color: inherit;
+        }
+        .rival-card:hover {
+                transform: translateY(-3px);
+                border-color: rgba(204, 255, 0, 0.5);
+                box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        }
+        .rival-card:focus-visible {
+                outline: 2px solid var(--sn-lime);
+                outline-offset: 2px;
+        }
+
+        .rival-emoji { font-size: 2rem; line-height: 1; margin-bottom: 10px; }
+
+        .rival-title {
+                font-weight: 900;
+                font-style: italic;
+                text-transform: uppercase;
+                letter-spacing: 0.02em;
+                font-size: 1.05rem;
+                color: var(--sn-lime);
+        }
+        .rival-tagline {
+                font-size: 11px;
+                color: var(--sn-text-faint);
+                margin-top: 2px;
+                font-style: italic;
+        }
+        .rival-owner {
+                font-weight: 900;
+                font-style: italic;
+                text-transform: uppercase;
+                font-size: 1.25rem;
+                color: #fff;
+                margin-top: 14px;
+        }
+        .rival-stat {
+                font-family: monospace;
+                font-weight: 900;
+                font-size: 1.1rem;
+                color: var(--sn-cyan, #00f0ff);
+                margin-top: 6px;
+        }
+        .rival-sub {
+                font-size: 11px;
+                color: var(--sn-text-faint);
+                margin-top: 4px;
+        }
+
+        .rival-card.rival-nemesis .rival-title,
+        .rival-card.rival-kryptonite .rival-title { color: #ff5470; }
+        .rival-card.rival-nemesis .rival-stat,
+        .rival-card.rival-kryptonite .rival-stat,
+        .rival-card.rival-heartbreaker .rival-stat { color: #ff5470; }
 
         .h2h-team {
                 font-family: inherit;
