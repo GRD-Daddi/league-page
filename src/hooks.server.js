@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { readSessionId, clearSessionCookie } from '$lib/server/sessionCookie.js';
 import { getSession, updateSession, deleteSession } from '$lib/server/sessionStore.js';
-import { createAuthenticatedClient, getYahooClient } from '$lib/yahoo-adapter/yahooClient.js';
+import { createAuthenticatedClient } from '$lib/yahoo-adapter/yahooClient.js';
 import { leagueID as configuredLeagueID } from '$lib/utils/leagueInfo.js';
 
 function isTokenExpired(session) {
@@ -22,9 +22,17 @@ async function refreshSessionTokens(sessionId, session) {
         if (refreshLocks.has(sessionId)) return refreshLocks.get(sessionId);
 
         const attempt = (async () => {
-                const yf = getYahooClient();
-                if (!yf || !session.tokens?.refresh_token) return null;
-                const newTokens = await yf.refreshToken(session.tokens.refresh_token);
+                const refreshToken = session.tokens?.refresh_token;
+                if (!refreshToken) return null;
+                // The library's refreshToken(cb) is callback-style and reads the
+                // refresh token off the client instance, so use an isolated client
+                // (never the shared one) and promisify the callback. Passing the
+                // token directly here crashes the process: the lib calls cb(null,
+                // data) on what it thinks is a callback.
+                const yf = createAuthenticatedClient(null, refreshToken);
+                const newTokens = await new Promise((resolve, reject) => {
+                        yf.refreshToken((err, data) => (err ? reject(err) : resolve(data)));
+                });
                 if (!newTokens?.access_token) return null;
                 const updated = {
                         ...session,
