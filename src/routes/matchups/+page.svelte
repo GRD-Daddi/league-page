@@ -20,6 +20,10 @@
         }
         $: activeWeek = schedule.find((w) => w.week === selectedWeek) ?? null;
 
+        $: champGames = activeWeek?.isPlayoffs ? activeWeek.games.filter((g) => g.bracket === 'championship') : [];
+        $: consoGames = activeWeek?.isPlayoffs ? activeWeek.games.filter((g) => g.bracket === 'consolation') : [];
+        $: showBrackets = activeWeek?.isPlayoffs && (champGames.length > 0 || consoGames.length > 0);
+
         function selectYear(y) {
                 const params = new URLSearchParams($page.url.searchParams);
                 params.set('year', y);
@@ -101,28 +105,58 @@
                                         <h2>Week {activeWeek.week}</h2>
                                         {#if activeWeek.isPlayoffs}<span class="sn-badge lime">Playoffs</span>{/if}
                                 </div>
-                                <div class="games-grid">
-                                        {#each activeWeek.games as g}
-                                                <div
-                                                        class="game-card"
-                                                        class:highlight={queryMatchup != null && g.matchupId === queryMatchup}
-                                                        use:highlightAction={queryMatchup != null && g.matchupId === queryMatchup}
-                                                >
-                                                        {#each [g.home, g.away] as s, i}
-                                                                {#if s}
-                                                                        {#if i === 1}<div class="vs">VS</div>{/if}
-                                                                        <div class="team-row" class:winner={g.winner === s.rosterId}>
-                                                                                <div class="team-info">
-                                                                                        <div class="team-owner">{s.ownerName ?? 'Unknown'}</div>
-                                                                                        <div class="team-name">{s.teamName}</div>
-                                                                                </div>
-                                                                                <div class="team-pts">{fmtPts(s.points)}</div>
+
+                                {#snippet gameCard(g)}
+                                        <div
+                                                class="game-card"
+                                                class:highlight={queryMatchup != null && g.matchupId === queryMatchup}
+                                                use:highlightAction={queryMatchup != null && g.matchupId === queryMatchup}
+                                        >
+                                                {#each [g.home, g.away] as s, i}
+                                                        {#if s}
+                                                                {#if i === 1}<div class="vs">VS</div>{/if}
+                                                                <div class="team-row" class:winner={g.winner === s.rosterId}>
+                                                                        <div class="team-info">
+                                                                                <div class="team-owner">{s.ownerName ?? 'Unknown'}</div>
+                                                                                <div class="team-name">{s.teamName}</div>
                                                                         </div>
-                                                                {/if}
-                                                        {/each}
+                                                                        <div class="team-pts">{fmtPts(s.points)}</div>
+                                                                </div>
+                                                        {/if}
+                                                {/each}
+                                        </div>
+                                {/snippet}
+
+                                {#if showBrackets}
+                                        {#if champGames.length}
+                                                <div class="bracket-group championship">
+                                                        <div class="bracket-head">
+                                                                <span class="bracket-icon">🏆</span>
+                                                                <h3 class="bracket-title">Championship Bracket</h3>
+                                                                <span class="bracket-sub">Playing for the title</span>
+                                                        </div>
+                                                        <div class="games-grid">
+                                                                {#each champGames as g}{@render gameCard(g)}{/each}
+                                                        </div>
                                                 </div>
-                                        {/each}
-                                </div>
+                                        {/if}
+                                        {#if consoGames.length}
+                                                <div class="bracket-group consolation">
+                                                        <div class="bracket-head">
+                                                                <span class="bracket-icon">🎯</span>
+                                                                <h3 class="bracket-title">Consolation Bracket</h3>
+                                                                <span class="bracket-sub">Playing for pride &amp; final placement</span>
+                                                        </div>
+                                                        <div class="games-grid">
+                                                                {#each consoGames as g}{@render gameCard(g)}{/each}
+                                                        </div>
+                                                </div>
+                                        {/if}
+                                {:else}
+                                        <div class="games-grid">
+                                                {#each activeWeek.games as g}{@render gameCard(g)}{/each}
+                                        </div>
+                                {/if}
                         {/if}
                 {/if}
         </div>
@@ -218,6 +252,36 @@
                 color: #fff;
                 margin: 0;
         }
+
+        .bracket-group { margin-bottom: 32px; }
+        .bracket-head {
+                display: flex;
+                align-items: baseline;
+                gap: 12px;
+                margin-bottom: 14px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--sn-border);
+        }
+        .bracket-icon { font-size: 1.1rem; line-height: 1; }
+        .bracket-title {
+                font-size: 1.05rem;
+                font-weight: 900;
+                font-style: italic;
+                text-transform: uppercase;
+                letter-spacing: 0.02em;
+                margin: 0;
+                color: #fff;
+        }
+        .bracket-sub {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--sn-text-faint);
+                font-weight: 700;
+        }
+        .bracket-group.championship .bracket-head { border-bottom-color: var(--sn-lime); }
+        .bracket-group.championship .bracket-title { color: var(--sn-lime); }
+        .bracket-group.consolation .bracket-title { color: var(--sn-text-dim); }
 
         .games-grid {
                 display: grid;

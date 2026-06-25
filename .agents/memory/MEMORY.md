@@ -15,3 +15,4 @@
 - [Stale build vs logic bug](stale-build-vs-logic-bug.md) — "UI shows old data" with correct code: git-diff screenshot vs HEAD~N + check deployment build before debugging; republish needed for code, not data.
 - [Per-season history page archive views](history-page-archive-views.md) — past-year standings/matchups render from archive (skip Yahoo); records cards deep-link game→/matchups?year=&week=&matchup=, season→/standings?year=&team=.
 - [final_rank semantics & corrupted-season repair](archive-final-rank-vs-corruption.md) — final_rank=FINAL playoff placement (≠ reg-season leader); a botched season backfill (zeroed stats/bogus ranks/dup next-year-key rows) is repairable from matchup_archive + season_archive podium via psql, no code change.
+- [Playoff bracket derivation](playoff-bracket-derivation.md) — split playoff games into champ/consol via union-find over playoff matchups (each component=a bracket); champion component = lowest final_rank. No seed-cutoff exists.

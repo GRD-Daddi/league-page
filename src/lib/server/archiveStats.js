@@ -53,7 +53,8 @@ export async function getArchivedSchedule(year) {
         if (!Number.isFinite(year)) return [];
         const { rows } = await query(
                 `SELECT m.week, m.matchup_id, m.roster_id, m.team_key, m.team_name,
-                        m.points, m.is_playoffs, ts.manager_name AS owner
+                        m.points, m.is_playoffs, ts.manager_name AS owner,
+                        ts.final_rank, ts.playoff_seed
                  FROM matchup_archive m
                  LEFT JOIN team_season_archive ts ON ts.year = m.year AND ts.team_key = m.team_key
                  WHERE m.year = $1
@@ -67,7 +68,9 @@ export async function getArchivedSchedule(year) {
                 teamName: r.team_name,
                 owner: r.owner ?? null,
                 ownerName: r.owner ? ownerDisplayName(r.owner) : null,
-                points: r.points != null ? Number(r.points) : null
+                points: r.points != null ? Number(r.points) : null,
+                finalRank: r.final_rank ?? null,
+                playoffSeed: r.playoff_seed ?? null
         });
 
         const weekMap = new Map();
@@ -79,7 +82,7 @@ export async function getArchivedSchedule(year) {
                 wk.games.get(r.matchup_id).sides.push(side(r));
         }
 
-        return [...weekMap.values()].map((wk) => ({
+        const weeks = [...weekMap.values()].map((wk) => ({
                 week: wk.week,
                 isPlayoffs: wk.isPlayoffs,
                 games: [...wk.games.values()].map((g) => {
@@ -90,9 +93,93 @@ export async function getArchivedSchedule(year) {
                                 else if (b.points > a.points) winner = b.rosterId;
                                 else winner = 'tie';
                         }
-                        return { matchupId: g.matchupId, home: a ?? null, away: b ?? null, winner };
+                        return { matchupId: g.matchupId, home: a ?? null, away: b ?? null, winner, bracket: null };
                 })
         }));
+
+        assignPlayoffBrackets(weeks);
+        return weeks;
+}
+
+/**
+ * Split playoff games into championship vs consolation brackets. Teams only ever
+ * play within their own bracket, so each connected component of the playoff-game
+ * graph is a bracket. The component holding the champion (best final_rank) is the
+ * championship bracket; every other component is consolation. Mutates each playoff
+ * game in place, setting `bracket` ('championship' | 'consolation') and ordering
+ * games so the championship side (and its highest-stakes games) appears first.
+ */
+function assignPlayoffBrackets(weeks) {
+        const parent = new Map();
+        const add = (x) => { if (!parent.has(x)) parent.set(x, x); };
+        const find = (x) => {
+                while (parent.get(x) !== x) {
+                        parent.set(x, parent.get(parent.get(x)));
+                        x = parent.get(x);
+                }
+                return x;
+        };
+        const union = (a, b) => {
+                const ra = find(a);
+                const rb = find(b);
+                if (ra !== rb) parent.set(ra, rb);
+        };
+
+        let anyPlayoff = false;
+        const bestRank = new Map(); // rosterId -> best (lowest) final_rank seen
+        for (const wk of weeks) {
+                if (!wk.isPlayoffs) continue;
+                for (const g of wk.games) {
+                        for (const s of [g.home, g.away]) {
+                                if (!s) continue;
+                                add(s.rosterId);
+                                if (s.finalRank != null && (!bestRank.has(s.rosterId) || s.finalRank < bestRank.get(s.rosterId))) {
+                                        bestRank.set(s.rosterId, s.finalRank);
+                                }
+                        }
+                        if (g.home && g.away) { anyPlayoff = true; union(g.home.rosterId, g.away.rosterId); }
+                }
+        }
+        if (!anyPlayoff) return;
+
+        // Champion's component = the one holding the best (lowest) final_rank.
+        // Fallback when ranks are missing: the largest component is the championship.
+        const rankByRoot = new Map();
+        const sizeByRoot = new Map();
+        for (const roster of parent.keys()) {
+                const root = find(roster);
+                sizeByRoot.set(root, (sizeByRoot.get(root) ?? 0) + 1);
+                if (bestRank.has(roster)) {
+                        const r = bestRank.get(roster);
+                        if (!rankByRoot.has(root) || r < rankByRoot.get(root)) rankByRoot.set(root, r);
+                }
+        }
+        let champRoot = null;
+        if (rankByRoot.size) {
+                let best = Infinity;
+                for (const [root, r] of rankByRoot) if (r < best) { best = r; champRoot = root; }
+        } else {
+                let big = -1;
+                for (const [root, sz] of sizeByRoot) if (sz > big) { big = sz; champRoot = root; }
+        }
+
+        for (const wk of weeks) {
+                if (!wk.isPlayoffs) continue;
+                for (const g of wk.games) {
+                        const ref = g.home ?? g.away;
+                        const root = ref ? find(ref.rosterId) : null;
+                        g.bracket = root != null && root === champRoot ? 'championship' : 'consolation';
+                        const ranks = [g.home, g.away].filter(Boolean).map((s) => s.finalRank).filter((r) => r != null);
+                        g._sortRank = ranks.length ? Math.min(...ranks) : 999;
+                }
+                wk.games.sort((x, y) => {
+                        const bx = x.bracket === 'championship' ? 0 : 1;
+                        const by = y.bracket === 'championship' ? 0 : 1;
+                        if (bx !== by) return bx - by;
+                        return (x._sortRank ?? 999) - (y._sortRank ?? 999);
+                });
+                for (const g of wk.games) delete g._sortRank;
+        }
 }
 
 /**
