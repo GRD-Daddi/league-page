@@ -3,6 +3,8 @@
         $: trophyRoom = data?.trophyRoom ?? [];
         $: titleCounts = data?.titleCounts ?? [];
         $: latest = trophyRoom[0] ?? null;
+        $: maxTitles = titleCounts.reduce((m, t) => Math.max(m, t.titles), 0);
+        const uniqueTeams = (names) => [...new Set(names ?? [])];
 
         const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 </script>
@@ -79,14 +81,22 @@
                                 </div>
                                 <div class="sn-grid-3">
                                         {#each titleCounts as t}
-                                                <div class="sn-card sn-card-pad award-card">
-                                                        <div class="award-head">
-                                                                <span class="sn-badge lime">{t.titles}× CHAMP</span>
+                                                <div class="sn-card award-card" class:leader={t.titles === maxTitles && maxTitles > 1}>
+                                                        {#if t.titles === maxTitles && maxTitles > 1}
+                                                                <span class="leader-flag">👑 G.O.A.T.</span>
+                                                        {/if}
+                                                        <div class="award-trophy">
+                                                                <span class="award-trophy-icon">🏆</span>
+                                                                <span class="award-trophy-count">{t.titles}×</span>
                                                         </div>
-                                                        <div class="award-title">{t.ownerName}</div>
-                                                        <div class="award-meta">
-                                                                {#if t.teamNames?.length}{[...new Set(t.teamNames)].join(', ')}<br />{/if}
-                                                                Won in {t.years.join(', ')}
+                                                        <div class="award-body">
+                                                                <div class="award-name">{t.ownerName}</div>
+                                                                <div class="award-years">
+                                                                        {#each t.years as y}<span class="year-chip">{y}</span>{/each}
+                                                                </div>
+                                                                {#if uniqueTeams(t.teamNames).length}
+                                                                        <div class="award-teams">as {uniqueTeams(t.teamNames).join(' · ')}</div>
+                                                                {/if}
                                                         </div>
                                                 </div>
                                         {/each}
@@ -197,26 +207,87 @@
                 padding-top: 14px;
                 width: 100%;
         }
-        .award-card { display: flex; flex-direction: column; }
-        .award-head {
-                display: flex;
+        .award-card {
+                position: relative;
+                display: grid;
+                grid-template-columns: auto 1fr;
                 align-items: center;
-                justify-content: space-between;
-                margin-bottom: 16px;
+                gap: 16px;
+                padding: 18px;
+                overflow: hidden;
         }
-        .award-title {
+        .award-card.leader {
+                border-color: rgba(204, 255, 0, 0.45);
+                box-shadow: 0 0 30px rgba(204, 255, 0, 0.08);
+        }
+        .leader-flag {
+                position: absolute;
+                top: 10px;
+                right: 12px;
+                font-size: 9px;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--sn-lime);
+        }
+        .award-trophy {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                width: 60px;
+                height: 60px;
+                border-radius: 16px;
+                background: var(--sn-surface-3);
+                border: 1px solid var(--sn-border);
+                flex-shrink: 0;
+        }
+        .award-card.leader .award-trophy {
+                background: linear-gradient(135deg, rgba(204, 255, 0, 0.18), rgba(204, 255, 0, 0.03));
+                border-color: rgba(204, 255, 0, 0.4);
+        }
+        .award-trophy-icon { font-size: 1.5rem; line-height: 1; }
+        .award-trophy-count {
+                font-family: monospace;
+                font-weight: 900;
+                font-size: 0.8rem;
+                color: var(--sn-lime);
+                margin-top: 3px;
+        }
+        .award-body { min-width: 0; }
+        .award-name {
                 font-weight: 900;
                 font-style: italic;
                 text-transform: uppercase;
                 letter-spacing: -0.01em;
-                font-size: 1.05rem;
+                font-size: 1.15rem;
                 color: #fff;
         }
-        .award-meta {
-                font-size: 12px;
+        .award-years {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin-top: 8px;
+        }
+        .year-chip {
+                font-family: monospace;
+                font-size: 10px;
+                font-weight: 700;
                 color: var(--sn-text-mute);
-                margin-top: 6px;
-                line-height: 1.5;
+                background: var(--sn-surface-3);
+                border: 1px solid var(--sn-border);
+                border-radius: 999px;
+                padding: 2px 8px;
+        }
+        .award-card.leader .year-chip {
+                color: var(--sn-lime);
+                border-color: rgba(204, 255, 0, 0.3);
+        }
+        .award-teams {
+                font-size: 11px;
+                color: var(--sn-text-faint);
+                margin-top: 8px;
+                line-height: 1.4;
         }
         .season-card {
                 display: flex;
