@@ -337,6 +337,49 @@ export async function getSeasonPodiums() {
         }));
 }
 
+// Canonical top-3 finishers for a single completed season.
+// Sourced from season_archive (champion/runner_up/third) — never final_rank,
+// which can be corrupted in team_season_archive.
+export async function getSeasonPodium(year) {
+        const { rows } = await query(
+                `SELECT champion_name, champion_team_key,
+                        runner_up_name, runner_up_team_key,
+                        third_name, third_team_key
+                 FROM season_archive
+                 WHERE year = $1 AND status = 'complete' AND champion_name IS NOT NULL`,
+                [year]
+        );
+        if (!rows.length) return [];
+        const r = rows[0];
+
+        const { rows: teamRows } = await query(
+                `SELECT team_key, manager_name
+                 FROM team_season_archive
+                 WHERE year = $1 AND manager_name IS NOT NULL AND trim(manager_name) <> ''`,
+                [year]
+        );
+        const ownerByKey = new Map();
+        for (const t of teamRows) ownerByKey.set(t.team_key, t.manager_name);
+
+        const spot = (rank, name, teamKey) => {
+                if (!name && !teamKey) return null;
+                const owner = teamKey ? ownerByKey.get(teamKey) : null;
+                return {
+                        rank,
+                        owner: owner || null,
+                        ownerName: owner ? ownerDisplayName(owner) : null,
+                        teamName: name || null,
+                        teamKey: teamKey || null
+                };
+        };
+
+        return [
+                spot(1, r.champion_name, r.champion_team_key),
+                spot(2, r.runner_up_name, r.runner_up_team_key),
+                spot(3, r.third_name, r.third_team_key)
+        ].filter(Boolean);
+}
+
 const numRow = (r) =>
         r
                 ? {

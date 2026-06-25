@@ -9,7 +9,14 @@
         $: selectedYear = data?.selectedYear;
         $: isLive = data?.isLive;
         $: users = data?.leagueTeamManagersData ?? {};
-		$: highlightTeam = $page.url.searchParams.get('team');
+        $: podium = data?.podium ?? [];
+                $: highlightTeam = $page.url.searchParams.get('team');
+
+        const PLACES = {
+                1: { medal: '🥇', label: 'Champion' },
+                2: { medal: '🥈', label: 'Runner-Up' },
+                3: { medal: '🥉', label: 'Third Place' }
+        };
 
         function initials(name) {
                 return (name ?? '??')
@@ -82,10 +89,10 @@
                 params.set('year', y);
                 goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
         }
-	function scrollRow(node, isMatch) {
-		if (isMatch) setTimeout(() => node.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120);
-		return {};
-	}
+        function scrollRow(node, isMatch) {
+                if (isMatch) setTimeout(() => node.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120);
+                return {};
+        }
 </script>
 
 <div class="sn-page">
@@ -127,6 +134,21 @@
                                 </p>
                         </div>
                 {:else}
+                        {#if !isLive && podium.length}
+                                <div class="podium-grid">
+                                        {#each podium as p}
+                                                <div class="podium-card" class:champ={p.rank === 1}>
+                                                        <div class="podium-medal">{PLACES[p.rank]?.medal ?? ''}</div>
+                                                        <div class="podium-place">{PLACES[p.rank]?.label ?? `#${p.rank}`}</div>
+                                                        <div class="podium-team">{p.teamName}</div>
+                                                        {#if p.ownerName}
+                                                                <div class="podium-owner">{p.ownerName}</div>
+                                                        {/if}
+                                                </div>
+                                        {/each}
+                                </div>
+                        {/if}
+
                         <div class="sn-stat-grid" style="margin-bottom: 32px;">
                                 {#if topScorer}
                                         <div class="sn-stat">
@@ -135,9 +157,9 @@
                                                 <div class="sn-stat-meta">{topScorer.team}</div>
                                         </div>
                                 {/if}
-                                {#if bestRecord}
+                                {#if bestRecord && isLive}
                                         <div class="sn-stat">
-                                                <div class="sn-stat-label">{isLive ? 'Best Record' : 'Champion'}</div>
+                                                <div class="sn-stat-label">Best Record</div>
                                                 <div class="sn-stat-value lime">{bestRecord.w}-{bestRecord.l}{bestRecord.t ? `-${bestRecord.t}` : ''}</div>
                                                 <div class="sn-stat-meta">{bestRecord.team}</div>
                                         </div>
@@ -234,6 +256,53 @@
                 background: var(--sn-cyan);
                 box-shadow: 0 0 8px var(--sn-cyan);
         }
-	tr.row-highlight td { background: color-mix(in srgb, var(--sn-lime) 12%, transparent); }
-	tr.row-highlight td:first-child { box-shadow: inset 3px 0 0 var(--sn-lime); }
+        tr.row-highlight td { background: color-mix(in srgb, var(--sn-lime) 12%, transparent); }
+        tr.row-highlight td:first-child { box-shadow: inset 3px 0 0 var(--sn-lime); }
+
+        .podium-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+                margin-bottom: 24px;
+        }
+        .podium-card {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding: 24px 16px;
+                border-radius: 16px;
+                border: 1px solid var(--sn-border);
+                background: var(--sn-surface-2);
+        }
+        .podium-card.champ {
+                border-color: color-mix(in srgb, var(--sn-lime) 55%, transparent);
+                background: color-mix(in srgb, var(--sn-lime) 8%, var(--sn-surface-2));
+                box-shadow: 0 0 22px color-mix(in srgb, var(--sn-lime) 14%, transparent);
+        }
+        .podium-medal { font-size: 2rem; line-height: 1; }
+        .podium-place {
+                margin-top: 8px;
+                font-family: monospace;
+                font-weight: 700;
+                font-size: 0.72rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--sn-text-mute);
+        }
+        .podium-card.champ .podium-place { color: var(--sn-lime); }
+        .podium-team {
+                margin-top: 10px;
+                font-weight: 800;
+                font-size: 1.05rem;
+                color: #fff;
+        }
+        .podium-owner {
+                margin-top: 4px;
+                font-size: 0.85rem;
+                color: var(--sn-text-mute);
+        }
+        @media (max-width: 640px) {
+                .podium-grid { grid-template-columns: 1fr; }
+        }
 </style>

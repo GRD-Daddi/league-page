@@ -1,6 +1,6 @@
 import { loadLeagueData, loadLeagueRosters, loadLeagueUsers } from '$lib/server/dataLoaders.js';
 import { captureSeason, getArchivedStandings } from '$lib/server/archive.js';
-import { getArchiveYears } from '$lib/server/archiveStats.js';
+import { getArchiveYears, getSeasonPodium } from '$lib/server/archiveStats.js';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { requireAuth } from '$lib/server/authGuard.js';
 import { ownerDisplayName } from '$lib/utils/ownerNames.js';
@@ -21,7 +21,10 @@ export async function load({ url, locals }) {
 
         // Past season: serve the durable archive, no Yahoo call needed.
         if (!isLive) {
-                const rows = await getArchivedStandings(selectedYear);
+                const [rows, podium] = await waitForAll(
+                        getArchivedStandings(selectedYear),
+                        getSeasonPodium(selectedYear)
+                );
                 const archivedStandings = rows.map((r, i) => ({
                         rank: r.final_rank ?? i + 1,
                         team: r.team_name ?? 'Unknown Team',
@@ -34,7 +37,7 @@ export async function load({ url, locals }) {
                         pa: r.points_against != null ? Number(r.points_against) : 0,
                         seed: r.playoff_seed ?? null
                 }));
-                return { years: yearOptions, selectedYear, isLive, archivedStandings, standingsData: null, leagueTeamManagersData: {} };
+                return { years: yearOptions, selectedYear, isLive, archivedStandings, podium, standingsData: null, leagueTeamManagersData: {} };
         }
 
         // Current season: live Yahoo standings (and a best-effort archive snapshot).
