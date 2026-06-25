@@ -77,3 +77,8 @@ flipping `season_archive.champion_team_key` back to the current-league key.
 league_key differs from the incoming meta.leagueKey (mirrors `captureSeason`).
 **Why it matters:** any new code that snapshots a past season from live rosters will
 silently corrupt finalized standings unless it respects this complete-season invariant.
+
+## Champion/title tallies must use canonical champion_team_key, not final_rank
+**Rule:** every championship/title aggregation must derive the winner from season_archive (status='complete', champion_team_key), joining team_season_archive on (year, team_key) only to resolve owner/team_name. Never count team_season_archive.final_rank=1 for who won.
+**Why:** final_rank lives in team_season_archive, which a botched per-season backfill can zero out / fill with sequential bogus ranks; season_archive.champion_team_key stays canonical (same reason podium/trophy-room already source from it). Trusting final_rank credits the wrong manager.
+**How to apply:** applies to Most Titles, manager career titles, and any future "who won" metric.

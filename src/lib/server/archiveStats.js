@@ -260,15 +260,23 @@ export async function getTrophyRoom() {
  * seasons only). The team name used for each title is carried as sub-detail.
  */
 export async function getChampionshipCounts() {
+        // Tally titles from season_archive's canonical champion_team_key (the real
+        // playoff winner), joined to team_season_archive only to resolve the owner +
+        // team name. team_season_archive.final_rank is NOT used here: that column can
+        // be left corrupted by a botched backfill (sequential ranks, zeroed stats),
+        // which previously credited the wrong manager with a championship.
         const { rows } = await query(
-                `SELECT manager_name AS owner,
+                `SELECT t.manager_name AS owner,
                         count(*)::int AS titles,
-                        array_agg(year ORDER BY year) AS years,
-                        array_agg(team_name ORDER BY year) AS team_names
-                 FROM team_season_archive
-                 WHERE final_rank = 1 AND manager_name IS NOT NULL AND trim(manager_name) <> '' AND year IN ${COMPLETED}
-                 GROUP BY manager_name
-                 ORDER BY max(year) DESC, titles DESC, owner ASC`
+                        array_agg(s.year ORDER BY s.year) AS years,
+                        array_agg(t.team_name ORDER BY s.year) AS team_names
+                 FROM season_archive s
+                 JOIN team_season_archive t
+                   ON t.year = s.year AND t.team_key = s.champion_team_key
+                 WHERE s.status = 'complete' AND s.champion_team_key IS NOT NULL
+                   AND t.manager_name IS NOT NULL AND trim(t.manager_name) <> ''
+                 GROUP BY t.manager_name
+                 ORDER BY max(s.year) DESC, titles DESC, owner ASC`
         );
         return rows.map((r) => ({
                 owner: r.owner,
@@ -466,7 +474,12 @@ export async function getManagerCareers() {
                         COALESCE(sum(ties), 0)::int AS ties,
                         COALESCE(sum(points_for), 0) AS points_for,
                         COALESCE(sum(points_against), 0) AS points_against,
-                        count(*) FILTER (WHERE final_rank = 1)::int AS titles,
+                        count(*) FILTER (WHERE EXISTS (
+                                SELECT 1 FROM season_archive s
+                                WHERE s.year = team_season_archive.year
+                                  AND s.status = 'complete'
+                                  AND s.champion_team_key = team_season_archive.team_key
+                        ))::int AS titles,
                         count(*) FILTER (WHERE final_rank <= 3)::int AS podiums,
                         min(final_rank) AS best_finish,
                         (array_agg(team_name ORDER BY year DESC))[1] AS latest_team,
