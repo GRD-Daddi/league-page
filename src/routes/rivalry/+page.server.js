@@ -1,27 +1,14 @@
-import { loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
 import { requireAuth } from '$lib/server/authGuard.js';
+import { getArchiveTeamNames, getHeadToHead } from '$lib/server/archiveStats.js';
 
-export async function load({ url, fetch, locals }) {
+export async function load({ url, locals }) {
 	requireAuth(locals, url);
 
-	const { yahooClient, leagueKey } = locals;
-	const playerOne = url?.searchParams?.get('player_one');
-	const playerTwo = url?.searchParams?.get('player_two');
+	const teamNames = await getArchiveTeamNames();
+	const teamA = url.searchParams.get('team_a') || teamNames[0] || null;
+	const teamB = url.searchParams.get('team_b') || teamNames[1] || null;
 
-	const users = await loadLeagueUsers(yahooClient, leagueKey);
+	const h2h = teamA && teamB && teamA !== teamB ? await getHeadToHead(teamA, teamB) : null;
 
-	return {
-		leagueTeamManagerData: toMap(users),
-		playersData: await loadPlayers(fetch),
-		transactionsData: null,
-		recordsData: null,
-		playerOne,
-		playerTwo,
-	};
-}
-
-function toMap(rawUsers) {
-	const out = {};
-	for (const user of rawUsers || []) out[user.user_id] = user;
-	return out;
+	return { teamNames, teamA, teamB, h2h };
 }

@@ -1,6 +1,7 @@
 import { query } from './db.js';
-import { loadLeagueData, loadLeagueRosters, loadAllSeasonMatchups } from './dataLoaders.js';
-import { getArchivedChampions, snapshotPodium, captureSeason } from './archive.js';
+import { loadLeagueData, loadLeagueRosters } from './dataLoaders.js';
+import { getArchivedChampions, snapshotPodium, snapshotSeasonHeader, snapshotStandings, snapshotMatchups } from './archive.js';
+import { enumerateLeagueSeasons, fetchLeagueMeta, fetchSeasonArchiveData } from './historyBackfill.js';
 import { previousLeagueKeys } from '$lib/utils/leagueInfo.js';
 
 /**
@@ -466,68 +467,88 @@ export async function getPotWinners() {
 }
 
 /**
- * Commissioner one-click backfill: walk Yahoo's renew chain (and any explicitly
- * configured previousLeagueKeys) and snapshot every reachable season's standings,
- * rosters and matchups into the durable archive. Best-effort per season — one
- * season failing must not abort the rest. Returns a per-season summary.
+ * Commissioner one-click backfill. Yahoo's `previous_league_id` renew links are
+ * null for this league, so instead of walking a (broken) chain we enumerate every
+ * season of this league directly from the logged-in user's NFL games, then pull
+ * each season's REAL standings and matchup scores straight from Yahoo's REST
+ * endpoints (via historyBackfill, which bypasses the offseason-broken library
+ * helpers that previously captured only names with zeroed stats). Champions are
+ * derived from each finished season's true rank-1 finish. Best-effort per season
+ * — one failing must not abort the rest. Returns a per-season summary.
  */
 export async function backfillArchive(yahooClient = null, leagueKey = null) {
-        if (!yahooClient || !leagueKey) {
+        if (!yahooClient) {
                 return { ok: false, error: 'Yahoo login required to backfill the archive.', seasons: [] };
         }
 
-        const visited = new Set();
-        const queue = [leagueKey, ...(previousLeagueKeys || [])].filter(Boolean);
+        // Resolve this league's name so we only capture seasons of THIS league.
+        let leagueName = null;
+        try {
+                if (leagueKey) leagueName = (await fetchLeagueMeta(yahooClient, leagueKey))?.name || null;
+        } catch (err) {
+                console.error('[pot] backfill: league name lookup failed:', err.message);
+        }
+
+        let seasonList = [];
+        try {
+                seasonList = await enumerateLeagueSeasons(yahooClient, leagueName);
+        } catch (err) {
+                return { ok: false, error: `Could not list seasons: ${err.message}`, seasons: [] };
+        }
+        if (!seasonList.length && leagueKey) {
+                seasonList = [{ year: getCurrentSeasonYear(), leagueKey, name: leagueName, numTeams: null }];
+        }
+
         const seasons = [];
-        let guard = 0;
-
-        while (queue.length && guard < 20) {
-                guard++;
-                const key = queue.shift();
-                if (!key || visited.has(key)) continue;
-                visited.add(key);
-
+        for (const s of seasonList) {
                 try {
-                        const [leagueData, rostersResult, matchupData] = await Promise.all([
-                                loadLeagueData(yahooClient, key),
-                                loadLeagueRosters(yahooClient, key),
-                                loadAllSeasonMatchups(yahooClient, key)
-                        ]);
-
-                        if (!leagueData) {
-                                seasons.push({ leagueKey: key, ok: false, error: 'No league data (auth or unavailable).' });
-                                continue;
-                        }
-
-                        const year = parseInt(leagueData.season, 10);
+                        const { meta, standings, sides } = await fetchSeasonArchiveData(yahooClient, s.leagueKey);
+                        const year = Number.isFinite(meta.season) ? meta.season : s.year;
                         if (!Number.isFinite(year)) {
-                                seasons.push({ leagueKey: key, ok: false, error: 'Could not resolve season year.' });
+                                seasons.push({ leagueKey: s.leagueKey, ok: false, error: 'Could not resolve season year.' });
                                 continue;
                         }
 
-                        await captureSeason(year, {
-                                leagueData,
-                                rostersResult,
-                                matchupWeeks: matchupData?.matchupWeeks || null,
-                                playoffsStart: matchupData?.playoffsStart || leagueData?.settings?.playoff_week_start || null
+                        await snapshotSeasonHeader(year, {
+                                leagueKey: s.leagueKey,
+                                leagueName: meta.name || s.name || null,
+                                status: meta.isFinished ? 'complete' : (meta.status || null),
+                                numTeams: meta.numTeams || standings.length || null
                         });
+                        await snapshotStandings(year, standings);
+                        if (sides.length) await snapshotMatchups(year, sides);
 
-                        const teamCount = rostersResult?.rosters ? Object.keys(rostersResult.rosters).length : 0;
-                        const weekCount = matchupData?.matchupWeeks?.length || 0;
+                        // Champion + podium from REAL final standings, but only for a finished
+                        // season — an in-progress season's ranks aren't final yet.
+                        if (meta.isFinished && standings.length) {
+                                const ranked = standings
+                                        .filter((t) => Number.isFinite(t.finalRank))
+                                        .sort((a, b) => a.finalRank - b.finalRank);
+                                const podium = ranked
+                                        .filter((t) => t.finalRank >= 1 && t.finalRank <= 3)
+                                        .map((t) => ({ place: t.finalRank, name: t.teamName, teamKey: t.teamKey, logo: t.logoUrl }));
+                                if (podium.length) {
+                                        await snapshotPodium(year, podium, {
+                                                leagueKey: s.leagueKey,
+                                                leagueName: meta.name || s.name || null,
+                                                numTeams: meta.numTeams || standings.length
+                                        });
+                                }
+                                const champ = ranked.find((t) => t.finalRank === 1);
+                                if (champ) await recordAutoChampion(year, champ.teamKey, champ.teamName);
+                        }
+
                         seasons.push({
-                                leagueKey: key,
+                                leagueKey: s.leagueKey,
                                 year,
                                 ok: true,
-                                teams: teamCount,
-                                weeks: weekCount,
-                                name: leagueData?.name || null
+                                teams: standings.length,
+                                weeks: new Set(sides.map((x) => x.week)).size,
+                                name: meta.name || s.name || null
                         });
-
-                        const prev = leagueData?.previous_league_id || null;
-                        if (prev && !visited.has(prev)) queue.push(prev);
                 } catch (err) {
-                        console.error('[pot] backfill failed for', key, err.message);
-                        seasons.push({ leagueKey: key, ok: false, error: err.message });
+                        console.error('[pot] backfill failed for', s.leagueKey, err.message);
+                        seasons.push({ leagueKey: s.leagueKey, ok: false, error: err.message });
                 }
         }
 

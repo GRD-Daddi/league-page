@@ -1,37 +1,12 @@
-import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
 import { requireAuth } from '$lib/server/authGuard.js';
-import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
-import { managers as managersObj } from '$lib/utils/leagueInfo';
+import { getManagerSeasons, getManagerCareers } from '$lib/server/archiveStats.js';
 
-export async function load({ url, locals, fetch }) {
+export async function load({ url, locals }) {
 	requireAuth(locals, url);
 
-	const { yahooClient, leagueKey } = locals;
-	const roster = url?.searchParams?.get('roster');
-	const team = url?.searchParams?.get('team');
+	const team = url?.searchParams?.get('team') ?? null;
+	const [seasons, careers] = await Promise.all([getManagerSeasons(team), getManagerCareers()]);
+	const career = careers.find((c) => c.teamName === team) ?? null;
 
-	const managersInfo = waitForAll(
-		loadLeagueRosters(yahooClient, leagueKey),
-		loadLeagueUsersAsMap(yahooClient, leagueKey),
-		loadLeagueData(yahooClient, leagueKey),
-		loadPlayers(fetch).catch(() => ({ players: {} })),
-	);
-
-	return {
-		roster,
-		team,
-		managers: managersObj,
-		managersInfo
-	};
-}
-
-async function loadLeagueUsersAsMap(yahooClient, leagueKey) {
-	const users = await loadLeagueUsers(yahooClient, leagueKey);
-	return toMap(users);
-}
-
-function toMap(rawUsers) {
-	const out = {};
-	for (const user of rawUsers || []) out[user.user_id] = user;
-	return out;
+	return { team, seasons, career };
 }

@@ -9,3 +9,5 @@
 - [Pot throne + history archive](pot-throne-archive.md) — "person to beat"=last season champ unless pot claimed; awardPot ledger year MUST equal reigning year or throne won't reset.
 - [Matchup archive playoff coverage](matchup-archive-playoff-coverage.md) — durable season matchup snapshots must use loadAllSeasonMatchups (all weeks incl playoffs), not loadMatchupData (regular season only).
 - [Draft pick ownership model](draft-pick-ownership.md) — upcoming-draft picks board is manual counts-per-round (commissioner-entered), not Yahoo; don't replace with Yahoo predicted picks.
+- [Yahoo league history archive](yahoo-history-archive.md) — recover real multi-season Yahoo history: enumerate by name + raw REST, not renew chains or offseason library helpers.
+- [Indentation conventions](indentation-conventions.md) — src/routes/** = TABS; src/lib/server/*.js = 8-space (no tabs). Match the sibling or get noisy diffs.

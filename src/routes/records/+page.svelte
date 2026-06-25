@@ -1,23 +1,17 @@
 <script>
 	export let data;
-	const { leagueTeamManagersData } = data;
+	$: records = data?.records ?? [];
+	$: titleCounts = data?.titleCounts ?? [];
+	$: careers = data?.careers ?? [];
 
-	const teamCount = leagueTeamManagersData ? Object.keys(leagueTeamManagersData).length : 0;
-
-	const allTimeRecords = [
-		{ label: 'Most Points (Game)', meta: 'Single-game scoring high' },
-		{ label: 'Biggest Blowout', meta: 'Largest margin of victory' },
-		{ label: 'Longest Win Streak', meta: 'Consecutive wins' },
-		{ label: 'Highest Scoring Season', meta: 'Total points in a year' }
-	];
-
-	const seasonRecords = [
-		{ label: 'Most Wins', meta: 'Best regular-season record' },
-		{ label: 'Most Points For', meta: 'Top scorer of the season' },
-		{ label: 'Most Points Against', meta: 'Toughest schedule' },
-		{ label: 'Highest Single Week', meta: 'Best weekly performance' }
-	];
+	const fmt = (n, d = 2) =>
+		n == null ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+	const pct = (n) => (n == null ? '—' : `${(n * 100).toFixed(1)}%`);
 </script>
+
+<svelte:head>
+	<title>League Records | Minnesota Slopes</title>
+</svelte:head>
 
 <div class="sn-page">
 	<div class="sn-pagehead">
@@ -25,7 +19,7 @@
 			<span class="sn-eyebrow">League Info</span>
 			<h1 class="sn-pagetitle">LEAGUE <span class="accent">RECORDS</span></h1>
 			<p class="sn-pagesub">
-				The record books. Every milestone and benchmark, tracked across every season of the league.
+				The record books. Every milestone and benchmark, tracked across every completed season of the league.
 			</p>
 		</div>
 	</div>
@@ -35,74 +29,94 @@
 			<div class="sn-section-header">
 				<h2 class="sn-section-title">ALL-TIME RECORDS</h2>
 			</div>
-			<div class="sn-grid-2">
-				{#each allTimeRecords as record}
-					<div class="sn-card sn-card-pad record-card">
-						<div class="record-head">
-							<span class="record-label">{record.label}</span>
-							<span class="sn-badge">Locked</span>
+			{#if records.length}
+				<div class="sn-grid-2">
+					{#each records as r}
+						<div class="sn-card sn-card-pad record-card">
+							<div class="record-head">
+								<span class="record-label">{r.label}</span>
+								<span class="sn-badge lime">{r.year}{r.week ? ` · Wk ${r.week}` : ''}</span>
+							</div>
+							<div class="record-body">
+								<div class="record-value">{fmt(r.value)}</div>
+								<div class="record-holder">{r.teamName}</div>
+								{#if r.detail}<div class="record-detail">{r.detail}</div>{/if}
+							</div>
 						</div>
-						<div class="sn-empty record-empty">
-							<h3>—</h3>
-							<p>{record.meta}. Will populate once the season is underway.</p>
-						</div>
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="sn-empty"><h3>—</h3><p>Records will populate once a season is complete.</p></div>
+			{/if}
 		</section>
 
-		<section class="records-section">
-			<div class="sn-section-header">
-				<h2 class="sn-section-title">SINGLE-SEASON RECORDS</h2>
-			</div>
-			<div class="sn-grid-2">
-				{#each seasonRecords as record}
-					<div class="sn-card sn-card-pad record-card">
-						<div class="record-head">
-							<span class="record-label">{record.label}</span>
-							<span class="sn-badge">Locked</span>
+		{#if titleCounts.length}
+			<section class="records-section">
+				<div class="sn-section-header">
+					<h2 class="sn-section-title">CHAMPIONSHIPS</h2>
+				</div>
+				<div class="sn-grid-3">
+					{#each titleCounts as t}
+						<div class="sn-card sn-card-pad title-card">
+							<div class="title-count">{t.titles}</div>
+							<div class="title-name">{t.teamName}</div>
+							<div class="title-years">{t.years.join(' · ')}</div>
 						</div>
-						<div class="sn-empty record-empty">
-							<h3>—</h3>
-							<p>{record.meta}. Will populate once the season is underway.</p>
-						</div>
-					</div>
-				{/each}
-			</div>
-		</section>
+					{/each}
+				</div>
+			</section>
+		{/if}
 
-		<div class="sn-empty footer-note">
-			<h3>Records Will Populate Once The Season Is Underway</h3>
-			<p>
-				{#if teamCount}
-					{teamCount} teams are locked in and ready. Once games are played, every league record will
-					be tracked and ranked right here.
-				{:else}
-					Once games are played, every league record will be tracked and ranked right here.
-				{/if}
-			</p>
-		</div>
+		{#if careers.length}
+			<section class="records-section">
+				<div class="sn-section-header">
+					<h2 class="sn-section-title">ALL-TIME STANDINGS</h2>
+				</div>
+				<div class="sn-card career-table-wrap">
+					<table class="career-table">
+						<thead>
+							<tr>
+								<th class="left">Team</th>
+								<th>Seasons</th>
+								<th>W-L-T</th>
+								<th>Win %</th>
+								<th>PF</th>
+								<th>Titles</th>
+								<th>Best</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each careers as c, i}
+								<tr>
+									<td class="left">
+										<span class="rank-num">{i + 1}</span>
+										<span class="c-name">{c.teamName}</span>
+									</td>
+									<td>{c.seasons}</td>
+									<td class="mono">{c.wins}-{c.losses}{c.ties ? `-${c.ties}` : ''}</td>
+									<td class="mono">{pct(c.winPct)}</td>
+									<td class="mono">{fmt(c.pointsFor, 0)}</td>
+									<td>{c.titles || '—'}</td>
+									<td>{c.bestFinish ?? '—'}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		{/if}
 	</div>
 </div>
 
 <style>
-	.records-section {
-		margin-bottom: 48px;
-	}
-
-	.record-card {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-	}
-
+	.records-section { margin-bottom: 48px; }
+	.record-card { display: flex; flex-direction: column; gap: 16px; }
 	.record-head {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
 	}
-
 	.record-label {
 		font-size: 1.1rem;
 		font-weight: 900;
@@ -111,17 +125,52 @@
 		letter-spacing: -0.01em;
 		color: #fff;
 	}
-
-	.record-empty {
-		padding: 28px 16px;
+	.record-body { display: flex; flex-direction: column; gap: 4px; }
+	.record-value {
+		font-family: monospace;
+		font-size: 2.2rem;
+		font-weight: 900;
+		color: var(--sn-lime);
+		line-height: 1;
 	}
+	.record-holder { font-weight: 800; color: #fff; }
+	.record-detail { font-size: 12px; color: var(--sn-text-mute); }
 
-	.record-empty h3 {
-		font-size: 2rem;
+	.title-card { text-align: center; }
+	.title-count {
+		font-family: monospace;
+		font-size: 2.6rem;
+		font-weight: 900;
+		color: var(--sn-lime);
+		line-height: 1;
+	}
+	.title-name { font-weight: 800; color: #fff; margin-top: 6px; }
+	.title-years { font-size: 12px; color: var(--sn-text-mute); margin-top: 4px; font-family: monospace; }
+
+	.career-table-wrap { overflow-x: auto; }
+	.career-table { width: 100%; border-collapse: collapse; }
+	.career-table th, .career-table td {
+		padding: 12px 14px;
+		text-align: center;
+		border-bottom: 1px solid var(--sn-border);
+		white-space: nowrap;
+	}
+	.career-table th {
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--sn-text-mute);
+		font-weight: 800;
+	}
+	.career-table td { color: var(--sn-text-dim); }
+	.career-table .left { text-align: left; }
+	.career-table .mono { font-family: monospace; }
+	.rank-num {
+		display: inline-block;
+		width: 22px;
+		font-family: monospace;
 		color: var(--sn-text-faint);
+		font-weight: 700;
 	}
-
-	.footer-note {
-		margin-top: 8px;
-	}
+	.c-name { font-weight: 700; color: #fff; }
 </style>
