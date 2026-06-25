@@ -1,15 +1,89 @@
-import { getYahooClient, withRetry } from './yahooClient.js';
+import { getYahooClient, withRetry, rawYahooGet } from './yahooClient.js';
+import { teamNumFromKey, collectionToArray } from './draftAdapter.js';
 
 export async function getYahooLeagueTransactions(leagueKey, week = null, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const transactions = await withRetry(() => yf.league.transactions(leagueKey));
-        
-        return convertTransactionsToSleeperFormat(transactions, week);
+
+        // The yahoo-fantasy library's transaction mapper keeps only `players` and
+        // silently drops the `picks` segment, so trades of draft picks would show up
+        // empty. Fetch + parse the raw trade picks ourselves and merge them back in,
+        // keyed by transaction. Failures here must never break the whole page.
+        let picksByTx = new Map();
+        try {
+                picksByTx = await getTradedPicksByTransaction(leagueKey, yf);
+        } catch (error) {
+                console.error('[Yahoo Adapter] Could not load traded picks for transactions:', error.message);
+        }
+
+        return convertTransactionsToSleeperFormat(transactions, week, picksByTx);
 }
 
-function convertTransactionsToSleeperFormat(transactions, filterWeek = null) {
+// Parse traded draft picks from the raw trades endpoint, grouped per transaction
+// key, in Sleeper's draft_picks shape. Yahoo does not stamp a draft season on a
+// traded pick, so we approximate it with the YEAR the trade happened (picks are
+// almost always dealt for an upcoming draft) — purely for display.
+async function getTradedPicksByTransaction(leagueKey, yf) {
+        const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/transactions;types=trade`;
+        const raw = await withRetry(() => rawYahooGet(url, yf));
+
+        const byTx = new Map();
+        const league = raw?.fantasy_content?.league;
+        const txContainer = Array.isArray(league)
+                ? league.find((seg) => seg && seg.transactions)?.transactions
+                : league?.transactions;
+        const txs = collectionToArray(txContainer);
+
+        for (const txWrap of txs) {
+                const txRaw = txWrap?.transaction;
+                const segments = Array.isArray(txRaw)
+                        ? txRaw
+                        : (txRaw && typeof txRaw === 'object' ? collectionToArray(txRaw) : []);
+                if (segments.length === 0) continue;
+
+                const meta = segments.find((seg) => seg && seg.transaction_key)
+                        || segments.find((seg) => seg && seg.type)
+                        || segments[0] || {};
+                if ((meta.type || '') !== 'trade') continue;
+                const status = meta.status || '';
+                if (status && status !== 'successful' && status !== 'complete') continue;
+                const txKey = meta.transaction_key;
+                if (!txKey) continue;
+
+                const year = meta.timestamp
+                        ? new Date(parseInt(meta.timestamp) * 1000).getFullYear()
+                        : null;
+
+                const content = segments.find((seg) => seg && seg.picks) || {};
+                const picks = collectionToArray(content.picks);
+
+                const out = [];
+                for (const pWrap of picks) {
+                        const pick = pWrap?.pick || pWrap;
+                        if (!pick) continue;
+                        const round = parseInt(pick.round || 0);
+                        const roster_id = teamNumFromKey(pick.original_team_key);
+                        const owner_id = teamNumFromKey(pick.destination_team_key);
+                        const previous_owner_id = teamNumFromKey(pick.source_team_key) ?? roster_id;
+                        if (!round || roster_id == null || owner_id == null) continue;
+                        out.push({
+                                season: year ? String(year) : null,
+                                round,
+                                roster_id,
+                                owner_id,
+                                previous_owner_id
+                        });
+                }
+
+                if (out.length) byTx.set(txKey, out);
+        }
+
+        return byTx;
+}
+
+function convertTransactionsToSleeperFormat(transactions, filterWeek = null, picksByTx = new Map()) {
         const transArray = transactions.league?.[0]?.transactions?.[0]?.transaction ||
                            transactions.transactions || [];
         
@@ -22,11 +96,11 @@ function convertTransactionsToSleeperFormat(transactions, filterWeek = null) {
                 })
                 .map(trans => {
                         const transData = Array.isArray(trans) && trans.length > 0 ? trans[0] : trans;
-                        return convertSingleTransaction(transData);
+                        return convertSingleTransaction(transData, picksByTx);
                 });
 }
 
-function convertSingleTransaction(trans) {
+function convertSingleTransaction(trans, picksByTx = new Map()) {
         try {
                 const type = trans.type || '';
                 const status = trans.status || 'complete';
@@ -36,7 +110,7 @@ function convertSingleTransaction(trans) {
         
         const adds = {};
         const drops = {};
-        const draftPicks = [];
+        const draftPicks = picksByTx.get(trans.transaction_key) || [];
         const waiverBudget = [];
         
         players.forEach(playerWrapper => {
@@ -86,16 +160,16 @@ function convertSingleTransaction(trans) {
         
         const consenterIds = [creatorRosterId].filter(id => id !== null);
         if (sleeperType === 'trade') {
-                Object.values(adds).forEach(rosterId => {
-                        if (rosterId && !consenterIds.includes(rosterId)) {
+                const addTeam = (rosterId) => {
+                        if (rosterId != null && !consenterIds.includes(rosterId)) {
                                 consenterIds.push(rosterId);
                         }
-                });
-                Object.values(drops).forEach(rosterId => {
-                        if (rosterId && !consenterIds.includes(rosterId)) {
-                                consenterIds.push(rosterId);
-                        }
-                });
+                };
+                Object.values(adds).forEach(addTeam);
+                Object.values(drops).forEach(addTeam);
+                // Pick-only trades have no player adds/drops — make sure the teams that
+                // swapped picks still count as participants.
+                draftPicks.forEach(p => { addTeam(p.owner_id); addTeam(p.previous_owner_id); });
         }
         
         return {
@@ -124,7 +198,11 @@ function convertSingleTransaction(trans) {
                 },
                 
                 leg: 1,
-                roster_ids: [...new Set([...Object.values(adds), ...Object.values(drops)])]
+                roster_ids: [...new Set([
+                        ...Object.values(adds),
+                        ...Object.values(drops),
+                        ...draftPicks.flatMap(p => [p.owner_id, p.previous_owner_id])
+                ].filter(id => id != null))]
                 };
         } catch (error) {
                 console.error('[Yahoo Adapter] Unexpected data structure in convertSingleTransaction:', error);

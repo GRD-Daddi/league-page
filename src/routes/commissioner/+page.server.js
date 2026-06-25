@@ -14,6 +14,7 @@ import {
 } from '$lib/server/pot.js';
 import { getArchivedSeasons } from '$lib/server/archive.js';
 import { getDraftPickOwnership, saveDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
+import { getYahooTradedPicks, teamNumFromKey } from '$lib/yahoo-adapter/index.js';
 
 function parseYear(value, fallback) {
         const n = parseInt(value, 10);
@@ -60,12 +61,54 @@ export async function load({ locals, url }) {
                 console.error('[commissioner] Error loading draft pick ownership:', err.message);
         }
 
+        // Auto-seed grid derived from Yahoo's actual traded picks. Each member starts
+        // with one pick per round; a traded pick moves a pick from its original team to
+        // its current owner. This is only a STARTING POINT for the editor when nothing
+        // has been saved yet — far more accurate than the screenshot prefill. The
+        // commissioner-saved DB values (draftPicks) always remain authoritative.
+        let yahooDraftPicks = [];
+        try {
+                const members = data.members || [];
+                if (members.length && locals.yahooClient && locals.leagueKey) {
+                        const numToTeamKey = new Map();
+                        const grid = new Map();
+                        for (const m of members) {
+                                const num = teamNumFromKey(m.teamKey);
+                                if (num == null) continue;
+                                numToTeamKey.set(num, m.teamKey);
+                                grid.set(m.teamKey, Array.from({ length: DRAFT_ROUNDS }, () => 1));
+                        }
+
+                        const tradedPicks = await getYahooTradedPicks(locals.leagueKey, locals.yahooClient);
+                        for (const pick of tradedPicks) {
+                                const { round, roster_id: original, owner_id: owner } = pick;
+                                if (!round || round > DRAFT_ROUNDS) continue;
+                                const origKey = numToTeamKey.get(original);
+                                const ownerKey = numToTeamKey.get(owner);
+                                if (origKey && grid.has(origKey)) {
+                                        grid.get(origKey)[round - 1] = Math.max(0, grid.get(origKey)[round - 1] - 1);
+                                }
+                                if (ownerKey && grid.has(ownerKey)) {
+                                        grid.get(ownerKey)[round - 1] += 1;
+                                }
+                        }
+
+                        yahooDraftPicks = members
+                                .filter((m) => grid.has(m.teamKey))
+                                .map((m) => ({ teamKey: m.teamKey, teamName: m.name, picks: grid.get(m.teamKey) }));
+                }
+        } catch (err) {
+                console.error('[commissioner] Error building Yahoo draft-pick seed:', err.message);
+                yahooDraftPicks = [];
+        }
+
         return {
                 commissioner: {
                         ...data,
                         leagueUsersAvailable: leagueUsers.length > 0,
                         archivedSeasons,
                         draftPicks,
+                        yahooDraftPicks,
                         draftRounds: DRAFT_ROUNDS
                 }
         };

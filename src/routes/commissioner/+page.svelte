@@ -70,6 +70,7 @@
         let roundList = $derived(Array.from({ length: draftRounds }, (_, i) => i + 1));
         let draftGrid = $state([]);
         let draftPrefilled = $state(false);
+        let draftFromYahoo = $state(false);
 
         // Guard so we only seed the editable grid when the underlying source data
         // genuinely changes. Plain (non-reactive) variable on purpose — it must not
@@ -80,6 +81,7 @@
                 const saved = c.draftPicks?.teams || [];
                 const rounds = c.draftRounds || 15;
                 const members = c.members || [];
+                const yahooSeed = c.yahooDraftPicks || [];
 
                 // Re-seed only when the DB/prefill source actually changes. Every other
                 // form on this page submits with use:enhance, which runs invalidateAll()
@@ -90,7 +92,8 @@
                         year: c.year,
                         teams: saved.map((t) => [t.teamKey, t.picks]),
                         rounds,
-                        members: members.map((m) => m.teamKey)
+                        members: members.map((m) => m.teamKey),
+                        yahoo: yahooSeed.map((t) => [t.teamKey, t.picks])
                 });
                 if (seedKey === lastSeedKey) return;
                 lastSeedKey = seedKey;
@@ -102,6 +105,16 @@
                                 picks: Array.from({ length: rounds }, (_, i) => Number(t.picks?.[i]) || 0)
                         }));
                         draftPrefilled = false;
+                        draftFromYahoo = false;
+                } else if (yahooSeed.length) {
+                        // No saved ownership yet — seed from Yahoo's real traded picks.
+                        draftGrid = yahooSeed.map((t) => ({
+                                teamKey: t.teamKey,
+                                teamName: t.teamName,
+                                picks: Array.from({ length: rounds }, (_, i) => Number(t.picks?.[i]) || 0)
+                        }));
+                        draftPrefilled = false;
+                        draftFromYahoo = true;
                 } else {
                         let usedPrefill = false;
                         draftGrid = members.map((m) => {
@@ -113,6 +126,7 @@
                                 return { teamKey: m.teamKey, teamName: m.name, picks };
                         });
                         draftPrefilled = usedPrefill;
+                        draftFromYahoo = false;
                 }
         });
 
@@ -322,9 +336,20 @@
                         <section class="card backfill">
                                 <h2>Backfill League History</h2>
                                 <p class="card-sub">Walks Yahoo's past-season chain and saves every prior season's standings, rosters and matchups into this site's own database — so the history survives even if Yahoo goes away. Safe to run anytime; it updates in place.</p>
-                                <form method="POST" action="?/backfillArchive" use:enhance>
-                                        <button class="btn" type="submit">Backfill all past seasons</button>
+                                <form method="POST" action="?/backfillArchive" use:enhance={() => {
+                                        submitting.backfill = true;
+                                        return async ({ update }) => {
+                                                await update();
+                                                submitting.backfill = false;
+                                        };
+                                }}>
+                                        <button class="btn" type="submit" disabled={submitting.backfill}>
+                                                {submitting.backfill ? 'Backfilling… this can take a minute' : 'Backfill all past seasons'}
+                                        </button>
                                 </form>
+                                {#if submitting.backfill}
+                                        <p class="card-sub" style="margin-top:10px;">Walking every past season on Yahoo and saving them in place. Please keep this tab open.</p>
+                                {/if}
                                 {#if form?.action === 'backfillArchive' && form?.backfill}
                                         <div class="banner ok">Archived {form.backfill.count} season{form.backfill.count === 1 ? '' : 's'}.</div>
                                         <ul class="backfill-list">
@@ -378,7 +403,9 @@
                 <section class="card full draftpicks">
                         <h2>{c.year} Draft Picks by Team</h2>
                         <p class="card-sub">Set how many picks each team owns in each round of the upcoming draft. <strong>1</strong> is a standard pick, <strong>0</strong> means it was traded away, <strong>2</strong> means a pick was acquired. League rule: a team may hold <strong>at most {MAX_PICKS_PER_ROUND} picks per round</strong> — a trade that would give a team 3 in a round is invalid. This is what powers the public "Draft Picks by Team" board.</p>
-                        {#if draftPrefilled}
+                        {#if draftFromYahoo}
+                                <div class="banner ok">Auto-seeded from Yahoo's actual traded picks. Review and <strong>Save</strong> to make these the official numbers, or adjust any cell first. Each round column should total {draftGrid.length}.</div>
+                        {:else if draftPrefilled}
                                 <div class="banner warn">Pre-filled from your Grid View screenshot as a starting point. The screenshot is low-resolution — <strong>please verify every number before saving.</strong> Each round column should total {draftGrid.length}.</div>
                         {/if}
                         {#if pickViolations.length}

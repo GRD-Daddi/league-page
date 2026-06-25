@@ -8,6 +8,6 @@ export { getYahooLeagueMatchups, getYahooNFLState } from './matchupAdapter.js';
 
 export { getYahooLeagueTransactions } from './transactionAdapter.js';
 
-export { getYahooDraftResults, getYahooDraftData, getYahooTradedPicks } from './draftAdapter.js';
+export { getYahooDraftResults, getYahooDraftData, getYahooTradedPicks, teamNumFromKey } from './draftAdapter.js';
 
 export { getYahooPlayers, getYahooPlayerStats, getAllNFLPlayers } from './playerAdapter.js';

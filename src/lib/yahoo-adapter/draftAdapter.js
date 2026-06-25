@@ -1,4 +1,4 @@
-import { getYahooClient, withRetry } from './yahooClient.js';
+import { getYahooClient, withRetry, rawYahooGet } from './yahooClient.js';
 
 export async function getYahooDraftResults(leagueKey, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
@@ -121,7 +121,7 @@ function convertDraftResultsToSleeperFormat(draftResults, leagueKey) {
 }
 
 // Extract the numeric Yahoo team number (the "N" in "...t.N") from a team key.
-function teamNumFromKey(teamKey) {
+export function teamNumFromKey(teamKey) {
         if (!teamKey || typeof teamKey !== 'string') return null;
         const m = teamKey.match(/\.t\.(\d+)/);
         return m ? parseInt(m[1]) : null;
@@ -129,7 +129,7 @@ function teamNumFromKey(teamKey) {
 
 // Yahoo collections come back as objects keyed "0","1",... plus a `count`.
 // Normalize them to a plain array regardless of shape.
-function collectionToArray(coll) {
+export function collectionToArray(coll) {
         if (!coll) return [];
         if (Array.isArray(coll)) return coll;
         const out = [];
@@ -157,7 +157,7 @@ export async function getYahooTradedPicks(leagueKey, yahooClient = null) {
         if (!yf) throw new Error('Yahoo client not initialized');
 
         const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/transactions;types=trade`;
-        const raw = await withRetry(() => yf.api('GET', url));
+        const raw = await withRetry(() => rawYahooGet(url, yf));
 
         const events = [];
         try {

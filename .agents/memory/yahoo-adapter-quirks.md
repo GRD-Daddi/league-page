@@ -22,13 +22,35 @@ each pick has `original_team_key` / `source_team_key` / `destination_team_key` /
 `round:originalTeam` to get net current ownership. A Yahoo league key is one season,
 so all traded picks in the current league key belong to that league's draft.
 
-**Where it is / isn't wired:** the homepage "Draft Picks by Team" board DOES consume
-`getYahooTradedPicks` (commissioner-entered ownership overrides it when present). The
-Transactions-feed adapter (`transactionAdapter.convertSingleTransaction`) still
-outputs `draft_picks: []` — it only parses the `players` segment, never `picks` — so
-traded picks do NOT appear as line items on the Transactions history page. Closing
-that gap requires both parsing picks into Sleeper-shaped `draft_picks` AND teaching
-the trade-render pipeline (moves/TransactionMove) to display pick rows.
+**Where it is wired (all three now consume picks):** homepage board, the Transactions
+feed, AND the commissioner pick-ownership editor (auto-seeds its grid from Yahoo
+traded picks when no DB ownership is saved; DB stays authoritative). The transactions
+digester (`leagueTransactions.js`) already renders `draft_picks` — the only gap was
+the adapter emitting `[]`. **Gotcha:** that digester reads `transaction.roster_ids`
+(NUMBERS) for `indexOf`, so a pick-only trade (no player adds/drops) renders nothing
+unless you ALSO push the pick teams into `roster_ids`/`consenter_ids`. Yahoo does not
+stamp a draft season on a traded pick — approximate it from the trade year (display
+only).
+
+## The library's api() crashes the whole Node process on a non-JSON body
+`YahooFantasy.api()` does an UNGUARDED `JSON.parse(data)` inside the https response
+`end` callback. When Yahoo returns a plain-text body (e.g. "Request denied" while
+throttling a burst), that parse throws SYNCHRONOUSLY in the event handler — it escapes
+the promise, so `try/catch`/`withRetry` around the await never catch it. Result:
+uncaught exception kills the server AND the original request hangs forever. We hit
+this on archive backfill (fans out many scoreboard calls).
+
+**Why:** every library helper (`scoreboard`, `transactions`, `meta`, `roster`,
+`draft_results`, ...) routes through `api()`, so ANY Yahoo call could crash, not just
+raw ones.
+
+**How to apply:** use `rawYahooGet(url, client)` in yahooClient.js — it does its own
+fetch with the bearer token and parses defensively (non-JSON → normal thrown Error,
+"Request denied" marked retryable). `createAuthenticatedClient` overrides `client.api`
+so GET+bearer-token calls auto-route through it (the library resolves with the full
+parsed `data`, same shape rawYahooGet returns). Bypassing api() also bypasses its
+token_expired auto-refresh, so rawYahooGet re-implements a single refresh+retry via
+`client.refreshToken`.
 
 ## rostersResult.rosters is a MAP, not an array
 `loadLeagueRosters` → `processRosters` returns `{ rosters: rosterMap, ... }` where
