@@ -1,14 +1,14 @@
 
 <script>
-	import LinearProgress from '@smui/linear-progress';
-	import MatchupWeeks from './MatchupWeeks.svelte';
-	import Brackets from './Brackets.svelte';
+        import LinearProgress from '@smui/linear-progress';
+        import MatchupWeeks from './MatchupWeeks.svelte';
+        import Brackets from './Brackets.svelte';
     import Button, { Group, Label } from '@smui/button';
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
     import { loadPlayers } from '$lib/utils/helper';
 
-	export let queryWeek, leagueTeamManagersData, matchupsData, bracketsData, playersData;
+        export let queryWeek, leagueTeamManagersData, matchupsData, bracketsData, playersData;
 
     let players, matchupWeeks, year, week, regularSeasonLength, brackets, leagueTeamManagers;
 
@@ -105,7 +105,7 @@
         </div>
     {/if}
     <!-- {promise has processed -->
-    {#if brackets.champs.bracket[0][0][0].points && (selection == 'champions' || selection == 'losers')}
+    {#if brackets?.champs?.bracket?.[0]?.[0]?.[0]?.points && (selection == 'champions' || selection == 'losers')}
         <Brackets {queryWeek} {leagueTeamManagers} {players} {brackets} bind:selection={selection} />
     {/if}
 {/if}
