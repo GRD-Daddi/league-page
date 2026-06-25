@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import { readSessionId, clearSessionCookie } from '$lib/server/sessionCookie.js';
 import { getSession, updateSession, deleteSession } from '$lib/server/sessionStore.js';
 import { createAuthenticatedClient } from '$lib/yahoo-adapter/yahooClient.js';
@@ -100,7 +101,14 @@ export async function handle({ event, resolve }) {
         const cookieLeagueKey = event.cookies.get('selected_league_key');
         event.locals.leagueKey = cookieLeagueKey || configuredLeagueID;
 
-        return resolve(event);
+        const response = await resolve(event);
+        // In development the app is viewed through Replit's proxied preview iframe,
+        // where the browser can hold onto stale HTML/modules across edits. Force the
+        // browser to always revalidate so code changes show up on a normal refresh.
+        if (dev) {
+                response.headers.set('cache-control', 'no-store, max-age=0, must-revalidate');
+        }
+        return response;
 }
 
 export const handleFetch = async ({ request, fetch }) => {

@@ -11,11 +11,12 @@
  */
 
 const OVERRIDES = {
-	'*': 'Mystery'
+        '*': 'Mystery'
 };
 
 export function ownerDisplayName(nickname) {
-	if (nickname == null || nickname === '') return 'Unknown';
-	if (Object.prototype.hasOwnProperty.call(OVERRIDES, nickname)) return OVERRIDES[nickname];
-	return nickname.charAt(0).toUpperCase() + nickname.slice(1);
+        const name = typeof nickname === 'string' ? nickname.trim() : nickname;
+        if (name == null || name === '') return 'Unknown';
+        if (Object.prototype.hasOwnProperty.call(OVERRIDES, name)) return OVERRIDES[name];
+        return name.charAt(0).toUpperCase() + name.slice(1);
 }

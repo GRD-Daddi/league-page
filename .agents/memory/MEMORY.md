@@ -12,3 +12,4 @@
 - [Yahoo league history archive](yahoo-history-archive.md) — recover real multi-season Yahoo history: enumerate by name + raw REST, not renew chains or offseason library helpers.
 - [Indentation conventions](indentation-conventions.md) — src/routes/** = TABS; src/lib/server/*.js = 8-space (no tabs). Match the sibling or get noisy diffs.
 - [Owner-grouped league history](owner-vs-team-history.md) — history pages group by OWNER (manager_name nickname), not team_name; wrap nicknames in ownerDisplayName(); records join matchup_archive→team_season_archive on year+team_key.
+- [Stale build vs logic bug](stale-build-vs-logic-bug.md) — "UI shows old data" with correct code: git-diff screenshot vs HEAD~N + check deployment build before debugging; republish needed for code, not data.
