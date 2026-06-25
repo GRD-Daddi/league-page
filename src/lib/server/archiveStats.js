@@ -153,7 +153,7 @@ export async function getChampionshipCounts() {
                  FROM team_season_archive
                  WHERE final_rank = 1 AND manager_name IS NOT NULL AND trim(manager_name) <> '' AND year IN ${COMPLETED}
                  GROUP BY manager_name
-                 ORDER BY titles DESC, owner ASC`
+                 ORDER BY max(year) DESC, titles DESC, owner ASC`
         );
         return rows.map((r) => ({
                 owner: r.owner,

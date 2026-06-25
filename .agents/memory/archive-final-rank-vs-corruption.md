@@ -39,3 +39,23 @@ season-ish order, crediting the wrong owner.
 **How to apply:** This is a DATA fix (psql), not a code change — every consumer reads
 the corrected `final_rank`, so nothing in archiveStats.js needs editing. DB is shared
 dev/prod, so the live site reflects it without a republish.
+
+# The repair is NOT durable — it gets wiped and recurs
+
+**Observed:** After repairing 2025 (Ivan/lamar st.brown = champ), the season reverted
+to the exact original corrupt state (same dup `470.l.99366` rows, zeroed stats, bogus
+ranks crediting matthew=1) across later turns. Identical restoration => regenerated, not
+random drift.
+
+**Cause:** The commissioner "Backfill all past seasons" action (POST `?/nArchive`,
+requires Yahoo login) re-writes the archive and re-introduces the corrupt 2025 rows.
+A DB checkpoint rollback can also revert it. Backfill does NOT run on startup/unauth
+page load, so plain dev-server restarts are safe.
+
+**Implication:** A psql-only repair is a band-aid. Permanent fix requires fixing the
+backfill writer so 2025 imports with correct final_rank/stats and no next-year-key
+duplicate rows. Until then, re-running the backfill silently re-corrupts the season.
+
+**Ground-truth check for the 2025 champion (from real game scores in matchup_archive,
+key `461.l.744586`):** wk17 final t.6 lamar st.brown 158.94 beat t.4 Knuck 135 =>
+1=Ivan(t.6), 2=Jamieson(t.4); 3rd-place game t.1 BBL Daddi beat t.10 => 3=matthew(t.1).
