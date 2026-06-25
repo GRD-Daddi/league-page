@@ -70,6 +70,9 @@ const computePlayers = (playerData, weeklyData, scoringSettings) => {
             ln: projPlayer.last_name,
             pos: projPlayer.position,
         };
+        if(projPlayer.yahoo_id != null) {
+            player.yh = projPlayer.yahoo_id;
+        }
         if(projPlayer.team) {
             player.t = projPlayer.team;
             player.wi = {};

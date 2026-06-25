@@ -17,6 +17,27 @@
 
         const players = playersData?.players ?? {};
 
+        const yahooPlayerIndex = (() => {
+                const index = {};
+                for (const id in players) {
+                        const yh = players[id]?.yh;
+                        if (yh != null) index[String(yh)] = players[id];
+                }
+                return index;
+        })();
+
+        function resolvePlayer(pid) {
+                if (pid == null) return null;
+                const key = String(pid);
+                const direct = players?.[key];
+                if (direct) return direct;
+                // Yahoo player keys look like "{game}.p.{id}"; bridge to the Sleeper
+                // dataset via its yahoo_id. Fall back to a bare trailing numeric id.
+                const m = key.match(/\.p\.(\d+)/) || key.match(/^(\d+)$/);
+                if (m) return yahooPlayerIndex[m[1]] ?? null;
+                return null;
+        }
+
         function buildDrafts(prev, upcoming) {
                 if (Array.isArray(prev) && prev.length) {
                         return [...prev].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
@@ -87,17 +108,17 @@
         }
 
         function playerName(pid) {
-                const p = players?.[pid];
-                if (p) return `${p.fn ?? ''} ${p.ln ?? ''}`.trim() || pid;
-                return pid ?? 'Unknown';
+                const p = resolvePlayer(pid);
+                if (p) return `${p.fn ?? ''} ${p.ln ?? ''}`.trim() || 'Unknown';
+                return 'Unknown Player';
         }
 
         function playerPos(pid) {
-                return players?.[pid]?.pos || null;
+                return resolvePlayer(pid)?.pos || null;
         }
 
         function playerTeam(pid) {
-                return players?.[pid]?.t || null;
+                return resolvePlayer(pid)?.t || null;
         }
 
         function posClass(pos) {
