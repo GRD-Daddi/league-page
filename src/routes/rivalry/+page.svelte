@@ -6,9 +6,10 @@
         $: owners = data?.owners ?? [];
         $: teamA = data?.teamA ?? null;
         $: teamB = data?.teamB ?? null;
-        $: myOwner = data?.myOwner ?? null;
-        $: myRivals = data?.myRivals ?? null;
-        $: rivalAwards = myRivals?.awards ?? [];
+        $: rivals = data?.rivals ?? null;
+        $: rivalAwards = rivals?.awards ?? [];
+        $: mainName = nameFor(teamA);
+        $: opponents = owners.filter((o) => o.owner !== teamA);
         $: h2h = data?.h2h ?? null;
         $: summary = h2h?.summary ?? null;
         $: meetings = (h2h?.meetings ?? []).slice().reverse();
@@ -37,15 +38,19 @@
                 goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
         }
 
-        function onA(e) {
-                navigate(e.target.value, teamB);
+        function onMain(e) {
+                const a = e.target.value;
+                // If the new main team is also the current opponent, bump the opponent to
+                // the first available other manager so the comparison stays valid.
+                const b = teamB === a ? (owners.find((o) => o.owner !== a)?.owner ?? null) : teamB;
+                navigate(a, b);
         }
         function onB(e) {
                 navigate(teamA, e.target.value);
         }
 
         function openRival(opponentOwner) {
-                if (myOwner && opponentOwner) navigate(myOwner, opponentOwner);
+                if (teamA && opponentOwner) navigate(teamA, opponentOwner);
         }
 </script>
 
@@ -74,13 +79,23 @@
                                 <p>Once at least two seasons of games are in the archive, you'll be able to pit teams against each other here.</p>
                         </div>
                 {:else}
+                        <div class="main-team-bar">
+                                <span class="main-team-label">Main team</span>
+                                <select class="sn-select" value={teamA} on:change={onMain} aria-label="Select main team">
+                                        {#each owners as o}
+                                                <option value={o.owner}>{o.ownerName}</option>
+                                        {/each}
+                                </select>
+                                <span class="main-team-hint">Drives every metric below</span>
+                        </div>
+
                         {#if rivalAwards.length}
                                 <div class="sn-section-header" style="margin-bottom:20px;">
                                         <h2 class="sn-section-title">
                                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-                                                {myRivals?.ownerName ? `${myRivals.ownerName}'s Rivals` : 'Your Rivals'}
+                                                {rivals?.ownerName ? `${rivals.ownerName}'s Rivals` : 'Rivals'}
                                         </h2>
-                                        <p class="sn-section-sub">Your personal hall of heroes and villains across league history. Tap any card for the full series.</p>
+                                        <p class="sn-section-sub">{mainName}'s personal hall of heroes and villains across league history. Tap any card for the full series.</p>
                                 </div>
 
                                 <div class="rival-grid">
@@ -101,19 +116,18 @@
                                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                                 Settle The Score
                                         </h2>
-                                        <p class="sn-section-sub">Pick any two managers to see every head-to-head meeting.</p>
+                                        <p class="sn-section-sub">{mainName} vs anyone — pick an opponent to see every head-to-head meeting.</p>
                                 </div>
                         {/if}
 
                         <div class="rivalry-selectors">
-                                <select class="sn-select" value={teamA} on:change={onA} aria-label="Select first manager">
-                                        {#each owners as o}
-                                                <option value={o.owner}>{o.ownerName}</option>
-                                        {/each}
-                                </select>
+                                <div class="main-fixed" aria-label="Main team">
+                                        <span class="main-fixed-tag">Main</span>
+                                        <span class="main-fixed-name">{mainName}</span>
+                                </div>
                                 <div class="vs-pill">VS</div>
-                                <select class="sn-select" value={teamB} on:change={onB} aria-label="Select second manager">
-                                        {#each owners as o}
+                                <select class="sn-select" value={teamB} on:change={onB} aria-label="Select opponent">
+                                        {#each opponents as o}
                                                 <option value={o.owner}>{o.ownerName}</option>
                                         {/each}
                                 </select>
@@ -211,6 +225,31 @@
 </div>
 
 <style>
+        .main-team-bar {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex-wrap: wrap;
+                padding: 14px 18px;
+                margin-bottom: 28px;
+                border: 1px solid var(--sn-border);
+                border-radius: 12px;
+                background: var(--sn-surface-2);
+        }
+        .main-team-label {
+                font-size: 11px;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--sn-text-faint);
+        }
+        .main-team-bar .sn-select { min-width: 200px; }
+        .main-team-hint {
+                font-size: 12px;
+                color: var(--sn-text-faint);
+                font-style: italic;
+        }
+
         .rivalry-selectors {
                 display: flex;
                 align-items: center;
@@ -219,6 +258,34 @@
                 flex-wrap: wrap;
         }
         .rivalry-selectors .sn-select { min-width: 220px; }
+        .main-fixed {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 220px;
+                padding: 0 16px;
+                height: 44px;
+                border: 1px solid rgba(0, 240, 255, 0.45);
+                border-radius: 10px;
+                background: var(--sn-surface-3);
+        }
+        .main-fixed-tag {
+                font-size: 10px;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: #0f1115;
+                background: var(--sn-cyan, #00f0ff);
+                padding: 2px 7px;
+                border-radius: 999px;
+        }
+        .main-fixed-name {
+                font-weight: 800;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+        }
 
         .sn-section-sub {
                 margin: 6px 0 0;

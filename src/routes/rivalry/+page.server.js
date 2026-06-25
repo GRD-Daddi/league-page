@@ -18,13 +18,23 @@ export async function load({ url, locals }) {
         const myOwner = myTeam ? await getOwnerByTeamName(myTeam) : null;
         const defaultA = myOwner && ownerKeys.includes(myOwner) ? myOwner : ownerKeys[0] || null;
 
-        const teamA = url.searchParams.get('team_a') || defaultA;
-        const teamB = url.searchParams.get('team_b') || ownerKeys.find((k) => k !== teamA) || null;
+        // teamA is the "main team" that drives every rivalry metric below; it doubles
+        // as the first slot in the head-to-head picker. Defaults to the logged-in
+        // user's owner, but the user can switch it to view any manager's rivalries.
+        // Query params are validated against known owners so hand-edited URLs can't
+        // produce an unknown/self-matched comparison.
+        const reqA = url.searchParams.get('team_a');
+        const reqB = url.searchParams.get('team_b');
+        const teamA = (reqA && ownerKeys.includes(reqA) ? reqA : defaultA) || null;
+        const teamB =
+                (reqB && ownerKeys.includes(reqB) && reqB !== teamA ? reqB : null) ||
+                ownerKeys.find((k) => k !== teamA) ||
+                null;
 
-        const [h2h, myRivals] = await Promise.all([
+        const [h2h, rivals] = await Promise.all([
                 teamA && teamB && teamA !== teamB ? getHeadToHead(teamA, teamB) : null,
-                myOwner && ownerKeys.includes(myOwner) ? getOwnerRivalries(myOwner) : null
+                teamA && ownerKeys.includes(teamA) ? getOwnerRivalries(teamA) : null
         ]);
 
-        return { owners, teamA, teamB, h2h, myOwner, myRivals };
+        return { owners, teamA, teamB, h2h, myOwner, rivals };
 }
