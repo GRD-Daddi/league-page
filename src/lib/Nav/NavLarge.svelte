@@ -1,159 +1,231 @@
 <script>
-        import { tabs } from '$lib/utils/tabs';
-        import Tab, { Icon, Label } from '@smui/tab';
-        import List, { Item, Graphic, Text, Separator } from '@smui/list';
-        import TabBar from '@smui/tab-bar';
-    import { page } from '$app/state';
-        import { goto, preloadData } from '$app/navigation';
-        import { enableBlog, managers } from '$lib/utils/leagueInfo';
+	import { tabs } from '$lib/utils/tabs';
+	import { page } from '$app/state';
+	import { preloadData } from '$app/navigation';
+	import { enableBlog, managers } from '$lib/utils/leagueInfo';
 
-        let active = $state(tabs.find(tab => tab.dest == page.url.pathname || (tab.nest && tab.children.find(subTab => subTab.dest == page.url.pathname))));
+	let open = $state(false);
 
-        let display = $state(false);
-        let el = $state();
-        let parentEl = $state();
-        let width = $state();
-        let top = $state();
-        let left = $state();
+	const isExternal = (dest) => typeof dest === 'string' && /^https?:/i.test(dest);
 
-        $effect(() => {
-                // re-run when the menu opens or the viewport changes
-                display;
-                innerWidth;
-                if (!el || !parentEl) return;
-                const r = el.getBoundingClientRect();
-                const pr = parentEl.getBoundingClientRect();
-                // position relative to the .parent (offset parent), not the viewport
-                left = r.left - pr.left;
-                top = r.bottom - pr.top + 1;
-                width = r.width;
-        });
+	const nested = $derived(tabs.find((t) => t.nest));
+	const nestedChildren = $derived(
+		nested ? nested.children.filter((c) => c.label !== 'Managers' || managers.length) : []
+	);
 
-        let innerWidth = $state();
+	const path = $derived(page.url.pathname);
+	const isActive = (dest) => dest === path;
+	const nestedActive = $derived(
+		nested ? nested.children.some((c) => c.dest === path) : false
+	);
 
-        const open = () => {
-                display = !display;
-        }
+	const safePreload = (dest) => {
+		if (!isExternal(dest)) preloadData(dest);
+	};
 
-        const subGoto = (dest) => {
-                open(false);
-                goto(dest);
-        }
+	const closeMenu = () => (open = false);
 
-        let tabChildren = $state([]);
-
-        for(const tab of tabs) {
-                if(tab.nest) {
-                        tabChildren = tab.children;
-                }
-        }
-
+	const onKeydown = (e) => {
+		if (e.key === 'Escape') closeMenu();
+	};
 </script>
 
-<svelte:window bind:innerWidth={innerWidth} />
+<svelte:window onkeydown={onKeydown} />
+
+<nav class="nav-large" aria-label="Primary">
+	{#each tabs as tab}
+		{#if tab.nest}
+			<div
+				class="dropdown"
+				role="presentation"
+				onmouseenter={() => (open = true)}
+				onmouseleave={closeMenu}
+			>
+				<button
+					type="button"
+					class="nav-link dropdown-toggle"
+					class:active={nestedActive}
+					aria-haspopup="true"
+					aria-expanded={open}
+					onclick={() => (open = !open)}
+				>
+					{tab.label}
+					<span class="caret material-icons" aria-hidden="true">expand_more</span>
+				</button>
+
+				<div class="submenu" class:open>
+					{#each nestedChildren as child}
+						{#if isExternal(child.dest)}
+							<a
+								class="submenu-item"
+								href={child.dest}
+								target="_blank"
+								rel="noopener noreferrer"
+								onclick={closeMenu}
+							>
+								<span class="submenu-icon material-icons" aria-hidden="true">{child.icon}</span>
+								<span class="submenu-label">{child.label}</span>
+								<span class="submenu-ext material-icons" aria-hidden="true">open_in_new</span>
+							</a>
+						{:else}
+							<a
+								class="submenu-item"
+								class:active={isActive(child.dest)}
+								href={child.dest}
+								onclick={closeMenu}
+								ontouchstart={() => safePreload(child.dest)}
+								onmouseover={() => safePreload(child.dest)}
+								onfocus={() => safePreload(child.dest)}
+							>
+								<span class="submenu-icon material-icons" aria-hidden="true">{child.icon}</span>
+								<span class="submenu-label">{child.label}</span>
+							</a>
+						{/if}
+					{/each}
+				</div>
+			</div>
+		{:else if tab.label !== 'Blog' || enableBlog}
+			<a
+				class="nav-link"
+				class:active={isActive(tab.dest)}
+				href={tab.dest}
+				ontouchstart={() => safePreload(tab.dest)}
+				onmouseover={() => safePreload(tab.dest)}
+				onfocus={() => safePreload(tab.dest)}
+			>
+				{tab.label}
+			</a>
+		{/if}
+	{/each}
+</nav>
 
 <style>
-    :global(.navBar) {
-                display: inline-flex;
-                position: relative;
-        justify-content: center;
-    }
+	.nav-large {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
 
-        :global(.navBar .material-icons) {
-                font-size: 1.8em;
-                height: 25px;
-                width: 22px;
-        }
+	.nav-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		position: relative;
+		height: 72px;
+		padding: 0 14px;
+		background: transparent;
+		border: none;
+		color: #6b7280;
+		font-family: inherit;
+		font-weight: 700;
+		font-size: 12px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		text-decoration: none;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: color 0.15s;
+	}
 
-        .parent {
-                position: relative;
-        }
+	.nav-link::after {
+		content: '';
+		position: absolute;
+		left: 14px;
+		right: 14px;
+		bottom: 0;
+		height: 2px;
+		background: #00f0ff;
+		transform: scaleX(0);
+		transition: transform 0.15s ease;
+	}
 
-        .subMenu {
-                overflow-y: hidden;
-                display: block;
-                position: absolute;
-                z-index: 5;
-                background-color: var(--fff);
-                transition: all 0.4s;
-        }
+	.nav-link:hover {
+		color: #00f0ff;
+	}
 
-        .overlay {
-                display: block;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                height: 100vh;
-                z-index: 4;
-        }
+	.nav-link.active {
+		color: #fff;
+	}
 
-        :global(.mdc-deprecated-list) {
-                padding: 0;
-        }
+	.nav-link.active::after {
+		transform: scaleX(1);
+	}
 
-        :global(.subText) {
-                font-size: 0.8em;
-        }
+	.dropdown {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+	}
 
-        :global(.dontDisplay) {
-                display: none;
-        }
+	.dropdown-toggle .caret {
+		font-size: 18px;
+		transition: transform 0.15s ease;
+	}
+
+	.dropdown-toggle[aria-expanded='true'] .caret {
+		transform: rotate(180deg);
+	}
+
+	.submenu {
+		position: absolute;
+		top: 72px;
+		left: 0;
+		min-width: 230px;
+		background-color: #0f1115;
+		border: 1px solid #1f2937;
+		border-top: none;
+		border-radius: 0 0 8px 8px;
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 240, 255, 0.15);
+		padding: 6px;
+		z-index: 5;
+		opacity: 0;
+		visibility: hidden;
+		transform: translateY(-6px);
+		transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+	}
+
+	.submenu.open {
+		opacity: 1;
+		visibility: visible;
+		transform: translateY(0);
+	}
+
+	.submenu-item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 10px 12px;
+		border-radius: 6px;
+		color: #9ca3af;
+		text-decoration: none;
+		font-size: 0.85rem;
+		font-weight: 600;
+		white-space: nowrap;
+		transition: background 0.15s, color 0.15s;
+	}
+
+	.submenu-item:hover {
+		background: rgba(255, 255, 255, 0.04);
+		color: #fff;
+	}
+
+	.submenu-item.active {
+		background: rgba(0, 240, 255, 0.08);
+		color: #00f0ff;
+	}
+
+	.submenu-icon {
+		font-size: 20px;
+		flex-shrink: 0;
+	}
+
+	.submenu-label {
+		flex: 1;
+	}
+
+	.submenu-ext {
+		font-size: 15px;
+		color: #4b5563;
+		flex-shrink: 0;
+	}
 </style>
-
-<div tabindex="0" role="button" class="overlay" style="display: {display ? "block" : "none"};" onclick={() => open(true)}></div>
-
-<div class="parent" bind:this={parentEl}>
-        <TabBar class="navBar" {tabs} key={(tab) => tab.key} bind:active>
-                {#snippet tab(tab)}
-                        {#if tab.nest}
-                                <div bind:this={el}>
-                                        <Tab
-                                                {tab}
-                                                minWidth
-                                                onclick={() => open()}
-                                        >
-                                                <Icon class="material-icons">{tab.icon}</Icon>
-                                                <Label>{tab.label}</Label>
-                                        </Tab>
-                                </div>
-                        {:else}
-                                <Tab
-                                        class="{tab.label == 'Blog' && !enableBlog ? 'dontDisplay' : ''}"
-                                        {tab}
-                                        onTouchstart={() => preloadData(tab.dest)}
-                                        onMouseover={() => preloadData(tab.dest)}
-                                        href={tab.dest}
-                                        minWidth
-                                >
-                                        <Icon class="material-icons">{tab.icon}</Icon>
-                                        <Label>{tab.label}</Label>
-                                </Tab>
-                        {/if}
-                {/snippet}
-        </TabBar>
-        <div class="subMenu" style="max-height: {display ? 49 * tabChildren.length - 1 - (managers.length ? 0 : 48) : 0}px; min-width: 230px; top: {top}px; left: {left}px; box-shadow: {display ? "0 12px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,240,255,0.15)" : "none"}; border: {display ? "1px" : "0"} solid #1f2937; border-top: none;">
-                <List>
-                        {#each tabChildren as subTab, ix}
-                                {#if subTab.label == 'Managers'}
-                                        <Item class="{managers.length ? '' : 'dontDisplay'}" onSMUIAction={() => subGoto(subTab.dest)} ontouchstart={() => preloadData(subTab.dest)} onmouseover={() => preloadData(subTab.dest)}>
-                                                <Graphic class="material-icons">{subTab.icon}</Graphic>
-                                                <Text class="subText">{subTab.label}</Text>
-                                        </Item>
-                                        {#if ix != tabChildren.length - 1}
-                                                <Separator />
-                                        {/if}
-                                {:else}
-                                        <Item onSMUIAction={() => subGoto(subTab.dest)} ontouchstart={() => {if(subTab.label != 'Go to Sleeper') preloadData(subTab.dest)}} onmouseover={() => {if(subTab.label != 'Go to Sleeper') preloadData(subTab.dest)}}>
-                                                <Graphic class="material-icons">{subTab.icon}</Graphic>
-                                                <Text class="subText">{subTab.label}</Text>
-                                        </Item>
-                                        {#if ix != tabChildren.length - 1}
-                                                <Separator />
-                                        {/if}
-                                {/if}
-                        {/each}
-                </List>
-        </div>
-</div>
