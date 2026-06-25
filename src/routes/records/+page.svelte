@@ -18,6 +18,19 @@
 		if (r === 3) return '#3';
 		return `#${r}`;
 	};
+
+	const GAME_KEYS = new Set(['highGame', 'lowGame', 'blowout', 'nailBiter', 'highCombined']);
+	function recordHref(r) {
+		if (!r || r.year == null) return null;
+		if (GAME_KEYS.has(r.key) && r.week != null) {
+			const p = new URLSearchParams({ year: String(r.year), week: String(r.week) });
+			if (r.matchupId != null) p.set('matchup', String(r.matchupId));
+			return `/matchups?${p.toString()}`;
+		}
+		const p = new URLSearchParams({ year: String(r.year) });
+		if (r.teamName) p.set('team', r.teamName);
+		return `/standings?${p.toString()}`;
+	}
 </script>
 
 <svelte:head>
@@ -43,6 +56,7 @@
 			{#if records.length}
 				<div class="sn-grid-2">
 					{#each records as r}
+						<a class="record-card-link" href={recordHref(r)} data-sveltekit-preload-data="hover">
 						<div class="sn-card sn-card-pad record-card">
 							<div class="record-head">
 								<span class="record-label">{r.label}</span>
@@ -57,8 +71,10 @@
 								{/if}
 								{#if r.teamName}<div class="record-team">{r.teamName}{#if r.teamBName} <span class="record-joiner">{r.joiner ?? '&'}</span> {r.teamBName}{/if}</div>{/if}
 								{#if r.detail}<div class="record-detail">{r.detail}</div>{/if}
+								<div class="record-go">{GAME_KEYS.has(r.key) ? 'View matchup' : 'View standings'} &rarr;</div>
 							</div>
 						</div>
+						</a>
 					{/each}
 				</div>
 			{:else}
@@ -177,6 +193,11 @@
 	.record-team { font-size: 13px; color: var(--sn-text-dim); }
 	.record-detail { font-size: 12px; color: var(--sn-text-mute); }
 	.record-joiner { color: var(--sn-text-faint); font-weight: 600; font-style: italic; }
+	.record-card-link { text-decoration: none; color: inherit; display: block; transition: transform 0.12s ease; }
+	.record-card-link:hover { transform: translateY(-2px); }
+	.record-card-link:hover .record-card { border-color: var(--sn-lime); }
+	.record-go { font-size: 11px; color: var(--sn-text-faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; transition: color 0.12s ease; }
+	.record-card-link:hover .record-go { color: var(--sn-lime); }
 
 	.title-card { text-align: center; }
 	.title-count {

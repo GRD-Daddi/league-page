@@ -44,6 +44,58 @@ export async function getArchiveYears() {
 }
 
 /**
+ * Full per-season schedule for the historical MATCHUPS view: every week's games
+ * grouped by matchup, each side carrying the owner (manager nickname) resolved
+ * for that season plus the team name used that year. Powers the archive matchups
+ * page and the deep-links from record cards (?year=&week=&matchup=).
+ */
+export async function getArchivedSchedule(year) {
+        if (!Number.isFinite(year)) return [];
+        const { rows } = await query(
+                `SELECT m.week, m.matchup_id, m.roster_id, m.team_key, m.team_name,
+                        m.points, m.is_playoffs, ts.manager_name AS owner
+                 FROM matchup_archive m
+                 LEFT JOIN team_season_archive ts ON ts.year = m.year AND ts.team_key = m.team_key
+                 WHERE m.year = $1
+                 ORDER BY m.week ASC, m.matchup_id ASC, m.points DESC NULLS LAST`,
+                [year]
+        );
+
+        const side = (r) => ({
+                rosterId: r.roster_id,
+                teamKey: r.team_key,
+                teamName: r.team_name,
+                owner: r.owner ?? null,
+                ownerName: r.owner ? ownerDisplayName(r.owner) : null,
+                points: r.points != null ? Number(r.points) : null
+        });
+
+        const weekMap = new Map();
+        for (const r of rows) {
+                if (!weekMap.has(r.week)) weekMap.set(r.week, { week: r.week, isPlayoffs: !!r.is_playoffs, games: new Map() });
+                const wk = weekMap.get(r.week);
+                if (r.is_playoffs) wk.isPlayoffs = true;
+                if (!wk.games.has(r.matchup_id)) wk.games.set(r.matchup_id, { matchupId: r.matchup_id, sides: [] });
+                wk.games.get(r.matchup_id).sides.push(side(r));
+        }
+
+        return [...weekMap.values()].map((wk) => ({
+                week: wk.week,
+                isPlayoffs: wk.isPlayoffs,
+                games: [...wk.games.values()].map((g) => {
+                        const [a, b] = g.sides;
+                        let winner = null;
+                        if (a && b && a.points != null && b.points != null) {
+                                if (a.points > b.points) winner = a.rosterId;
+                                else if (b.points > a.points) winner = b.rosterId;
+                                else winner = 'tie';
+                        }
+                        return { matchupId: g.matchupId, home: a ?? null, away: b ?? null, winner };
+                })
+        }));
+}
+
+/**
  * Trophy room: every completed season's podium, newest first. Each entry also
  * carries that season's regular-season points leader and the lowest-scoring
  * finish (the "toilet bowl" wooden spoon) for richer per-season awards.
@@ -117,6 +169,7 @@ const numRow = (r) =>
                 ? {
                                 year: r.year,
                                 week: r.week ?? null,
+                                matchupId: r.matchup_id ?? null,
                                 owner: r.owner ?? null,
                                 ownerName: r.owner ? ownerDisplayName(r.owner) : null,
                                 teamName: r.team_name,
@@ -150,14 +203,14 @@ export async function getAllTimeRecords() {
                 highCombined
         ] = await Promise.all([
                 single(
-                        `SELECT m.year, m.week, m.team_name, ts.manager_name AS owner, m.points AS value
+                        `SELECT m.year, m.week, m.matchup_id AS matchup_id, m.team_name, ts.manager_name AS owner, m.points AS value
                          FROM matchup_archive m
                          LEFT JOIN team_season_archive ts ON ts.year = m.year AND ts.team_key = m.team_key
                          WHERE m.points > 0 AND m.year IN ${COMPLETED}
                          ORDER BY m.points DESC LIMIT 1`
                 ),
                 single(
-                        `SELECT m.year, m.week, m.team_name, ts.manager_name AS owner, m.points AS value
+                        `SELECT m.year, m.week, m.matchup_id AS matchup_id, m.team_name, ts.manager_name AS owner, m.points AS value
                          FROM matchup_archive m
                          LEFT JOIN team_season_archive ts ON ts.year = m.year AND ts.team_key = m.team_key
                          WHERE m.points > 0 AND m.year IN ${COMPLETED}
@@ -183,7 +236,7 @@ export async function getAllTimeRecords() {
                          ORDER BY wins DESC, losses ASC LIMIT 1`
                 ),
                 single(
-                        `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
+                        `SELECT a.year, a.week, a.matchup_id AS matchup_id, a.team_name, ts.manager_name AS owner,
                                 (a.points - b.points) AS value,
                                 ('def. ' || b.team_name || ' ' || round(a.points::numeric, 2) || '–' || round(b.points::numeric, 2)) AS detail
                          FROM matchup_archive a
@@ -194,7 +247,7 @@ export async function getAllTimeRecords() {
                          ORDER BY (a.points - b.points) DESC LIMIT 1`
                 ),
                 single(
-                        `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
+                        `SELECT a.year, a.week, a.matchup_id AS matchup_id, a.team_name, ts.manager_name AS owner,
                                 tb.manager_name AS owner_b, b.team_name AS team_b_name,
                                 (a.points - b.points) AS value,
                                 (round(a.points::numeric, 2) || '–' || round(b.points::numeric, 2)) AS detail
@@ -207,7 +260,7 @@ export async function getAllTimeRecords() {
                          ORDER BY (a.points - b.points) ASC LIMIT 1`
                 ),
                 single(
-                        `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
+                        `SELECT a.year, a.week, a.matchup_id AS matchup_id, a.team_name, ts.manager_name AS owner,
                                 tb.manager_name AS owner_b, b.team_name AS team_b_name,
                                 (a.points + b.points) AS value,
                                 (round(a.points::numeric, 2) || ' + ' || round(b.points::numeric, 2)) AS detail

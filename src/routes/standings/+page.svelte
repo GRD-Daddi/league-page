@@ -9,6 +9,7 @@
         $: selectedYear = data?.selectedYear;
         $: isLive = data?.isLive;
         $: users = data?.leagueTeamManagersData ?? {};
+		$: highlightTeam = $page.url.searchParams.get('team');
 
         function initials(name) {
                 return (name ?? '??')
@@ -81,6 +82,10 @@
                 params.set('year', y);
                 goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
         }
+	function scrollRow(node, isMatch) {
+		if (isMatch) setTimeout(() => node.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120);
+		return {};
+	}
 </script>
 
 <div class="sn-page">
@@ -161,7 +166,7 @@
                                                 </thead>
                                                 <tbody>
                                                         {#each standings as team}
-                                                                <tr>
+                                                                <tr class:row-highlight={highlightTeam && team.team === highlightTeam} use:scrollRow={highlightTeam && team.team === highlightTeam}>
                                                                         <td class="sn-rank">{team.rank}</td>
                                                                         <td>
                                                                                 <div class="sn-team-cell">
@@ -229,4 +234,6 @@
                 background: var(--sn-cyan);
                 box-shadow: 0 0 8px var(--sn-cyan);
         }
+	tr.row-highlight td { background: color-mix(in srgb, var(--sn-lime) 12%, transparent); }
+	tr.row-highlight td:first-child { box-shadow: inset 3px 0 0 var(--sn-lime); }
 </style>

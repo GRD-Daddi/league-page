@@ -1,5 +1,7 @@
 import { loadMatchupData, loadBrackets, loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
 import { captureSeason } from '$lib/server/archive.js';
+import { getArchiveYears, getArchivedSchedule } from '$lib/server/archiveStats.js';
+import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { requireAuth } from '$lib/server/authGuard.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 
@@ -8,6 +10,31 @@ export async function load({ url, fetch, locals }) {
 
         const { yahooClient, leagueKey } = locals;
         const queryWeek = url?.searchParams?.get('week');
+        const queryMatchup = url?.searchParams?.get('matchup');
+
+        const years = await getArchiveYears();
+        const currentYear = getCurrentSeasonYear();
+        const requested = parseInt(url.searchParams.get('year'), 10);
+        const selectedYear = Number.isFinite(requested) ? requested : currentYear;
+        const isLive = selectedYear === currentYear;
+        const yearOptions = years.map((y) => ({ year: y.year, status: y.status }));
+
+        // Past season: serve the durable archive schedule, no Yahoo call needed.
+        if (!isLive) {
+                const schedule = await getArchivedSchedule(selectedYear);
+                return {
+                        isLive: false,
+                        years: yearOptions,
+                        selectedYear,
+                        schedule,
+                        queryWeek: isNaN(queryWeek) ? null : queryWeek,
+                        queryMatchup: queryMatchup == null || isNaN(queryMatchup) ? null : Number(queryMatchup),
+                        matchupsData: null,
+                        bracketsData: null,
+                        leagueTeamManagersData: {},
+                        playersData: null
+                };
+        }
 
         const [matchupsData, bracketsData, teamManagersData, playersData] = await waitForAll(
                 loadMatchupData(yahooClient, leagueKey),
@@ -30,7 +57,12 @@ export async function load({ url, fetch, locals }) {
         }
 
         return {
+                isLive: true,
+                years: yearOptions,
+                selectedYear,
+                schedule: null,
                 queryWeek: isNaN(queryWeek) ? null : queryWeek,
+                queryMatchup: queryMatchup == null || isNaN(queryMatchup) ? null : Number(queryMatchup),
                 matchupsData,
                 bracketsData,
                 leagueTeamManagersData: teamManagersData,
