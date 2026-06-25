@@ -120,6 +120,8 @@ const numRow = (r) =>
                                 owner: r.owner ?? null,
                                 ownerName: r.owner ? ownerDisplayName(r.owner) : null,
                                 teamName: r.team_name,
+                                ownerNameB: r.owner_b ? ownerDisplayName(r.owner_b) : null,
+                                teamBName: r.team_b_name ?? null,
                                 value: r.value != null ? Number(r.value) : null,
                                 detail: r.detail || null
                   }
@@ -193,23 +195,27 @@ export async function getAllTimeRecords() {
                 ),
                 single(
                         `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
+                                tb.manager_name AS owner_b, b.team_name AS team_b_name,
                                 (a.points - b.points) AS value,
-                                ('vs ' || b.team_name || ' ' || round(a.points::numeric, 2) || '–' || round(b.points::numeric, 2)) AS detail
+                                (round(a.points::numeric, 2) || '–' || round(b.points::numeric, 2)) AS detail
                          FROM matchup_archive a
                          JOIN matchup_archive b
                            ON a.year = b.year AND a.week = b.week AND a.matchup_id = b.matchup_id AND a.roster_id <> b.roster_id
                          LEFT JOIN team_season_archive ts ON ts.year = a.year AND ts.team_key = a.team_key
+                         LEFT JOIN team_season_archive tb ON tb.year = b.year AND tb.team_key = b.team_key
                          WHERE a.points > b.points AND b.points > 0 AND a.year IN ${COMPLETED}
                          ORDER BY (a.points - b.points) ASC LIMIT 1`
                 ),
                 single(
                         `SELECT a.year, a.week, a.team_name, ts.manager_name AS owner,
+                                tb.manager_name AS owner_b, b.team_name AS team_b_name,
                                 (a.points + b.points) AS value,
-                                ('vs ' || b.team_name || ' ' || round(a.points::numeric, 2) || ' + ' || round(b.points::numeric, 2)) AS detail
+                                (round(a.points::numeric, 2) || ' + ' || round(b.points::numeric, 2)) AS detail
                          FROM matchup_archive a
                          JOIN matchup_archive b
                            ON a.year = b.year AND a.week = b.week AND a.matchup_id = b.matchup_id AND a.roster_id <> b.roster_id
                          LEFT JOIN team_season_archive ts ON ts.year = a.year AND ts.team_key = a.team_key
+                         LEFT JOIN team_season_archive tb ON tb.year = b.year AND tb.team_key = b.team_key
                          WHERE a.points > 0 AND b.points > 0 AND a.roster_id < b.roster_id AND a.year IN ${COMPLETED}
                          ORDER BY (a.points + b.points) DESC LIMIT 1`
                 )
@@ -222,8 +228,8 @@ export async function getAllTimeRecords() {
                 { key: 'lowSeasonPf', label: 'Fewest Points (Season)', ...numRow(lowSeasonPf) },
                 { key: 'mostSeasonWins', label: 'Most Wins (Season)', ...numRow(mostSeasonWins) },
                 { key: 'blowout', label: 'Biggest Blowout', ...numRow(blowout) },
-                { key: 'nailBiter', label: 'Closest Game', ...numRow(nailBiter) },
-                { key: 'highCombined', label: 'Highest Combined Score', ...numRow(highCombined) }
+                { key: 'nailBiter', label: 'Closest Game', joiner: 'vs', ...numRow(nailBiter) },
+                { key: 'highCombined', label: 'Highest Combined Score', joiner: '&', ...numRow(highCombined) }
         ].filter((r) => r.value != null);
 }
 

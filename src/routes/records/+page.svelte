@@ -50,8 +50,12 @@
 							</div>
 							<div class="record-body">
 								<div class="record-value">{fmt(r.value)}</div>
+								{#if r.ownerNameB}
+								<div class="record-holder">{r.ownerName ?? r.teamName} <span class="record-joiner">{r.joiner ?? '&'}</span> {r.ownerNameB}</div>
+								{:else}
 								<div class="record-holder">{r.ownerName ?? r.teamName}</div>
-								{#if r.teamName}<div class="record-team">{r.teamName}</div>{/if}
+								{/if}
+								{#if r.teamName}<div class="record-team">{r.teamName}{#if r.teamBName} <span class="record-joiner">{r.joiner ?? '&'}</span> {r.teamBName}{/if}</div>{/if}
 								{#if r.detail}<div class="record-detail">{r.detail}</div>{/if}
 							</div>
 						</div>
@@ -172,6 +176,7 @@
 	.record-holder { font-weight: 800; color: #fff; }
 	.record-team { font-size: 13px; color: var(--sn-text-dim); }
 	.record-detail { font-size: 12px; color: var(--sn-text-mute); }
+	.record-joiner { color: var(--sn-text-faint); font-weight: 600; font-style: italic; }
 
 	.title-card { text-align: center; }
 	.title-count {
