@@ -248,6 +248,23 @@ export async function snapshotMatchups(year, sides) {
 export async function captureSeason(year, { leagueData = null, rostersResult = null, matchupWeeks = null, playoffsStart = null } = {}) {
         if (!Number.isFinite(year)) return;
 
+        // Guard against a brand-new (e.g. pre-draft) league whose Yahoo `season`
+        // field still lags to a prior, already-finalized year. Writing it would
+        // clobber the real completed season with a different league's data and
+        // inject blank-owner rows. Skip if `year` is already archived complete
+        // under a DIFFERENT league key.
+        const incomingKey = leagueData?.league_id || null;
+        if (incomingKey) {
+                const { rows: existing } = await query(
+                        `SELECT league_key, status FROM season_archive WHERE year = $1`,
+                        [year]
+                );
+                const prior = existing?.[0];
+                if (prior && prior.status === 'complete' && prior.league_key && prior.league_key !== incomingKey) {
+                        return;
+                }
+        }
+
         const rosters = rostersResult?.rosters ? Object.values(rostersResult.rosters) : [];
 
         await snapshotSeasonHeader(year, {

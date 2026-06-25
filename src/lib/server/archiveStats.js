@@ -99,7 +99,7 @@ export async function getChampionshipCounts() {
                         array_agg(year ORDER BY year) AS years,
                         array_agg(team_name ORDER BY year) AS team_names
                  FROM team_season_archive
-                 WHERE final_rank = 1 AND manager_name IS NOT NULL AND year IN ${COMPLETED}
+                 WHERE final_rank = 1 AND manager_name IS NOT NULL AND trim(manager_name) <> '' AND year IN ${COMPLETED}
                  GROUP BY manager_name
                  ORDER BY titles DESC, owner ASC`
         );
@@ -256,7 +256,7 @@ export async function getManagerCareers() {
                                 'pointsFor', points_for
                         ) ORDER BY year DESC) AS season_rows
                  FROM team_season_archive
-                 WHERE manager_name IS NOT NULL AND year IN ${COMPLETED}
+                 WHERE manager_name IS NOT NULL AND trim(manager_name) <> '' AND year IN ${COMPLETED}
                  GROUP BY manager_name`
         );
 
@@ -330,7 +330,7 @@ export async function getManagerSeasons(owner) {
 export async function getArchiveOwners() {
         const { rows } = await query(
                 `SELECT DISTINCT manager_name AS owner FROM team_season_archive
-                 WHERE manager_name IS NOT NULL`
+                 WHERE manager_name IS NOT NULL AND trim(manager_name) <> ''`
         );
         return rows
                 .map((r) => ({ owner: r.owner, ownerName: ownerDisplayName(r.owner) }))
@@ -342,7 +342,7 @@ export async function getOwnerByTeamName(teamName) {
         if (!teamName) return null;
         const { rows } = await query(
                 `SELECT manager_name FROM team_season_archive
-                 WHERE team_name = $1 AND manager_name IS NOT NULL
+                 WHERE team_name = $1 AND manager_name IS NOT NULL AND trim(manager_name) <> ''
                  ORDER BY year DESC LIMIT 1`,
                 [teamName]
         );
