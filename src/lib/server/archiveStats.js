@@ -305,6 +305,11 @@ export async function getManagerCareers() {
                         count(*) FILTER (WHERE final_rank <= 3)::int AS podiums,
                         min(final_rank) AS best_finish,
                         (array_agg(team_name ORDER BY year DESC))[1] AS latest_team,
+                        (manager_name IN (
+                                SELECT manager_name FROM team_season_archive
+                                WHERE year = (SELECT max(year) FROM team_season_archive)
+                                  AND manager_name IS NOT NULL AND trim(manager_name) <> '' AND manager_name <> '*'
+                        )) AS is_current,
                         json_agg(json_build_object(
                                 'year', year,
                                 'teamName', team_name,
@@ -338,6 +343,7 @@ export async function getManagerCareers() {
                                 owner: r.owner,
                                 ownerName: ownerDisplayName(r.owner),
                                 latestTeam: r.latest_team,
+                                isCurrent: r.is_current,
                                 seasons: r.seasons,
                                 wins,
                                 losses,
