@@ -1,6 +1,7 @@
 import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadNFLState } from '$lib/server/dataLoaders.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
-import { computePotData, getLastSeasonPodium, getPotWinners, getCurrentSeasonYear } from '$lib/server/pot.js';
+import { computePotData, getPotWinners, getCurrentSeasonYear } from '$lib/server/pot.js';
+import { getSeasonPodiums } from '$lib/server/archiveStats.js';
 import { resolveSeasonPhase } from '$lib/utils/seasonPhase.js';
 import { getYahooTradedPicks } from '$lib/yahoo-adapter/index.js';
 import { getDraftPickOwnership } from '$lib/server/draftPicks.js';
@@ -158,12 +159,30 @@ export async function load({ locals, url }) {
                         if (Object.keys(order).length > 0) draftOrder = order;
                 }
 
-                // The trophy band is shown in every phase, so the podium is fetched for any
-                // authenticated user (null when Yahoo has no completed season to resolve).
-                const lastSeasonPodium = await getLastSeasonPodium(yahooClient, leagueKey).catch((err) => {
-                        console.error('[homepage] Error loading last season podium:', err.message);
-                        return null;
-                });
+                // The trophy band shows the most recent completed season's podium.
+                // Sourced from the CANONICAL archive (season_archive champion/runner_up/
+                // third) — the same data the Awards/Records pages use — never derived live
+                // from Yahoo rosters, which drift between loads and re-corrupt finalized
+                // standings. This keeps the homepage top-3 stable and consistent everywhere.
+                const lastSeasonPodium = await getSeasonPodiums()
+                        .then((podiums) => {
+                                const latest = podiums?.[0] ?? null;
+                                if (!latest) return null;
+                                return {
+                                        year: latest.year,
+                                        podium: (latest.podium ?? []).map((p) => ({
+                                                place: p.rank,
+                                                name: p.teamName,
+                                                ownerName: p.ownerName,
+                                                teamKey: p.teamKey,
+                                                logo: null
+                                        }))
+                                };
+                        })
+                        .catch((err) => {
+                                console.error('[homepage] Error loading last season podium:', err.message);
+                                return null;
+                        });
 
                 return {
                         nflState,
