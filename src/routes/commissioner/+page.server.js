@@ -16,7 +16,7 @@ import {
 } from '$lib/server/pot.js';
 import { getArchivedSeasons } from '$lib/server/archive.js';
 import { getDraftPickOwnership, saveDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
-import { getKeeperState, setAllKeeperStatus, approveKeeper, approveAllKeepers } from '$lib/server/keepers.js';
+import { getKeeperState, setAllKeeperStatus, approveKeeper, approveAllKeepers, reconcileApprovedKeepersWithPicks } from '$lib/server/keepers.js';
 import { backfillKeeperHistory, getArchiveStats } from '$lib/server/keeperArchive.js';
 import { getYahooTradedPicks, teamNumFromKey } from '$lib/yahoo-adapter/index.js';
 
@@ -444,7 +444,15 @@ export const actions = {
                 if (!Array.isArray(entries)) entries = [];
 
                 await saveDraftPickOwnership(year, entries);
-                return { success: true, action: 'saveDraftPicks' };
+
+                // Saving pick ownership can orphan an approved keeper: if a pick was
+                // traded away, a team may now own fewer picks in a round than it has
+                // approved keepers costing it. Reconcile by reverting those keepers to
+                // pending so the draft board never renders a negative/over-limit state,
+                // and report exactly which keepers were affected.
+                const ownership = await getDraftPickOwnership(year);
+                const revertedKeepers = await reconcileApprovedKeepersWithPicks(year, ownership);
+                return { success: true, action: 'saveDraftPicks', revertedKeepers };
         },
 
         approveKeeper: async ({ request, locals }) => {

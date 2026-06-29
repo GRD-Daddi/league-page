@@ -495,6 +495,18 @@
                         {:else if draftPrefilled}
                                 <div class="banner warn">Pre-filled from your Grid View screenshot as a starting point. The screenshot is low-resolution — <strong>please verify every number before saving.</strong> Each round column should total {draftGrid.length}.</div>
                         {/if}
+                        {#if form?.action === 'saveDraftPicks' && form?.revertedKeepers?.length}
+                                <div class="banner warn">
+                                        <strong>{form.revertedKeepers.length} approved keeper{form.revertedKeepers.length === 1 ? ' was' : 's were'} reverted to pending</strong> — saving these picks left {form.revertedKeepers.length === 1 ? 'it' : 'them'} without a pick in their cost round. Re-approve on the Keepers tab once the pick distribution is settled:
+                                        <ul class="skip-list">
+                                                {#each form.revertedKeepers as k}
+                                                        <li>{k.playerName || k.playerKey}: Round {k.round} now owns {k.owned} pick{k.owned === 1 ? '' : 's'} but had {k.approved} approved keeper{k.approved === 1 ? '' : 's'}.</li>
+                                                {/each}
+                                        </ul>
+                                </div>
+                        {:else if form?.action === 'saveDraftPicks' && form?.success}
+                                <div class="banner ok">Draft picks saved.</div>
+                        {/if}
                         {#if pickViolations.length}
                                 <div class="banner error">
                                         <strong>Invalid pick distribution — over the {MAX_PICKS_PER_ROUND}-per-round limit:</strong>

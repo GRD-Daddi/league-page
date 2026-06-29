@@ -46,6 +46,71 @@ export async function getApprovedKeepers(year) {
 }
 
 /**
+ * Pure helper: given the approved keepers and the (new) pick-ownership board,
+ * return the keepers that would be left WITHOUT a pick in their cost round —
+ * i.e. rounds where the team now owns fewer picks than it has approved keepers
+ * costing that round. When a round is over-subscribed, EVERY approved keeper in
+ * that round is flagged (the whole round must be re-approved against the new
+ * distribution, since the commissioner — not the manager — chooses which keeper
+ * survives the lost pick). No DB access, so it is unit-testable in isolation.
+ */
+export function computeOrphanedApprovedKeepers(approved, pickOwnership) {
+        // teamKey -> Map(round -> owned picks) from the board.
+        const ownedByTeamRound = new Map();
+        for (const team of pickOwnership?.teams || []) {
+                const m = new Map();
+                (team.picks || []).forEach((n, i) => m.set(i + 1, Number(n) || 0));
+                ownedByTeamRound.set(team.teamKey, m);
+        }
+
+        // Group approved keepers by team + cost round.
+        const byTeamRound = new Map(); // `${teamKey}::${round}` -> selections[]
+        for (const k of approved || []) {
+                const round = Number(k.cost_round);
+                if (!Number.isFinite(round)) continue;
+                const key = `${k.team_key}::${round}`;
+                if (!byTeamRound.has(key)) byTeamRound.set(key, []);
+                byTeamRound.get(key).push(k);
+        }
+
+        const orphaned = [];
+        for (const [key, list] of byTeamRound) {
+                const [teamKey, roundStr] = key.split('::');
+                const round = Number(roundStr);
+                const owned = ownedByTeamRound.get(teamKey)?.get(round) ?? 0;
+                if (list.length > owned) {
+                        for (const k of list) {
+                                orphaned.push({
+                                        teamKey: k.team_key,
+                                        playerKey: k.player_key,
+                                        playerName: k.player_name,
+                                        round,
+                                        owned,
+                                        approved: list.length
+                                });
+                        }
+                }
+        }
+        return orphaned;
+}
+
+/**
+ * Reconciles approved keepers against a freshly-saved pick-ownership board:
+ * any approved keeper left without a pick in its cost round is reverted to
+ * 'pending' so the draft board can never render a negative/over-limit state from
+ * an orphaned keeper. Returns the list of reverted keepers so the commissioner
+ * can be told exactly which keepers were affected and why.
+ */
+export async function reconcileApprovedKeepersWithPicks(year, pickOwnership) {
+        const approved = await getApprovedKeepers(year);
+        const orphaned = computeOrphanedApprovedKeepers(approved, pickOwnership);
+        for (const k of orphaned) {
+                await setKeeperStatus(year, k.teamKey, k.playerKey, 'pending');
+        }
+        return orphaned;
+}
+
+/**
  * Full keeper state for the upcoming draft: every team with its rostered players'
  * eligibility, merged with current selection status, plus per-team pick
  * consumption so the UI can show remaining keeper capacity per round.
