@@ -22,3 +22,24 @@ export function keeperYearsRemaining(acquisitionYear, upcomingYear) {
         if (!Number.isFinite(acquisitionYear) || !Number.isFinite(upcomingYear)) return null;
         return KEEPER_MAX_SEASONS - (upcomingYear - acquisitionYear);
 }
+
+/**
+ * Plain-language explanation of what reset a player's keeper clock, given the
+ * structured reset reason code produced by the keeper engine. Returns null when
+ * there was no reset (the active lineage is the player's original acquisition).
+ *  - 'drop'       → the player was dropped to waivers/FA
+ *  - 'redraft'    → the player was not kept and went back into the draft pool
+ *  - 'reacquired' → the lineage lapsed and the player was picked up again
+ */
+export function keeperResetReasonLabel(reason) {
+        switch (reason) {
+                case 'drop':
+                        return 'Dropped — keeper clock reset';
+                case 'redraft':
+                        return 'Returned to the draft pool — keeper clock reset';
+                case 'reacquired':
+                        return 'Re-acquired — keeper clock reset';
+                default:
+                        return null;
+        }
+}

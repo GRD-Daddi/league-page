@@ -1,6 +1,6 @@
 <script>
         import { enhance } from '$app/forms';
-        import { KEEPER_MAX_SEASONS, WAIVER_COST_ROUND } from '$lib/utils/keeperRules.js';
+        import { KEEPER_MAX_SEASONS, WAIVER_COST_ROUND, keeperResetReasonLabel } from '$lib/utils/keeperRules.js';
 
         export let data;
         export let form;
@@ -136,6 +136,12 @@
                         default:
                                 return ev.kind;
                 }
+        }
+
+        // Link to the dedicated per-player lineage page, keyed by team + player so
+        // the same player on two rosters resolves to the right story.
+        function lineagePath(teamKey, playerKey) {
+                return `/keepers/player?team=${encodeURIComponent(teamKey)}&player=${encodeURIComponent(playerKey)}`;
         }
 
         // Surface the manager's own team first.
@@ -380,12 +386,18 @@
                                                                                                                         {#if hist.length}
                                                                                                                                 <ol class="lineage">
                                                                                                                                         {#each hist as ev}
+                                                                                                                                                {#if ev.resetReason}
+                                                                                                                                                        <li class="lineage-reset">
+                                                                                                                                                                <span class="lineage-reset-text">{keeperResetReasonLabel(ev.resetReason)}</span>
+                                                                                                                                                        </li>
+                                                                                                                                                {/if}
                                                                                                                                                 <li class="lineage-ev {ev.current ? 'current' : 'past'}{ev.inferred ? ' inferred' : ''}">
                                                                                                                                                         <span class="lineage-year">{ev.inferred ? '~' : ''}{ev.year}</span>
                                                                                                                                                         <span class="lineage-text">{lineageLabel(ev)}</span>
                                                                                                                                                 </li>
                                                                                                                                         {/each}
                                                                                                                                 </ol>
+                                                                                                                                <a class="lineage-link" href={lineagePath(team.teamKey, p.playerKey)}>View full lineage →</a>
                                                                                                                         {:else}
                                                                                                                                 <div class="lineage-empty">No draft or transaction history on record.</div>
                                                                                                                         {/if}
@@ -437,12 +449,18 @@
                                                                                                 {#if hist.length}
                                                                                                         <ol class="lineage">
                                                                                                                 {#each hist as ev}
+                                                                                                                        {#if ev.resetReason}
+                                                                                                                                <li class="lineage-reset">
+                                                                                                                                        <span class="lineage-reset-text">{keeperResetReasonLabel(ev.resetReason)}</span>
+                                                                                                                                </li>
+                                                                                                                        {/if}
                                                                                                                         <li class="lineage-ev {ev.current ? 'current' : 'past'}{ev.inferred ? ' inferred' : ''}">
                                                                                                                                 <span class="lineage-year">{ev.inferred ? '~' : ''}{ev.year}</span>
                                                                                                                                 <span class="lineage-text">{lineageLabel(ev)}</span>
                                                                                                                         </li>
                                                                                                                 {/each}
                                                                                                         </ol>
+                                                                                                        <a class="lineage-link" href={lineagePath(team.teamKey, p.playerKey)}>View full lineage →</a>
                                                                                                 {:else}
                                                                                                         <div class="lineage-empty">No draft or transaction history on record.</div>
                                                                                                 {/if}
@@ -806,6 +824,45 @@
         .lineage-ev.inferred .lineage-text { font-style: italic; color: var(--sn-text-mute); }
         .lineage-ev.inferred .lineage-year { opacity: 0.7; }
         .lineage-ev.inferred::before { background: var(--sn-text-mute); opacity: 0.6; }
+
+        /* Break marker between expired history and the active lineage. */
+        .lineage-reset {
+                position: relative;
+                margin: 2px 0;
+                padding: 4px 0;
+        }
+        .lineage-reset::before {
+                content: '';
+                position: absolute;
+                left: -19px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #ffb454;
+                box-shadow: 0 0 0 3px rgba(255, 180, 84, 0.18);
+        }
+        .lineage-reset-text {
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.03em;
+                text-transform: uppercase;
+                color: #ffb454;
+        }
+
+        .lineage-link {
+                display: inline-block;
+                margin-top: 8px;
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                color: var(--sn-cyan);
+                text-decoration: none;
+        }
+        .lineage-link:hover { text-decoration: underline; }
+
         .lineage-empty {
                 margin: 8px 0 2px;
                 font-size: 0.78rem;

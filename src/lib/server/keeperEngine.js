@@ -61,6 +61,19 @@ export function resolveLineage(playerId, draftsById, txById) {
         // one onward belongs to the lineage the player can still be kept on; anything
         // before it was reset by a drop and is "previous history".
         let lineageStart = null;
+        // Why the active lineage's keeper clock reset, when an earlier lineage was
+        // broken before it began. Codes: 'drop' (explicit drop), 'redraft' (a
+        // non-keeper re-draft of a player who already had a lineage — they fell back
+        // into the draft pool), 'reacquired' (waiver/trade re-acquisition after the
+        // prior lineage ended without a recorded drop). Stays null for the player's
+        // original, never-reset acquisition.
+        let resetReason = null;
+        // Whether any lineage has ever been established (so a later acquisition that
+        // starts a fresh lineage is a genuine reset, not the original one).
+        let everHadLineage = false;
+        // How the most recent lineage ended, if it ended. 'drop' when an explicit
+        // drop broke it; null when it simply lapsed (e.g. not kept → re-drafted).
+        let lastBreak = null;
 
         for (const ev of events) {
                 if (ev.kind === 'draft') {
@@ -74,12 +87,20 @@ export function resolveLineage(playerId, draftsById, txById) {
                                 source: ev.isKeeper ? 'keeper' : 'draft'
                         };
                         lineageStart = ev;
+                        // A non-keeper re-draft of a player who already had a lineage means
+                        // they returned to the draft pool; an explicit drop is more specific.
+                        resetReason = everHadLineage ? (lastBreak === 'drop' ? 'drop' : 'redraft') : null;
+                        everHadLineage = true;
+                        lastBreak = null;
                         // A keeper draft with no prior lineage in our data means history
                         // starts mid-stream — the true acquisition is older than we know.
                         startedFromKeeper = !!ev.isKeeper;
                 } else if (ev.kind === 'add') {
                         lineage = { acquisitionYear: ev.year, costRound: WAIVER_COST_ROUND, source: 'waiver' };
                         lineageStart = ev;
+                        resetReason = everHadLineage ? (lastBreak === 'drop' ? 'drop' : 'reacquired') : null;
+                        everHadLineage = true;
+                        lastBreak = null;
                         startedFromKeeper = false;
                 } else if (ev.kind === 'trade') {
                         if (!lineage) {
@@ -87,6 +108,9 @@ export function resolveLineage(playerId, draftsById, txById) {
                                 // round-6 acquisition at the trade year and flag for review.
                                 lineage = { acquisitionYear: ev.year, costRound: WAIVER_COST_ROUND, source: 'trade' };
                                 lineageStart = ev;
+                                resetReason = everHadLineage ? (lastBreak === 'drop' ? 'drop' : 'reacquired') : null;
+                                everHadLineage = true;
+                                lastBreak = null;
                                 startedFromKeeper = true;
                         } else {
                                 lineage.traded = true;
@@ -95,11 +119,22 @@ export function resolveLineage(playerId, draftsById, txById) {
                         lineage = null;
                         lineageStart = null;
                         startedFromKeeper = false;
+                        lastBreak = 'drop';
                 }
         }
 
         const startIndex = lineageStart ? events.indexOf(lineageStart) : -1;
-        return { lineage, startedFromKeeper, hasHistory: events.length > 0, events, startIndex };
+        // Only surface a reset reason when there is dimmed history before the active
+        // lineage — i.e. an earlier lineage really was broken.
+        const activeResetReason = startIndex > 0 ? resetReason : null;
+        return {
+                lineage,
+                startedFromKeeper,
+                hasHistory: events.length > 0,
+                events,
+                startIndex,
+                resetReason: activeResetReason
+        };
 }
 
 function buildIndexes(drafts, transactions) {
@@ -127,17 +162,20 @@ function buildIndexes(drafts, transactions) {
  */
 export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById, upcomingYear, teamPicks, roundsMax }) {
         const playerId = playerIdFromKey(playerKey);
-        const { lineage, startedFromKeeper, hasHistory, events, startIndex } = resolveLineage(playerId, draftsById, txById);
+        const { lineage, startedFromKeeper, hasHistory, events, startIndex, resetReason } = resolveLineage(playerId, draftsById, txById);
 
         // A drill-in timeline of every recorded move for this player, oldest first.
         // `current` flags the events that make up the active keeper lineage (from the
-        // most recent acquisition onward); earlier ones were reset by a drop.
+        // most recent acquisition onward); earlier ones were reset by a drop. The
+        // event that begins the active lineage carries `resetReason` (when an earlier
+        // lineage was broken before it) so the UI can render a break marker there.
         const history = (events || []).map((ev, i) => ({
                 year: ev.year,
                 kind: ev.kind,
                 round: ev.kind === 'draft' ? ev.round || null : null,
                 isKeeper: ev.kind === 'draft' ? !!ev.isKeeper : false,
-                current: startIndex >= 0 && i >= startIndex
+                current: startIndex >= 0 && i >= startIndex,
+                resetReason: i === startIndex ? resetReason : null
         }));
 
         const name = detail
@@ -153,7 +191,9 @@ export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById,
                 img: detail?.img || null,
                 teamKey,
                 needsReview: false,
-                history
+                history,
+                resetReason: resetReason || null,
+                resetIndex: resetReason ? startIndex : -1
         };
 
         const maxRound = Number.isFinite(roundsMax) && roundsMax > 0 ? roundsMax : 15;

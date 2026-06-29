@@ -84,6 +84,42 @@ describe('resolveLineage', () => {
                 expect(lineage).toMatchObject({ acquisitionYear: 2023, costRound: 4, source: 'draft' });
                 expect(lineage.traded).toBe(true);
         });
+
+        it('reports no reset reason for an original, never-broken lineage', () => {
+                const { resetReason, startIndex } = resolveLineage(
+                        '100',
+                        draftMap('100', [{ year: 2024, round: 3, is_keeper: false }]),
+                        new Map()
+                );
+                expect(startIndex).toBe(0);
+                expect(resetReason).toBeNull();
+        });
+
+        it('marks a drop-then-reacquire reset as a drop', () => {
+                const { resetReason, startIndex } = resolveLineage(
+                        '100',
+                        draftMap('100', [{ year: 2023, round: 2, is_keeper: false }]),
+                        txMap('100', [
+                                { type: 'drop', year: 2023, timestamp: 5 },
+                                { type: 'add', year: 2024, timestamp: 1 }
+                        ])
+                );
+                expect(startIndex).toBeGreaterThan(0);
+                expect(resetReason).toBe('drop');
+        });
+
+        it('marks a non-keeper re-draft of a prior lineage as a return to the draft pool', () => {
+                const { resetReason, startIndex } = resolveLineage(
+                        '100',
+                        draftMap('100', [
+                                { year: 2022, round: 5, is_keeper: false },
+                                { year: 2024, round: 8, is_keeper: false }
+                        ]),
+                        new Map()
+                );
+                expect(startIndex).toBeGreaterThan(0);
+                expect(resetReason).toBe('redraft');
+        });
 });
 
 describe('evaluatePlayer eligibility', () => {
