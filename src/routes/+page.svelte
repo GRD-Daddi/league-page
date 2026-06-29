@@ -1246,7 +1246,7 @@
   </div>
 
   <!-- League Pot & Payouts -->
-  {#if pot}
+  {#if pot && !data?.requiresAuth}
     <div class="pot-band">
       <div class="pot-inner">
         <div class="pot-grid">
@@ -1377,6 +1377,7 @@
   {/if}
 
   <!-- Last Season Trophies -->
+  {#if !data?.requiresAuth}
   <div class="trophy-band">
     <div class="trophy-inner">
       <div class="band-eyebrow">
@@ -1440,6 +1441,7 @@
       {/if}
     </div>
   </div>
+  {/if}
 
   {#if isDraftPrep}
     <!-- Draft Prep (preseason / offseason) -->

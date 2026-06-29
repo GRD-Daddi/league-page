@@ -30,14 +30,13 @@ export async function load({ locals, url }) {
         });
 
         if (!isAuthenticated) {
-                const potData = await computePotData().catch((err) => {
-                        console.error('[homepage] Error loading pot data:', err.message);
-                        return null;
-                });
+                // Logged-out visitors see the hero + a login prompt only. League data
+                // (pot, payout pool, person-to-beat, trophy room, standings) is gated
+                // behind auth and never sent to the client until the user logs in.
                 return {
                         nflState,
-                        potData,
-                        potWinners,
+                        potData: null,
+                        potWinners: [],
                         loginReturnTo,
                         seasonPhase: resolveSeasonPhase(nflState, null),
                         lastSeasonPodium: null,
