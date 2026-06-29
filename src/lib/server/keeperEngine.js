@@ -14,7 +14,9 @@ import { playerIdFromKey } from './keeperArchive.js';
  *  - A non-trade "drop" breaks the lineage (eligibility resets).
  *
  * Eligibility for `upcomingYear`:
- *  - rules: KEEPER_MAX_SEASONS - (upcomingYear - acquisitionYear) >= 1.
+ *  - rules: seasons held = 1 (acquisition) + recorded keeper re-drafts in the
+ *    active lineage; eligible while seasons held < KEEPER_MAX_SEASONS. Tenure is
+ *    counted by ACTUAL kept seasons, never calendar years since the draft.
  *  - pick: the owning team must hold a pick in the keeper's cost round in the
  *    upcoming draft's pick-ownership board.
  */
@@ -170,9 +172,18 @@ export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById,
                 out.costRound = Math.min(Math.max(parseInt(lineage.costRound, 10) || WAIVER_COST_ROUND, 1), maxRound);
                 out.acquisitionYear = lineage.acquisitionYear;
                 out.source = lineage.source;
-                const seasonsUsed = upcomingYear - lineage.acquisitionYear;
-                out.remainingYears = KEEPER_MAX_SEASONS - seasonsUsed;
-                out.eligibleByRules = seasonsUsed >= 0 && out.remainingYears >= 1;
+                // Keeper tenure is counted by ACTUAL seasons held, not calendar years since
+                // the draft. The acquisition (draft / waiver / trade) is season 1; each
+                // recorded keeper re-draft in the ACTIVE lineage adds one more season. A
+                // player drafted years ago but never actually kept has only used season 1
+                // and is still keeper-eligible — calendar-elapsed counting wrongly maxed
+                // those players out (e.g. a 2023 draftee never kept looked "3 seasons
+                // reached" for 2026 despite never being kept once).
+                const keptSeasons = history.filter((h) => h.current && h.isKeeper).length;
+                const seasonsHeld = 1 + keptSeasons;
+                out.seasonsHeld = seasonsHeld;
+                out.remainingYears = KEEPER_MAX_SEASONS - seasonsHeld;
+                out.eligibleByRules = out.remainingYears >= 1;
                 out.needsReview = !!startedFromKeeper;
 
                 const srcLabel =

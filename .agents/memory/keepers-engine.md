@@ -9,6 +9,7 @@ The keeper feature spans persistence → rules engine → public page → commis
 
 ## League rules (not derivable from Yahoo data)
 - **Max 3 seasons total**: the draft/acquire year counts as year 1, so a player is keepable for 2 more seasons after that.
+- **Tenure = ACTUAL kept seasons, NOT calendar years since draft.** `evaluatePlayer` computes `seasonsHeld = 1 + (count of current+isKeeper draft events in the active lineage)`; eligible while `seasonsHeld < KEEPER_MAX_SEASONS`. **Why:** the old code used `upcomingYear - acquisitionYear`, which wrongly maxed out anyone drafted ≥3 yrs ago even if never actually kept (e.g. Kenny Gainwell, Quentin Johnston, Chris Rodriguez all showed "max 3 seasons reached" despite 0 keeper events). The `transaction_archive` is empty so re-acquisitions are invisible, but recorded keeper draft rows (is_keeper) ARE reliable — so count keeper events, never the calendar. `keeperYearsRemaining()` in keeperRules.js is a raw calendar helper and is NOT authoritative (currently unused by app code).
 - **Drop breaks lineage**: dropping to FA/waivers resets eligibility; a later re-acquire starts a fresh year-1 lineage.
 - **Trade carries year-count AND cost** to the new team (cost is sticky to where the player was last *drafted*).
 - **Cost = round last drafted** (sticky across trades). A waiver/FA pickup that was never drafted costs a **round-6** pick.

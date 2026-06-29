@@ -12,10 +12,11 @@ export const KEEPER_MAX_SEASONS = 3;
 export const WAIVER_COST_ROUND = 6;
 
 /**
- * Keeper years remaining (including the upcoming season) for a lineage that began
- * in `acquisitionYear`, evaluated for `upcomingYear`. >= 1 means the player can
- * still be kept; <= 0 means the 3-season designation is used up. Returns null
- * when the acquisition year is unknown.
+ * Raw calendar span helper: KEEPER_MAX_SEASONS minus the calendar years elapsed
+ * since `acquisitionYear`. NOTE: this is NOT the authoritative keeper eligibility
+ * — that lives in keeperEngine.evaluatePlayer() and counts ACTUAL kept seasons
+ * (a player drafted long ago but never actually kept is still eligible). Returns
+ * null when the acquisition year is unknown.
  */
 export function keeperYearsRemaining(acquisitionYear, upcomingYear) {
         if (!Number.isFinite(acquisitionYear) || !Number.isFinite(upcomingYear)) return null;
