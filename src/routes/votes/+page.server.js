@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { requireAuth } from '$lib/server/authGuard.js';
 import { isCommissioner } from '$lib/server/commissioner.js';
+import { loadLeagueUsers } from '$lib/server/dataLoaders.js';
 import {
         listProposals,
         createProposal,
@@ -15,7 +16,16 @@ import {
 export async function load({ locals, url }) {
         requireAuth(locals, url);
 
-        const proposals = await listProposals(locals.session);
+        // League owner roster powers the "who has / hasn't voted" list on open votes.
+        // Best-effort: if Yahoo is unavailable the page still renders without it.
+        let leagueUsers = [];
+        try {
+                leagueUsers = await loadLeagueUsers(locals.yahooClient, locals.leagueKey);
+        } catch {
+                leagueUsers = [];
+        }
+
+        const proposals = await listProposals(locals.session, leagueUsers);
         return {
                 votes: {
                         ...proposals,

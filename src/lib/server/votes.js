@@ -91,11 +91,59 @@ export async function autoCloseExpired() {
 }
 
 /**
+ * Builds the "who has voted / who hasn't" roster for an open proposal by joining
+ * the league's owner list to the proposal's ballots.
+ *
+ * Privacy: this exposes only *whether* each owner has voted, never their choice.
+ * Individual ballot choices stay anonymous both while the vote is open and after
+ * it closes — only aggregate tallies are ever shown. The roster exists so a
+ * commissioner can chase down owners who haven't voted before the deadline.
+ *
+ * Matching is defensive because Yahoo masks most managers' GUIDs as
+ * "--hidden--" (see leagueAdapter): a ballot's owner_id is the voter's real
+ * GUID, but a league-user entry may only carry a team_key fallback. We therefore
+ * match on GUID, on the user's stable id, and finally on display name.
+ */
+function buildVoterRoster(leagueUsers, ballots) {
+        const owners = Array.isArray(leagueUsers) ? leagueUsers : [];
+
+        const votedIds = new Set();
+        const votedNames = new Set();
+        for (const b of ballots || []) {
+                if (b.owner_id) votedIds.add(String(b.owner_id));
+                if (b.owner_name) votedNames.add(b.owner_name.toString().trim().toLowerCase());
+        }
+
+        const roster = owners.map((u) => {
+                const guid = u?.metadata?.yahoo_guid || null;
+                const id = u?.user_id || null;
+                const name = (u?.display_name || u?.username || 'Owner').toString();
+                const voted =
+                        (guid && votedIds.has(String(guid))) ||
+                        (id && votedIds.has(String(id))) ||
+                        votedNames.has(name.trim().toLowerCase());
+                return { name, voted, avatar: u?.avatar || null };
+        });
+
+        // Owners who still need to vote float to the top so they're easy to chase.
+        roster.sort((a, b) => {
+                if (a.voted !== b.voted) return a.voted ? 1 : -1;
+                return a.name.localeCompare(b.name);
+        });
+
+        const votedCount = roster.filter((r) => r.voted).length;
+        return { roster, votedCount, totalOwners: roster.length };
+}
+
+/**
  * Returns the full vote board for the current session: open votes (with the
  * owner's own ballot), pending proposals (commissioner-relevant), and the closed
  * archive — every proposal annotated with its tally and winner.
+ *
+ * `leagueUsers` (from loadLeagueUsers) powers the voted/not-voted roster shown on
+ * open proposals; pass an empty array to skip it.
  */
-export async function listProposals(session) {
+export async function listProposals(session, leagueUsers = []) {
         await autoCloseExpired();
 
         const owner = getCurrentOwner(session);
@@ -126,6 +174,12 @@ export async function listProposals(session) {
         const decorated = proposals.map((p) => {
                 const ballots = ballotsByProposal.get(p.id) || [];
                 const tally = buildTally(p, ballots);
+                // Only open app votes have live per-owner ballots worth a roster;
+                // imported/closed votes carry no recoverable per-owner data.
+                const voterRoster =
+                        p.status === 'open' && p.source !== 'imported'
+                                ? buildVoterRoster(leagueUsers, ballots)
+                                : null;
                 return {
                         id: p.id,
                         title: p.title,
@@ -143,7 +197,8 @@ export async function listProposals(session) {
                         winningOption: p.status === 'closed' ? p.winning_option : null,
                         counts: tally.counts,
                         totalVotes: tally.totalVotes,
-                        myChoice: myBallots.get(p.id) || null
+                        myChoice: myBallots.get(p.id) || null,
+                        voterRoster
                 };
         });
 

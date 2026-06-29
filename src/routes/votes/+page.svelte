@@ -212,6 +212,25 @@
                                                                 </form>
                                                         {/if}
                                                 </div>
+
+                                                {#if p.voterRoster?.totalOwners}
+                                                        <div class="turnout">
+                                                                <div class="turnout-head">
+                                                                        <span class="turnout-label">Turnout</span>
+                                                                        <span class="turnout-count">{p.voterRoster.votedCount} of {p.voterRoster.totalOwners} owners voted</span>
+                                                                </div>
+                                                                <ul class="roster">
+                                                                        {#each p.voterRoster.roster as owner (owner.name)}
+                                                                                <li class="roster-item" class:voted={owner.voted}>
+                                                                                        <span class="dot" aria-hidden="true">{owner.voted ? '✓' : ''}</span>
+                                                                                        <span class="roster-name">{owner.name}</span>
+                                                                                        <span class="roster-status">{owner.voted ? 'Voted' : 'Not yet'}</span>
+                                                                                </li>
+                                                                        {/each}
+                                                                </ul>
+                                                                <p class="roster-note muted">Choices stay anonymous — only whether each owner has voted is shown.</p>
+                                                        </div>
+                                                {/if}
                                         </section>
                                 {/each}
                         {/if}
@@ -451,6 +470,51 @@
         .result-row .fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,255,255,0.04); z-index: 0; }
         .result-row.won .fill { background: rgba(204, 255, 0, 0.12); }
         .result-row.won .opt-label { color: var(--sn-lime); }
+
+        .turnout {
+                margin-top: 18px;
+                padding-top: 16px;
+                border-top: 1px solid var(--sn-border-soft);
+        }
+        .turnout-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+        .turnout-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.14em; color: var(--sn-text-mute); }
+        .turnout-count { font-size: 0.82rem; color: var(--sn-text-dim); font-weight: 600; }
+        .roster {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 8px;
+        }
+        .roster-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 12px;
+                background: var(--sn-surface-2);
+                border: 1px solid var(--sn-border-soft);
+                border-radius: 6px;
+        }
+        .roster-item.voted { border-color: rgba(204, 255, 0, 0.3); background: rgba(204, 255, 0, 0.06); }
+        .roster-item .dot {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 18px;
+                height: 18px;
+                flex-shrink: 0;
+                border-radius: 999px;
+                border: 1px solid var(--sn-border);
+                font-size: 11px;
+                font-weight: 900;
+                color: var(--sn-bg, #0b0b0b);
+        }
+        .roster-item.voted .dot { background: var(--sn-lime); border-color: var(--sn-lime); }
+        .roster-name { flex: 1; font-weight: 700; font-size: 0.88rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .roster-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sn-text-mute); flex-shrink: 0; }
+        .roster-item.voted .roster-status { color: var(--sn-lime); }
+        .roster-note { margin: 12px 0 0; font-size: 0.78rem; }
 
         @media (max-width: 600px) {
                 .toolbar { flex-direction: column; align-items: stretch; }

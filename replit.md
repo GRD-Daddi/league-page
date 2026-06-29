@@ -191,6 +191,21 @@ Set `VITE_YAHOO_REDIRECT_URI` environment variable to customize the OAuth redire
 8. Tokens automatically refresh when needed
 9. Session persists across page refreshes for 7 days
 
+## League Votes — Turnout Roster
+
+Open votes on the `/votes` page show a turnout roster: every league owner with a
+"Voted / Not yet" indicator, joined from the live Yahoo owner list to the
+proposal's ballots. Owners who still need to vote sort to the top so the
+commissioner can chase them before the deadline.
+
+**Privacy decision**: individual ballot choices stay **anonymous at all times** —
+both while a vote is open and after it closes. Only aggregate tallies (and, on
+open votes, whether each owner has voted) are ever surfaced; a voter's specific
+choice is never revealed. This preserves the existing anonymous-tally model.
+The roster is shown to all logged-in owners (the page is already login-gated).
+Imported/closed votes have no recoverable per-owner ballots, so no roster is
+shown for them.
+
 ## Configuration
 
 ### Required Setup
