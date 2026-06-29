@@ -11,6 +11,7 @@
                 no_access_token: 'Yahoo did not return an access token.',
                 token_refresh_failed: 'Your session expired and could not be renewed.',
                 not_league_member: 'That Yahoo account is not a member of this league, so it cannot access the site. Sign in with the Yahoo account that owns your team in the league.',
+                yahoo_unavailable: 'Yahoo was too busy to confirm your league membership just now (this usually means a temporary rate limit). Your account may be perfectly fine — please wait a moment and try again.',
                 unexpected: 'An unexpected error occurred during login.'
         };
 

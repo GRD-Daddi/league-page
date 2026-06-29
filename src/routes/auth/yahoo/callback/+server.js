@@ -41,16 +41,22 @@ async function fetchUserTeamKeys(client) {
         }
 
         const keys = [];
+        let anySucceeded = false;
         for (const attempt of attempts) {
                 try {
                         const data = await withRetry(attempt.run);
+                        anySucceeded = true;
                         const found = collectTeamKeys(data);
                         keys.push(...found);
                 } catch (err) {
                         console.error(`[OAuth] team-fetch ${attempt.name} failed:`, err.message);
                 }
         }
-        return [...new Set(keys)];
+        // anySucceeded distinguishes "Yahoo answered and the user genuinely owns no
+        // matching team" (a real non-member) from "every membership lookup errored
+        // out" (e.g. a transient rate-limit / 999 Request denied). Only the former
+        // should hard-deny login.
+        return { keys: [...new Set(keys)], anySucceeded };
 }
 
 // Returns the logged-in user's own team_key within the configured league, or
@@ -62,12 +68,12 @@ async function fetchUserTeamKeys(client) {
 async function findUsersTeamInLeague(client, configuredLeagueId) {
         const match = String(configuredLeagueId || '').match(/\.l\.(\d+)/);
         const leagueNum = match ? match[1] : null;
-        if (!leagueNum) return null;
+        if (!leagueNum) return { matchedKey: null, lookupOk: true };
 
-        const keys = await fetchUserTeamKeys(client);
+        const { keys, anySucceeded } = await fetchUserTeamKeys(client);
         const needle = `.l.${leagueNum}.`;
         const matchedKey = keys.find((tk) => tk.includes(needle)) || null;
-        return matchedKey;
+        return { matchedKey, lookupOk: anySucceeded };
 }
 
 export async function GET({ url, cookies, fetch }) {
@@ -138,8 +144,15 @@ export async function GET({ url, cookies, fetch }) {
                 }
 
                 // Membership gate: only people who own a team in THIS league may sign in.
-                const usersTeamKey = await findUsersTeamInLeague(authenticatedClient, leagueID);
+                const { matchedKey: usersTeamKey, lookupOk } = await findUsersTeamInLeague(authenticatedClient, leagueID);
                 if (!usersTeamKey) {
+                        if (!lookupOk) {
+                                // Every membership lookup failed (e.g. Yahoo rate-limit / 999
+                                // Request denied) — we can't prove they're NOT a member, so don't
+                                // lock out a real owner. Send them to a retryable error instead.
+                                console.warn('[OAuth] Membership check inconclusive (Yahoo lookup failed) for league', leagueID);
+                                throw redirect(302, '/auth/error?reason=yahoo_unavailable');
+                        }
                         console.warn('[OAuth] Login denied — Yahoo account has no team in league', leagueID);
                         throw redirect(302, '/auth/error?reason=not_league_member');
                 }
