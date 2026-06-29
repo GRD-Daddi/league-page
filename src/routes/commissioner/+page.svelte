@@ -703,6 +703,12 @@
                                                                                                         <input type="hidden" name="status" value="approved" />
                                                                                                         <button class="chip" type="submit">Approve</button>
                                                                                                 </form>
+                                                                                                <form method="POST" action="?/rejectKeeper" use:enhance={keepValues}>
+                                                                                                        <input type="hidden" name="year" value={c.year} />
+                                                                                                        <input type="hidden" name="teamKey" value={k.team_key} />
+                                                                                                        <input type="hidden" name="playerKey" value={k.player_key} />
+                                                                                                        <button class="chip danger" type="submit">Reject</button>
+                                                                                                </form>
                                                                                         {/if}
                                                                                 </td>
                                                                         </tr>
@@ -859,6 +865,8 @@
         .chip:hover { border-color: #00f0ff; color: #00f0ff; }
         .chip.paid { background: rgba(204,255,0,0.15); border-color: rgba(204,255,0,0.4); color: #ccff00; }
         .chip.ghost { border-style: dashed; }
+        .chip.danger { border-color: rgba(248,113,113,0.5); color: #f87171; }
+        .chip.danger:hover { border-color: #f87171; color: #fca5a5; }
         .chip:disabled { opacity: 0.35; cursor: not-allowed; }
         .chip:disabled:hover { border-color: #374151; color: #9ca3af; }
         .payout-row.disabled .amt { color: #6b7280; text-decoration: line-through; }

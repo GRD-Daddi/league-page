@@ -16,7 +16,7 @@ import {
 } from '$lib/server/pot.js';
 import { getArchivedSeasons } from '$lib/server/archive.js';
 import { getDraftPickOwnership, saveDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
-import { getKeeperState, setAllKeeperStatus, approveKeeper, approveAllKeepers, reconcileApprovedKeepersWithPicks } from '$lib/server/keepers.js';
+import { getKeeperState, setAllKeeperStatus, approveKeeper, approveAllKeepers, reconcileApprovedKeepersWithPicks, removeKeeperSelection } from '$lib/server/keepers.js';
 import { backfillKeeperHistory, getArchiveStats } from '$lib/server/keeperArchive.js';
 import { getYahooTradedPicks, teamNumFromKey } from '$lib/yahoo-adapter/index.js';
 
@@ -488,6 +488,21 @@ export const actions = {
                 });
                 if (!res.ok) return fail(400, { error: res.error });
                 return { success: true, action: 'approveKeeper' };
+        },
+
+        rejectKeeper: async ({ request, locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                const form = await request.formData();
+                const year = parseYear(form.get('year'), getCurrentSeasonYear());
+                const teamKey = (form.get('teamKey') || '').toString().trim();
+                const playerKey = (form.get('playerKey') || '').toString().trim();
+
+                if (!teamKey || !playerKey) return fail(400, { error: 'Missing team or player' });
+
+                await removeKeeperSelection(year, teamKey, playerKey);
+                return { success: true, action: 'rejectKeeper' };
         },
 
         approveAllKeepers: async ({ request, locals }) => {
