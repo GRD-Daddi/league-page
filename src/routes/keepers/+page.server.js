@@ -19,7 +19,10 @@ export async function load({ locals }) {
                 captureKeeperData(yahooClient, leagueKey).catch(() => {});
         }
 
-        const state = await getKeeperState(year, yahooClient, leagueKey);
+        // Scope the per-viewer Yahoo cache to this logged-in user so repeated
+        // loads (e.g. after each Keep/Remove) are fast without ever sharing one
+        // member's roster data with another viewer.
+        const state = await getKeeperState(year, yahooClient, leagueKey, locals.session?.userId || null);
         const myTeamKey = locals.session?.managerInfo?.metadata?.team_key || null;
 
         // Logged-out visitors have no Yahoo client, so live rosters can't load.

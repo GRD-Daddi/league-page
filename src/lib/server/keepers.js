@@ -115,15 +115,15 @@ export async function reconcileApprovedKeepersWithPicks(year, pickOwnership) {
  * eligibility, merged with current selection status, plus per-team pick
  * consumption so the UI can show remaining keeper capacity per round.
  */
-export async function getKeeperState(year, yahooClient, leagueKey) {
+export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = null) {
         const upcomingYear = Number.isFinite(year) ? year : getCurrentSeasonYear();
 
         const [rostersResult, users, drafts, transactions, pickOwnership, selections] = await Promise.all([
-                loadLeagueRostersWithFallback(yahooClient, leagueKey).catch((e) => {
+                loadLeagueRostersWithFallback(yahooClient, leagueKey, viewerKey).catch((e) => {
                         console.error('[keepers] roster load failed:', e?.message);
                         return null;
                 }),
-                loadLeagueUsers(yahooClient, leagueKey).catch(() => []),
+                loadLeagueUsers(yahooClient, leagueKey, viewerKey).catch(() => []),
                 getDraftResultsArchive().catch(() => []),
                 getTransactionArchive().catch(() => []),
                 getDraftPickOwnership(upcomingYear).catch(() => ({ rounds: DRAFT_ROUNDS, teams: [] })),

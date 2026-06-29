@@ -5,6 +5,20 @@
         export let data;
         export let form;
 
+        // Tracks which player's Keep/Remove is mid-flight so its button can show an
+        // immediate "saving" state instead of looking frozen during the round-trip.
+        let submitting = {};
+        function submitKeeper(key) {
+                submitting = { ...submitting, [key]: true };
+                return async ({ update }) => {
+                        try {
+                                await update();
+                        } finally {
+                                submitting = { ...submitting, [key]: false };
+                        }
+                };
+        }
+
         $: keepers = data.keepers;
         $: teams = keepers?.teams || [];
         $: myTeamKey = keepers?.myTeamKey || null;
@@ -315,16 +329,16 @@
                                                                                                         {#if editable}
                                                                                                                 <div class="player-action">
                                                                                                                         {#if p.selected}
-                                                                                                                                <form method="POST" action="?/unselect" use:enhance>
+                                                                                                                                <form method="POST" action="?/unselect" use:enhance={() => submitKeeper(team.teamKey + '::' + p.playerKey)}>
                                                                                                                                         <input type="hidden" name="teamKey" value={team.teamKey} />
                                                                                                                                         <input type="hidden" name="playerKey" value={p.playerKey} />
-                                                                                                                                        <button class="sn-btn ghost" type="submit"><span>Remove</span></button>
+                                                                                                                                        <button class="sn-btn ghost" type="submit" disabled={submitting[team.teamKey + '::' + p.playerKey]}><span>{submitting[team.teamKey + '::' + p.playerKey] ? 'Saving…' : 'Remove'}</span></button>
                                                                                                                                 </form>
                                                                                                                         {:else if p.canSelect}
-                                                                                                                                <form method="POST" action="?/select" use:enhance>
+                                                                                                                                <form method="POST" action="?/select" use:enhance={() => submitKeeper(team.teamKey + '::' + p.playerKey)}>
                                                                                                                                         <input type="hidden" name="teamKey" value={team.teamKey} />
                                                                                                                                         <input type="hidden" name="playerKey" value={p.playerKey} />
-                                                                                                                                        <button class="sn-btn primary" type="submit"><span>Keep</span></button>
+                                                                                                                                        <button class="sn-btn primary" type="submit" disabled={submitting[team.teamKey + '::' + p.playerKey]}><span>{submitting[team.teamKey + '::' + p.playerKey] ? 'Saving…' : 'Keep'}</span></button>
                                                                                                                                 </form>
                                                                                                                         {:else}
                                                                                                                                 <span class="no-pick" title="No picks left in round {g.round}">No pick left</span>

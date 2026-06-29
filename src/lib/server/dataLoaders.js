@@ -16,6 +16,36 @@ import { findPreviousSeasonLeagueKey } from '$lib/yahoo-adapter/leagueAdapter.js
 
 const isAuthError = (err) => err?.message?.includes('missing user token') || err?.message?.includes('authentication required') || err?.description?.includes?.('logged in');
 
+// Short-lived in-memory cache for the slow, rarely-changing Yahoo league data
+// (full roster fallback walk + league users). These don't change between, say,
+// a manager's keeper clicks, but each click re-runs the page load — which would
+// otherwise re-hit Yahoo (walking up to 12 seasons of the renew chain) every
+// time. Keeper SELECTIONS are read fresh from Postgres, so caching this Yahoo
+// layer never serves stale selection state.
+//
+// The cache is OPT-IN: a caller must pass an explicit `cacheScope` (the viewer's
+// own user id) AND an authenticated yahooClient. The scope is part of the key, so
+// one member's cached payload is NEVER served to a different (or non-member)
+// viewer — their own Yahoo request still decides what they can see. Pages that
+// don't pass a scope (the default) are never cached, so their behavior is
+// unchanged.
+const LEAGUE_CACHE_TTL_MS = 60_000;
+const leagueCache = new Map(); // key -> { value, expires }
+
+function getCachedLeagueData(key) {
+        const hit = leagueCache.get(key);
+        if (!hit) return undefined;
+        if (hit.expires <= Date.now()) {
+                leagueCache.delete(key);
+                return undefined;
+        }
+        return hit.value;
+}
+
+function setCachedLeagueData(key, value) {
+        leagueCache.set(key, { value, expires: Date.now() + LEAGUE_CACHE_TTL_MS });
+}
+
 export async function loadLeagueData(yahooClient = null, queryLeagueID = configuredLeagueID) {
         try {
                 return await getLeagueDataApi(queryLeagueID, yahooClient);
@@ -41,7 +71,22 @@ export async function loadLeagueRosters(yahooClient = null, queryLeagueID = conf
 // season, which Yahoo links via the `renew` chain (exposed as previous_league_id).
 // Walk that chain until we find a season whose teams actually have players, so the
 // rosters page shows last season's rosters instead of a wall of "No Players".
-export async function loadLeagueRostersWithFallback(yahooClient = null, queryLeagueID = configuredLeagueID) {
+export async function loadLeagueRostersWithFallback(yahooClient = null, queryLeagueID = configuredLeagueID, cacheScope = null) {
+        const canCache = !!(yahooClient && cacheScope);
+        const cacheKey = `rostersFallback:${queryLeagueID}:${cacheScope}`;
+        if (canCache) {
+                const cached = getCachedLeagueData(cacheKey);
+                if (cached !== undefined) return cached;
+        }
+        const result = await _loadLeagueRostersWithFallback(yahooClient, queryLeagueID);
+        // Only cache genuine roster data for a scoped authenticated viewer; never
+        // cache the null auth-error result (logged-out visitors must still get the
+        // public view).
+        if (canCache && result) setCachedLeagueData(cacheKey, result);
+        return result;
+}
+
+async function _loadLeagueRostersWithFallback(yahooClient, queryLeagueID) {
         let leagueKey = queryLeagueID;
         let guard = 0;
         let currentSeasonResult = null;
@@ -94,9 +139,21 @@ export async function loadLeagueRostersWithFallback(yahooClient = null, queryLea
         return currentSeasonResult;
 }
 
-export async function loadLeagueUsers(yahooClient = null, queryLeagueID = configuredLeagueID) {
+export async function loadLeagueUsers(yahooClient = null, queryLeagueID = configuredLeagueID, cacheScope = null) {
+        const canCache = !!(yahooClient && cacheScope);
+        const cacheKey = `users:${queryLeagueID}:${cacheScope}`;
+        if (canCache) {
+                const cached = getCachedLeagueData(cacheKey);
+                if (cached !== undefined) return cached;
+        }
         try {
-                return await getLeagueUsersApi(queryLeagueID, yahooClient);
+                const users = await getLeagueUsersApi(queryLeagueID, yahooClient);
+                // Cache only a non-empty result for a scoped authenticated viewer ([]
+                // means an auth error / no client, which must not be cached).
+                if (canCache && Array.isArray(users) && users.length) {
+                        setCachedLeagueData(cacheKey, users);
+                }
+                return users;
         } catch (err) {
                 if (isAuthError(err)) return [];
                 throw err;

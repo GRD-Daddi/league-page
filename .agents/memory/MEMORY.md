@@ -29,3 +29,4 @@
 - [Keeper cross-season team_key bridge](keeper-cross-season-teamkey-bridge.md) — preseason rosters fall back to last season (new league key + reshuffled .t.N); remap to upcoming key by owner GUID (then unambiguous team name), never .t.N, or every team shows "no pick".
 - [Yahoo transaction player-movement shape](yahoo-transaction-player-shape.md) — library puts player moves under player.transaction (not .transaction_data); reading wrong field → empty adds/drops → "0 transaction events" import & broken /transactions page.
 - [Vote turnout roster join](vote-turnout-roster.md) — open-vote "who voted" roster joins Yahoo owners↔ballots; match GUID then stable id then display-name (guids hidden); choices stay anonymous always.
+- [Keepers perf / per-viewer cache](keepers-perf-cache.md) — Keep/Remove felt frozen because use:enhance reruns load() → refetches all Yahoo data each click; fix = 60s cache scoped by session.userId (never league-key alone) + Saving… button state.
