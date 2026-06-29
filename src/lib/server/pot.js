@@ -21,7 +21,7 @@ function num(value, fallback = 0) {
 }
 
 export async function getSettings() {
-        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pool_share, pot_adjustment, points_leader_amount FROM pot_settings WHERE id = 1');
+        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pool_share, pot_adjustment, points_leader_amount, max_keepers FROM pot_settings WHERE id = 1');
         const row = rows[0] || {};
         const buyIn = num(row.buy_in_amount, 150);
         const legacyPct = num(row.pot_split_pct, 50);
@@ -39,7 +39,8 @@ export async function getSettings() {
                 potShare,
                 potSplitPct: buyIn > 0 ? (potShare / buyIn) * 100 : 0,
                 potAdjustment: num(row.pot_adjustment, 0),
-                pointsLeaderAmount: num(row.points_leader_amount, 10)
+                pointsLeaderAmount: num(row.points_leader_amount, 10),
+                maxKeepers: Math.max(1, Math.round(num(row.max_keepers, 2)))
         };
 }
 

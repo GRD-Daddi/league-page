@@ -176,6 +176,21 @@ export const actions = {
                 return { success: true, action: 'updateSettings' };
         },
 
+        updateKeeperSettings: async ({ request, locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                const form = await request.formData();
+                const parsed = parseInt(form.get('maxKeepers'), 10);
+                const maxKeepers = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+
+                await query(
+                        'UPDATE pot_settings SET max_keepers = $1, updated_at = now() WHERE id = 1',
+                        [maxKeepers]
+                );
+                return { success: true, action: 'updateKeeperSettings' };
+        },
+
         setPotTotal: async ({ request, locals }) => {
                 const denied = await ensureCommissioner(locals);
                 if (denied) return denied;

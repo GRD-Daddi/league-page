@@ -20,6 +20,7 @@
         }
 
         $: keepers = data.keepers;
+        $: maxKeepers = keepers?.maxKeepers ?? 2;
         $: teams = keepers?.teams || [];
         $: myTeamKey = keepers?.myTeamKey || null;
         $: publicTeams = keepers?.publicTeams || [];
@@ -158,6 +159,7 @@
                 <div class="sn-card flat rules-card">
                         <h2 class="rules-title">KEEPER RULES</h2>
                         <ul class="rules-list">
+                                <li>Each team can keep up to <strong>{maxKeepers} player{maxKeepers === 1 ? '' : 's'}</strong> per season.</li>
                                 <li>Keep a player for up to <strong>{KEEPER_MAX_SEASONS} seasons</strong> total (the season you draft or sign them is season 1).</li>
                                 <li>Keeper cost = the <strong>round you drafted</strong> them, and it sticks even after a trade.</li>
                                 <li>Players added off waivers or free agency cost a <strong>round {WAIVER_COST_ROUND}</strong> pick.</li>
@@ -246,6 +248,7 @@
                                                                 {/if}
                                                         </div>
                                                         <div class="team-counts">
+                                                                <span class="sn-badge {team.atLimit ? 'amber' : ''}">{team.selectedCount}/{team.keeperLimit} kept</span>
                                                                 <span class="sn-badge {team.approvedCount ? 'lime' : ''}">{team.approvedCount} approved</span>
                                                                 {#if team.selectedCount > team.approvedCount}
                                                                         <span class="sn-badge cyan">{team.selectedCount - team.approvedCount} pending</span>
@@ -340,6 +343,8 @@
                                                                                                                                         <input type="hidden" name="playerKey" value={p.playerKey} />
                                                                                                                                         <button class="sn-btn primary" type="submit" disabled={submitting[team.teamKey + '::' + p.playerKey]}><span>{submitting[team.teamKey + '::' + p.playerKey] ? 'Saving…' : 'Keep'}</span></button>
                                                                                                                                 </form>
+                                                                                                                        {:else if p.blockedByLimit}
+                                                                                                                                <span class="no-pick" title="This team has reached its keeper limit of {team.keeperLimit}">Limit reached</span>
                                                                                                                         {:else}
                                                                                                                                 <span class="no-pick" title="No picks left in round {g.round}">No pick left</span>
                                                                                                                         {/if}

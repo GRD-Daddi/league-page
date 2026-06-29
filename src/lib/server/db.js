@@ -89,6 +89,11 @@ UPDATE season_records
 -- offset added to the derived pot total, so paid buy-ins still accumulate on top.
 ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS pot_adjustment NUMERIC NOT NULL DEFAULT 0;
 
+-- max_keepers caps how many players each team may keep per season (commissioner
+-- configurable; defaults to 2). Enforced server-side in the keeper engine and
+-- surfaced on the public Keepers page so managers can't exceed it.
+ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS max_keepers INTEGER NOT NULL DEFAULT 2;
+
 -- Per-place "enabled" flags let the commissioner hide/disable payout spots that
 -- the league doesn't actually pay (e.g. only 1st & 2nd get paid → disable 3rd).
 -- Disabled places are hidden on the public page and excluded from pool math.

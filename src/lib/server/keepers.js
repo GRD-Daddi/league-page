@@ -1,5 +1,5 @@
 import { query } from './db.js';
-import { getCurrentSeasonYear } from './pot.js';
+import { getCurrentSeasonYear, getSettings } from './pot.js';
 import { loadLeagueRostersWithFallback, loadLeagueUsers } from './dataLoaders.js';
 import { getDraftPickOwnership, DRAFT_ROUNDS } from './draftPicks.js';
 import { getDraftResultsArchive, getTransactionArchive, playerIdFromKey } from './keeperArchive.js';
@@ -118,7 +118,7 @@ export async function reconcileApprovedKeepersWithPicks(year, pickOwnership) {
 export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = null) {
         const upcomingYear = Number.isFinite(year) ? year : getCurrentSeasonYear();
 
-        const [rostersResult, users, drafts, transactions, pickOwnership, selections] = await Promise.all([
+        const [rostersResult, users, drafts, transactions, pickOwnership, selections, settings] = await Promise.all([
                 loadLeagueRostersWithFallback(yahooClient, leagueKey, viewerKey).catch((e) => {
                         console.error('[keepers] roster load failed:', e?.message);
                         return null;
@@ -127,8 +127,12 @@ export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = n
                 getDraftResultsArchive().catch(() => []),
                 getTransactionArchive().catch(() => []),
                 getDraftPickOwnership(upcomingYear).catch(() => ({ rounds: DRAFT_ROUNDS, teams: [] })),
-                getKeeperSelections(upcomingYear).catch(() => [])
+                getKeeperSelections(upcomingYear).catch(() => []),
+                getSettings().catch(() => ({ maxKeepers: 2 }))
         ]);
+
+        // League-wide cap on how many players a team may keep (commissioner setting).
+        const maxKeepers = Math.max(1, Math.round(Number(settings?.maxKeepers) || 2));
 
         const requiresAuth = rostersResult === null;
         const rostersMap = rostersResult?.rosters || {};
@@ -220,6 +224,10 @@ export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = n
                 const consumed = consumedByTeamRound.get(team.teamKey) || new Map();
                 team.selectedCount = 0;
                 team.approvedCount = 0;
+                // Total keepers already committed across all rounds — drives the per-team cap.
+                const totalSelected = [...consumed.values()].reduce((a, b) => a + b, 0);
+                team.keeperLimit = maxKeepers;
+                team.atLimit = totalSelected >= maxKeepers;
 
                 for (const p of team.players) {
                         const sel = selByTeamPlayer.get(`${team.teamKey}::${p.playerKey}`);
@@ -234,8 +242,11 @@ export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = n
                         const usedInRound = consumed.get(p.costRound) || 0;
                         const remainingInRound = p.ownedPicksInRound - usedInRound + (p.selected ? 1 : 0);
                         p.pickAvailable = remainingInRound > 0;
+                        // A not-yet-selected, otherwise-keepable player is blocked when the team
+                        // has already hit its keeper cap. Selected players are never "blocked".
+                        p.blockedByLimit = !p.selected && !!p.eligibleByRules && p.pickAvailable && totalSelected >= maxKeepers;
                         // Effective selectability for a manager picking right now.
-                        p.canSelect = !!p.eligibleByRules && (p.selected || p.pickAvailable);
+                        p.canSelect = !!p.eligibleByRules && (p.selected || (p.pickAvailable && !p.blockedByLimit));
                 }
 
                 // Per-round over-subscription: each keeper consumes its cost-round pick,
@@ -275,6 +286,26 @@ export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = n
         for (const team of teams) {
                 for (const p of team.players) evalByTeamPlayer.set(`${team.teamKey}::${p.playerKey}`, p);
         }
+
+        // Per-team keeper cap: when a team has more selections than the configured
+        // max (selections predate the cap, or the commissioner lowered it), flag
+        // the overflow as an issue so it can't be approved. Approved keepers are
+        // protected first, then the earliest cost-round picks; the rest are over.
+        const overLimitKeys = new Set();
+        const selByTeam = new Map();
+        for (const s of selections) {
+                if (!selByTeam.has(s.team_key)) selByTeam.set(s.team_key, []);
+                selByTeam.get(s.team_key).push(s);
+        }
+        for (const list of selByTeam.values()) {
+                const ordered = [...list].sort((a, b) => {
+                        const ap = (a.status === 'approved' ? 0 : 1) - (b.status === 'approved' ? 0 : 1);
+                        if (ap !== 0) return ap;
+                        return Number(a.cost_round) - Number(b.cost_round);
+                });
+                ordered.slice(maxKeepers).forEach((s) => overLimitKeys.add(`${s.team_key}::${s.player_key}`));
+        }
+
         for (const s of selections) {
                 if (requiresAuth) {
                         s.valid = null; // cannot validate without live rosters
@@ -295,6 +326,9 @@ export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = n
                                 warnings.push(`Keeper cost changed R${s.cost_round} \u2192 R${ev.costRound}`);
                         }
                 }
+                if (overLimitKeys.has(`${s.team_key}::${s.player_key}`)) {
+                        issues.push(`Over the keeper limit of ${maxKeepers}`);
+                }
                 s.issues = issues;
                 s.warnings = warnings;
                 s.valid = issues.length === 0;
@@ -303,6 +337,7 @@ export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = n
         return {
                 upcomingYear,
                 requiresAuth,
+                maxKeepers,
                 fromSeason: rostersResult?.fromSeason || null,
                 teams,
                 pickOwnership,
@@ -328,6 +363,11 @@ export async function saveKeeperSelection({ year, teamKey, playerKey, submittedB
         if (!player) return { ok: false, error: 'Player is not on this team\u2019s roster.' };
         if (player.selected) return { ok: true }; // already selected — idempotent
         if (!player.eligibleByRules) return { ok: false, error: 'Player is not keeper-eligible (3-season limit reached).' };
+        // team.atLimit is derived from the same all-selections count the UI uses,
+        // so server enforcement and the disabled "Limit reached" state stay in sync.
+        if (team.atLimit) {
+                return { ok: false, error: `Keeper limit reached — you can keep at most ${state.maxKeepers} player${state.maxKeepers === 1 ? '' : 's'}.` };
+        }
         if (!player.pickAvailable) {
                 return { ok: false, error: `No available pick in round ${player.costRound} for this keeper.` };
         }

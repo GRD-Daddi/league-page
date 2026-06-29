@@ -33,6 +33,7 @@
         // effect — which looks exactly like "all payouts are 0 and won't save".
         let buyIn = $state(data.commissioner.settings.buyIn);
         let pointsLeaderAmount = $state(data.commissioner.settings.pointsLeaderAmount);
+        let maxKeepers = $state(data.commissioner.settings.maxKeepers ?? 2);
         let firstAmt = $state(data.commissioner.season.payoutFirst);
         let secondAmt = $state(data.commissioner.season.payoutSecond);
         let thirdAmt = $state(data.commissioner.season.payoutThird);
@@ -54,6 +55,7 @@
         $effect(() => {
                 buyIn = c.settings.buyIn;
                 pointsLeaderAmount = c.settings.pointsLeaderAmount;
+                maxKeepers = c.settings.maxKeepers ?? 2;
                 potTotalInput = c.potTotal;
                 firstAmt = c.season.payoutFirst;
                 secondAmt = c.season.payoutSecond;
@@ -575,6 +577,15 @@
                         <h2>{c.year} Keeper Approvals</h2>
                         <p class="card-sub">Managers submit their keepers on the public Keepers page; approve them here. Approved keepers are surfaced on the Draft Room and consume the team's pick in the keeper's cost round. The keeper engine reads imported draft + transaction history — run the import below if numbers look off.</p>
 
+                        <form method="POST" action="?/updateKeeperSettings" use:enhance={keepValues} class="keeper-settings">
+                                <label for="maxKeepers">Max keepers per team</label>
+                                <input id="maxKeepers" type="number" name="maxKeepers" min="1" step="1" bind:value={maxKeepers} />
+                                <button class="btn" type="submit">Save limit</button>
+                        </form>
+                        {#if form?.action === 'updateKeeperSettings' && form?.success}
+                                <div class="banner ok">Keeper limit saved.</div>
+                        {/if}
+
                         <form
                                 method="POST"
                                 action="?/backfillKeeperHistory"
@@ -883,6 +894,9 @@
         .bf-detail { color: #9ca3af; }
         .archived-summary { margin-top: 14px; font-size: 0.78rem; color: #6b7280; }
 
+        .keeper-settings { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+        .keeper-settings label { font-size: 11px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #6b7280; }
+        .keeper-settings input { width: 80px; padding: 8px 10px; border-radius: 8px; border: 1px solid #1f2937; background: #0b0f17; color: #fff; font-weight: 700; }
         .keeper-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 8px; }
         .keeper-group { margin-top: 18px; }
         .keeper-team { font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0 0 8px; }
