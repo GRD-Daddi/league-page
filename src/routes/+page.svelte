@@ -1486,16 +1486,6 @@
           <div class="pot-main">
             <div class="pot-label"><span class="pot-dot"></span> The Carryover Pot</div>
             <div class="pot-amount">{money(displayPotTotal)}</div>
-            {#if poolIsEstimate}
-              <div class="proj-badge">Projected — {projection.paidMembers}/{projection.expectedMembers} buy-ins collected</div>
-              <div class="proj-note">{money(pot.potTotal)} in the account now · {money(projection.unpaidMembers * pot.settings.potShare)} still to come once everyone pays in.</div>
-            {:else if projection && projection.fullyCollected}
-              <div class="proj-badge confirmed">All {projection.expectedMembers} buy-ins collected</div>
-            {/if}
-            <div class="pot-desc">
-              Half of every buy-in builds this pot. It keeps growing until a champion
-              goes <strong>back-to-back</strong> — then they take it all and it resets to zero.
-            </div>
 
             <div class="beat-card">
               {#if pot.champion?.reigning && !pot.champion?.potClaimed}
@@ -1531,9 +1521,6 @@
               <span class="pool-total">{money(displayPoolTotal)}</span>
             </div>
             <div class="pool-sub">Split among the top finishers</div>
-            {#if poolIsEstimate}
-              <div class="proj-badge">Projected · estimated from {projection.expectedMembers} buy-ins</div>
-            {/if}
 
             <div class="pool-rows">
               {#if pot.payoutPool.first.enabled}
