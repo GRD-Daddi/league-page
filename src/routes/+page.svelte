@@ -1120,7 +1120,7 @@
 
   /* ── Last season podium (inside pot section) ── */
   .podium-block {
-    margin-top: 12px;
+    margin-top: 4px;
   }
 
   .podium-block-title {
@@ -1132,7 +1132,7 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: #ffd24a;
-    margin-bottom: 16px;
+    margin-bottom: 0;
   }
 
   .podium-grid {
