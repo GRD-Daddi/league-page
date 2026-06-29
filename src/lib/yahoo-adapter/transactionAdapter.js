@@ -112,6 +112,11 @@ function convertSingleTransaction(trans, picksByTx = new Map()) {
         const drops = {};
         const draftPicks = picksByTx.get(trans.transaction_key) || [];
         const waiverBudget = [];
+        // Yahoo includes the player's display name/position/team directly on the
+        // transaction payload, so we capture it here (keyed by player_key) rather
+        // than bridging to a separate player map. Lets consumers render readable
+        // names without a second lookup.
+        const playersMeta = {};
         
         players.forEach(playerWrapper => {
                 const player = Array.isArray(playerWrapper) ? playerWrapper[0] : playerWrapper;
@@ -120,6 +125,17 @@ function convertSingleTransaction(trans, picksByTx = new Map()) {
                         : (playerWrapper.transaction || playerWrapper.transaction_data);
                 
                 const playerId = player.player_key || player.player_id;
+                if (playerId) {
+                        const rawName = player.name;
+                        const fullName = typeof rawName === 'object'
+                                ? (rawName?.full || [rawName?.first, rawName?.last].filter(Boolean).join(' '))
+                                : rawName;
+                        playersMeta[playerId] = {
+                                name: fullName || null,
+                                pos: player.display_position || player.primary_position || null,
+                                team: player.editorial_team_abbr || player.editorial_team_full_name || null
+                        };
+                }
                 const sourceType = transactionData?.source_type || '';
                 const destType = transactionData?.destination_type || '';
                 const sourceTeam = transactionData?.source_team_key;
@@ -183,6 +199,7 @@ function convertSingleTransaction(trans, picksByTx = new Map()) {
                 drops: drops,
                 draft_picks: draftPicks,
                 waiver_budget: waiverBudget,
+                players_meta: playersMeta,
                 
                 settings: settings,
                 

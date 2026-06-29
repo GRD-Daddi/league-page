@@ -25,6 +25,14 @@ backfill only logs `transactions failed` on a thrown error, so 0 looked like
 "no data" rather than a parse miss. The live `/transactions` page was broken the
 same way but went unnoticed in the offseason.
 
+**Player names are already in the payload:** the library `mergeObjects`-maps each
+transaction player, so `player.name.full`, `player.display_position`, and
+`player.editorial_team_abbr` are present alongside `player_key`. To render
+transaction adds/drops with readable names you do NOT need the Sleeper
+`yahoo_id` bridge — capture name/pos/team into a `players_meta` map keyed by
+player_key right in `convertSingleTransaction`. (The Sleeper player-map bridge is
+only needed where Yahoo doesn't ship the name, e.g. draft picks.)
+
 **How to verify Yahoo shapes:** raw REST + library can be probed from a Node
 script using a fresh `access_token` from the Postgres `sessions` table
 (`data->'tokens'->>'access_token'`). Yahoo returns HTTP 999 "Request denied" to

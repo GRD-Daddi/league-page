@@ -32,6 +32,8 @@
 
   $: standings = getStandings(data?.rosters, data?.users);
 
+  $: recentMoves = data?.recentMoves ?? [];
+
   $: weekLabel = (() => {
     const s = data?.nflState;
     if (!s) return null;
@@ -1132,6 +1134,125 @@
     font-size: 0.875rem;
   }
 
+  /* ── Recent Moves feed ── */
+  .moves-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .move-card {
+    background: #0f1115;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .move-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .move-type {
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #1f2937;
+    color: #9ca3af;
+  }
+
+  .move-type.trade {
+    color: #00f0ff;
+    border-color: rgba(0, 240, 255, 0.4);
+    background: rgba(0, 240, 255, 0.08);
+  }
+
+  .move-type.waiver {
+    color: #c9a227;
+    border-color: rgba(201, 162, 39, 0.4);
+    background: rgba(201, 162, 39, 0.08);
+  }
+
+  .move-type.free_agent {
+    color: #a78bfa;
+    border-color: rgba(112, 0, 255, 0.4);
+    background: rgba(112, 0, 255, 0.08);
+  }
+
+  .move-date {
+    font-size: 0.6875rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+
+  .move-teams {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #e5e7eb;
+    margin-bottom: 6px;
+  }
+
+  .move-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .move-arrow {
+    font-weight: 800;
+    width: 12px;
+    flex-shrink: 0;
+  }
+
+  .move-arrow.add { color: #34d399; }
+  .move-arrow.drop { color: #f87171; }
+
+  .move-player {
+    color: #e5e7eb;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .move-pp {
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.6875rem;
+  }
+
+  .move-to {
+    color: #9ca3af;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .move-bid {
+    margin-top: 6px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #c9a227;
+  }
+
+  .moves-all {
+    display: inline-block;
+    margin-top: 12px;
+    color: #00f0ff;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
   /* ── Last season podium (inside pot section) ── */
   .podium-block {
     margin-top: 4px;
@@ -1837,10 +1958,44 @@
           </h2>
         </div>
 
-        <div class="placeholder-box">
-          <p style="margin:0 0 8px;">No recent transactions to display.</p>
-          <a href="/transactions" style="color:#00f0ff; text-decoration:none; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;">View All Transactions →</a>
-        </div>
+        {#if recentMoves.length > 0}
+          <div class="moves-list">
+            {#each recentMoves as move (move.id)}
+              <div class="move-card">
+                <div class="move-head">
+                  <span class="move-type {move.type}">{move.typeLabel}</span>
+                  <span class="move-date">{move.dateLabel}</span>
+                </div>
+                {#if move.type === 'trade'}
+                  <div class="move-teams">{move.teams.join(' ⇄ ')}</div>
+                {/if}
+                {#each move.adds as p}
+                  <div class="move-line">
+                    <span class="move-arrow add">+</span>
+                    <span class="move-player">{p.name}{#if p.pos}<span class="move-pp"> · {p.pos}{#if p.team} · {p.team}{/if}</span>{/if}</span>
+                    <span class="move-to">{p.teamName}</span>
+                  </div>
+                {/each}
+                {#each move.drops as p}
+                  <div class="move-line">
+                    <span class="move-arrow drop">−</span>
+                    <span class="move-player">{p.name}{#if p.pos}<span class="move-pp"> · {p.pos}{#if p.team} · {p.team}{/if}</span>{/if}</span>
+                    <span class="move-to">{p.teamName}</span>
+                  </div>
+                {/each}
+                {#if move.bid > 0}
+                  <div class="move-bid">${move.bid} FAAB</div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+          <a class="moves-all" href="/transactions">View All Transactions →</a>
+        {:else}
+          <div class="placeholder-box">
+            <p style="margin:0 0 8px;">No recent transactions to display.</p>
+            <a href="/transactions" style="color:#00f0ff; text-decoration:none; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;">View All Transactions →</a>
+          </div>
+        {/if}
       </div>
 
       <!-- Quick Stats -->

@@ -1,4 +1,4 @@
-import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadNFLState } from '$lib/server/dataLoaders.js';
+import { loadLeagueData, loadLeagueRosters, loadLeagueUsers, loadNFLState, loadLeagueTransactions } from '$lib/server/dataLoaders.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise.js';
 import { computePotData, getPotWinners, getCurrentSeasonYear } from '$lib/server/pot.js';
 import { getSeasonPodiums } from '$lib/server/archiveStats.js';
@@ -59,6 +59,58 @@ function teamNumFromKey(teamKey) {
         return m ? parseInt(m[1]) : null;
 }
 
+// Short "Jun 28" date for a millisecond timestamp.
+function shortDate(ms) {
+        if (!ms) return '';
+        const d = new Date(ms);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+// Turn raw Yahoo transactions into a compact "Recent Moves" feed for the
+// homepage widget. Player names come straight from the Yahoo payload
+// (players_meta), team names from the league owner list keyed by team number.
+function buildRecentMoves(transactions, teamNameByNum, limit = 6) {
+        if (!Array.isArray(transactions)) return [];
+        const nameForTeam = (rosterId) =>
+                teamNameByNum.get(rosterId) || (rosterId != null ? `Team ${rosterId}` : 'Free agency');
+        return transactions
+                .filter((t) => t && t.status !== 'failed' && t.status !== 'pending')
+                .filter(
+                        (t) =>
+                                Object.keys(t.adds || {}).length ||
+                                Object.keys(t.drops || {}).length ||
+                                (t.draft_picks || []).length
+                )
+                .sort((a, b) => (b.created || 0) - (a.created || 0))
+                .slice(0, limit)
+                .map((t) => {
+                        const meta = t.players_meta || {};
+                        const toPlayer = ([pk, rosterId]) => ({
+                                name: meta[pk]?.name || 'Player',
+                                pos: meta[pk]?.pos || null,
+                                team: meta[pk]?.team || null,
+                                teamName: nameForTeam(rosterId)
+                        });
+                        const adds = Object.entries(t.adds || {}).map(toPlayer);
+                        const drops = Object.entries(t.drops || {}).map(toPlayer);
+                        let typeLabel = 'Move';
+                        if (t.type === 'trade') typeLabel = 'Trade';
+                        else if (t.type === 'waiver') typeLabel = 'Waiver';
+                        else if (t.type === 'free_agent') typeLabel = 'Free Agent';
+                        return {
+                                id: t.transaction_id,
+                                type: t.type,
+                                typeLabel,
+                                dateLabel: shortDate(t.created),
+                                teams: (t.roster_ids || []).map(nameForTeam),
+                                adds,
+                                drops,
+                                bid: t.settings?.waiver_bid || 0
+                        };
+                });
+}
+
 export async function load({ locals, url }) {
         const nflState = await loadNFLState().catch(() => null);
 
@@ -110,11 +162,30 @@ export async function load({ locals, url }) {
         });
 
         try {
-                const [leagueData, rostersResult, users] = await waitForAll(
+                const [leagueData, rostersResult, users, recentTransactions] = await waitForAll(
                         loadLeagueData(yahooClient, leagueKey),
                         loadLeagueRosters(yahooClient, leagueKey),
                         loadLeagueUsers(yahooClient, leagueKey),
+                        // No week filter → Yahoo returns the league's most recent transactions,
+                        // which is exactly what the "Recent Moves" widget wants.
+                        loadLeagueTransactions(yahooClient, leagueKey).catch((err) => {
+                                console.error('[homepage] Error loading recent transactions:', err.message);
+                                return [];
+                        }),
                 );
+
+                // Team display names keyed by Yahoo team number, for labelling moves.
+                const teamNameByNum = new Map();
+                for (const u of users || []) {
+                        const num = teamNumFromKey(u?.metadata?.team_key);
+                        if (num != null) {
+                                teamNameByNum.set(
+                                        num,
+                                        u?.metadata?.manager_nickname || u?.metadata?.team_name || `Team ${num}`
+                                );
+                        }
+                }
+                const recentMoves = buildRecentMoves(recentTransactions, teamNameByNum);
 
                 const seasonPhase = resolveSeasonPhase(nflState, leagueData);
                 // Draft rounds: prefer Yahoo's configured num_draft_rounds (correct for
@@ -278,6 +349,7 @@ export async function load({ locals, url }) {
                         keeperMaxSeasons: KEEPER_MAX_SEASONS,
                         rosters: rostersResult?.rosters ?? null,
                         users,
+                        recentMoves,
                         requiresAuth: false,
                         voteAlerts
                 };
