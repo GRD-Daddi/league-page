@@ -26,18 +26,23 @@
                 return Math.round((Number(n) || 0) * 100) / 100;
         }
 
-        let buyIn = $state(0);
-        let pointsLeaderAmount = $state(10);
-        let firstAmt = $state(0);
-        let secondAmt = $state(0);
-        let thirdAmt = $state(0);
-        let championName = $state('');
-        let championTeamKey = $state('');
-        let winnerName = $state('');
-        let winnerTeamKey = $state('');
-        let potTotalInput = $state(0);
-        let pointsLeaderName = $state('');
-        let pointsLeaderTeamKey = $state('');
+        // Initialise editable fields straight from the server-loaded data so they
+        // render with the saved values during SSR. The $effect below keeps them in
+        // sync after saves (invalidateAll). Without server-side init these inputs
+        // would show their bare defaults (0 / '') until client hydration runs the
+        // effect — which looks exactly like "all payouts are 0 and won't save".
+        let buyIn = $state(data.commissioner.settings.buyIn);
+        let pointsLeaderAmount = $state(data.commissioner.settings.pointsLeaderAmount);
+        let firstAmt = $state(data.commissioner.season.payoutFirst);
+        let secondAmt = $state(data.commissioner.season.payoutSecond);
+        let thirdAmt = $state(data.commissioner.season.payoutThird);
+        let championName = $state(data.commissioner.season.championName || '');
+        let championTeamKey = $state(data.commissioner.season.championTeamKey || '');
+        let winnerName = $state(data.commissioner.champion?.reigning?.name || '');
+        let winnerTeamKey = $state(data.commissioner.champion?.reigning?.teamKey || '');
+        let potTotalInput = $state(data.commissioner.potTotal);
+        let pointsLeaderName = $state(data.commissioner.season.pointsLeaderName || '');
+        let pointsLeaderTeamKey = $state(data.commissioner.season.pointsLeaderTeamKey || '');
 
         // Live previews. The payout pool is the sum of the place payouts, which drives
         // the per-member pool share (clamped to the buy-in for the carryover split).
