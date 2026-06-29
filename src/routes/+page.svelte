@@ -1136,6 +1136,9 @@
 
   .trophy-card {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     background: linear-gradient(135deg, #1a1d24, #0f1115);
     border: 1px solid #1f2937;
     border-radius: 14px;
@@ -1148,15 +1151,15 @@
   .trophy-card.silver { border-color: rgba(203,213,225,0.35); }
   .trophy-card.bronze { border-color: rgba(216,145,90,0.35); }
 
-  /* Staircase (3rd → 2nd → 1st) — cards bottom-aligned via .podium-grid align-items:end */
-  .trophy-card.bronze { padding: 20px 18px; }
-  .trophy-card.silver { padding: 64px 22px 30px; }
-  .trophy-card.gold   { padding: 40px 24px; }
+  /* Staircase (3rd → 2nd → 1st) — cards bottom-aligned via .podium-grid align-items:end; content centered */
+  .trophy-card.bronze { min-height: 240px; }
+  .trophy-card.silver { min-height: 300px; }
+  .trophy-card.gold   { min-height: 340px; }
 
   @media (max-width: 760px) {
     .trophy-card.bronze,
     .trophy-card.silver,
-    .trophy-card.gold { padding: 28px 24px; }
+    .trophy-card.gold { min-height: 0; }
   }
 
   .trophy-place {
