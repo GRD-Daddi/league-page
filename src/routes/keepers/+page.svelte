@@ -52,12 +52,43 @@
                 return !!(myTeamKey && team.teamKey === myTeamKey);
         }
 
-        // Eligible-by-rules players are the keeper candidates; the rest are shown muted.
-        function candidates(team) {
-                return team.players.filter((p) => p.eligibleByRules);
-        }
         function ineligible(team) {
                 return team.players.filter((p) => !p.eligibleByRules);
+        }
+
+        // Group a team's keeper-eligible players by their cost round, with the team's
+        // pick capacity for that round so the UI can show "you have N picks here" and
+        // block further keepers once the round's picks are used up. Recomputed every
+        // time `data` refreshes (after each select/remove), so capacity stays live.
+        function roundGroups(team) {
+                const byRound = new Map();
+                // Picks consumed per round counts EVERY selected player in that round, even
+                // one that has since become ineligible-by-rules (and so isn't listed below),
+                // so the capacity header always matches the server's true consumption.
+                const usedByRound = new Map();
+                for (const p of team.players) {
+                        if (p.selected) {
+                                const cr = p.costRound || 0;
+                                usedByRound.set(cr, (usedByRound.get(cr) || 0) + 1);
+                        }
+                        if (!p.eligibleByRules) continue;
+                        const r = p.costRound || 0;
+                        if (!byRound.has(r)) byRound.set(r, []);
+                        byRound.get(r).push(p);
+                }
+                return [...byRound.entries()]
+                        .map(([round, players]) => {
+                                const owned = players[0]?.ownedPicksInRound ?? (team.picks?.[round - 1] || 0);
+                                const used = usedByRound.get(round) || 0;
+                                return {
+                                        round,
+                                        owned,
+                                        used,
+                                        remaining: owned - used,
+                                        players: players.sort((a, b) => a.name.localeCompare(b.name))
+                                };
+                        })
+                        .sort((a, b) => a.round - b.round);
         }
 
         // Surface the manager's own team first.
@@ -164,7 +195,7 @@
                         <div class="teams-grid">
                                 {#each sortedTeams as team (team.teamKey)}
                                         {@const editable = canEditTeam(team)}
-                                        {@const cands = candidates(team)}
+                                        {@const groups = roundGroups(team)}
                                         {@const inel = ineligible(team)}
                                         <div class="sn-card team-card {team.teamKey === myTeamKey ? 'mine' : ''}">
                                                 <div class="team-head">
@@ -197,50 +228,69 @@
                                                         </div>
                                                 {/if}
 
-                                                {#if cands.length}
-                                                        <div class="player-list">
-                                                                {#each cands as p (p.playerKey)}
-                                                                        <div class="player-row {p.selected ? 'selected' : ''}">
-                                                                                <div class="player-main">
-                                                                                        <span class="player-name">{p.name}</span>
-                                                                                        <div class="player-tags">
-                                                                                                {#if p.pos}
-                                                                                                        <span class="sn-badge {posClass(p.pos)}">{p.pos}</span>
-                                                                                                {/if}
-                                                                                                {#if p.nflTeam}
-                                                                                                        <span class="player-nfl">{p.nflTeam}</span>
-                                                                                                {/if}
-                                                                                                <span class="sn-badge">R{p.costRound}</span>
-                                                                                                {#if p.status === 'approved'}
-                                                                                                        <span class="sn-badge lime">Approved</span>
-                                                                                                {:else if p.status === 'pending'}
-                                                                                                        <span class="sn-badge cyan">Pending</span>
-                                                                                                {/if}
-                                                                                                {#if p.needsReview}
-                                                                                                        <span class="sn-badge purple" title="History is incomplete — verify with the commissioner">Review</span>
-                                                                                                {/if}
-                                                                                        </div>
-                                                                                        <div class="player-reason {p.eligible ? '' : 'warn'}">{p.reason}</div>
-                                                                                </div>
-                                                                                {#if editable}
-                                                                                        <div class="player-action">
-                                                                                                {#if p.selected}
-                                                                                                        <form method="POST" action="?/unselect" use:enhance>
-                                                                                                                <input type="hidden" name="teamKey" value={team.teamKey} />
-                                                                                                                <input type="hidden" name="playerKey" value={p.playerKey} />
-                                                                                                                <button class="sn-btn ghost" type="submit"><span>Remove</span></button>
-                                                                                                        </form>
-                                                                                                {:else if p.canSelect}
-                                                                                                        <form method="POST" action="?/select" use:enhance>
-                                                                                                                <input type="hidden" name="teamKey" value={team.teamKey} />
-                                                                                                                <input type="hidden" name="playerKey" value={p.playerKey} />
-                                                                                                                <button class="sn-btn primary" type="submit"><span>Keep</span></button>
-                                                                                                        </form>
+                                                {#if groups.length}
+                                                        <div class="round-groups">
+                                                                {#each groups as g (g.round)}
+                                                                        {@const full = editable && g.owned > 0 && g.remaining <= 0}
+                                                                        <div class="round-group {full ? 'full' : ''}">
+                                                                                <div class="round-head">
+                                                                                        <span class="round-label">Round {g.round}</span>
+                                                                                        {#if editable}
+                                                                                                {#if g.owned === 0}
+                                                                                                        <span class="round-cap none">No pick in this round</span>
                                                                                                 {:else}
-                                                                                                        <span class="no-pick" title={p.reason}>No pick</span>
+                                                                                                        <span class="round-cap {g.remaining <= 0 ? 'full' : 'open'}">{g.used}/{g.owned} kept · {Math.max(g.remaining, 0)} left</span>
                                                                                                 {/if}
-                                                                                        </div>
-                                                                                {/if}
+                                                                                        {:else}
+                                                                                                <span class="round-cap muted">{g.players.length} player{g.players.length === 1 ? '' : 's'}</span>
+                                                                                        {/if}
+                                                                                </div>
+                                                                                <div class="player-list">
+                                                                                        {#each g.players as p (p.playerKey)}
+                                                                                                {@const blocked = editable && !p.selected && !p.canSelect}
+                                                                                                <div class="player-row {p.selected ? 'selected' : ''} {blocked ? 'blocked' : ''}">
+                                                                                                        <div class="player-main">
+                                                                                                                <span class="player-name">{p.name}</span>
+                                                                                                                <div class="player-tags">
+                                                                                                                        {#if p.pos}
+                                                                                                                                <span class="sn-badge {posClass(p.pos)}">{p.pos}</span>
+                                                                                                                        {/if}
+                                                                                                                        {#if p.nflTeam}
+                                                                                                                                <span class="player-nfl">{p.nflTeam}</span>
+                                                                                                                        {/if}
+                                                                                                                        {#if p.status === 'approved'}
+                                                                                                                                <span class="sn-badge lime">Approved</span>
+                                                                                                                        {:else if p.status === 'pending'}
+                                                                                                                                <span class="sn-badge cyan">Pending</span>
+                                                                                                                        {/if}
+                                                                                                                        {#if p.needsReview}
+                                                                                                                                <span class="sn-badge purple" title="History is incomplete — verify with the commissioner">Review</span>
+                                                                                                                        {/if}
+                                                                                                                </div>
+                                                                                                                <div class="player-reason {p.eligible ? '' : 'warn'}">{p.reason}</div>
+                                                                                                        </div>
+                                                                                                        {#if editable}
+                                                                                                                <div class="player-action">
+                                                                                                                        {#if p.selected}
+                                                                                                                                <form method="POST" action="?/unselect" use:enhance>
+                                                                                                                                        <input type="hidden" name="teamKey" value={team.teamKey} />
+                                                                                                                                        <input type="hidden" name="playerKey" value={p.playerKey} />
+                                                                                                                                        <button class="sn-btn ghost" type="submit"><span>Remove</span></button>
+                                                                                                                                </form>
+                                                                                                                        {:else if p.canSelect}
+                                                                                                                                <form method="POST" action="?/select" use:enhance>
+                                                                                                                                        <input type="hidden" name="teamKey" value={team.teamKey} />
+                                                                                                                                        <input type="hidden" name="playerKey" value={p.playerKey} />
+                                                                                                                                        <button class="sn-btn primary" type="submit"><span>Keep</span></button>
+                                                                                                                                </form>
+                                                                                                                        {:else}
+                                                                                                                                <span class="no-pick" title="No picks left in round {g.round}">No pick left</span>
+                                                                                                                        {/if}
+                                                                                                                </div>
+                                                                                                        {/if}
+                                                                                                </div>
+                                                                                        {/each}
+                                                                                </div>
                                                                         </div>
                                                                 {/each}
                                                         </div>
@@ -438,7 +488,46 @@
                 color: var(--sn-cyan);
         }
 
+        .round-groups { display: flex; flex-direction: column; gap: 16px; }
+        .round-group {
+                border: 1px solid var(--sn-border);
+                border-radius: 12px;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.015);
+                transition: opacity 0.15s ease;
+        }
+        .round-group.full { opacity: 0.62; }
+        .round-head {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid var(--sn-border);
+        }
+        .round-label {
+                font-size: 0.82rem;
+                font-weight: 900;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: #fff;
+        }
+        .round-cap {
+                font-size: 0.74rem;
+                font-weight: 800;
+                letter-spacing: 0.03em;
+                text-transform: uppercase;
+                white-space: nowrap;
+        }
+        .round-cap.open { color: var(--sn-cyan); }
+        .round-cap.full { color: #ffb454; }
+        .round-cap.none { color: var(--sn-text-faint); }
+        .round-cap.muted { color: var(--sn-text-faint); font-weight: 700; }
+
         .player-list { display: flex; flex-direction: column; gap: 8px; }
+
+        .player-row.blocked { opacity: 0.55; }
 
         .player-row {
                 display: flex;
