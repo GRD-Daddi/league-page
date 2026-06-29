@@ -4,6 +4,8 @@ import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { getDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
 import { getApprovedKeepers } from '$lib/server/keepers.js';
+import { getLatestCompletedStandings } from '$lib/server/archive.js';
+import { buildDraftOrder } from '$lib/server/draftOrder.js';
 import { resolveSeasonPhase, isDraftPrepPhase } from '$lib/utils/seasonPhase.js';
 
 export async function load({ url, fetch, locals }) {
@@ -20,29 +22,42 @@ export async function load({ url, fetch, locals }) {
                 loadLeagueData(yahooClient, leagueKey),
         );
 
-        // Forward-looking sections (upcoming pick ownership + approved keepers) are a
-        // PRE-SEASON view only. Once the season is live (regular/playoffs) the draft
-        // has happened, so the page shows the actual draft board instead.
+        // The season phase only chooses which tab is shown by DEFAULT — Planning
+        // during pre-/off-season, Past Drafts once the draft has happened. Both
+        // views' data is loaded unconditionally below so the owner can manually
+        // toggle to either view at any point in the season.
         const seasonPhase = resolveSeasonPhase(nflState, leagueData);
         const isDraftPrep = isDraftPrepPhase(seasonPhase);
 
         const draftPickYear = getCurrentSeasonYear();
         let draftPickOwnership = { rounds: DRAFT_ROUNDS, teams: [] };
         let approvedKeepers = [];
-        // Only the pre-season draft-prep view consumes upcoming pick ownership and
-        // approved keepers; skip the work entirely once the season is live.
-        if (isDraftPrep) {
-                try {
-                        draftPickOwnership = await getDraftPickOwnership(draftPickYear);
-                } catch (err) {
-                        console.error('[drafts] Error loading draft pick ownership:', err.message);
-                }
+        let draftOrder = [];
+        let draftOrderSeason = null;
 
-                try {
-                        approvedKeepers = await getApprovedKeepers(draftPickYear);
-                } catch (err) {
-                        console.error('[drafts] Error loading approved keepers:', err.message);
-                }
+        try {
+                draftPickOwnership = await getDraftPickOwnership(draftPickYear);
+        } catch (err) {
+                console.error('[drafts] Error loading draft pick ownership:', err.message);
+        }
+
+        try {
+                approvedKeepers = await getApprovedKeepers(draftPickYear);
+        } catch (err) {
+                console.error('[drafts] Error loading approved keepers:', err.message);
+        }
+
+        // Draft order = REVERSE of last completed season's FINAL standings (worst
+        // finisher picks first, champion picks last). getLatestCompletedStandings
+        // returns rows already ordered worst-first (final_rank DESC); buildDraftOrder
+        // numbers them 1..N and bridges each to the current league's owner/team.
+        // Degrades to an empty list (no completed season yet) without erroring.
+        try {
+                const completed = await getLatestCompletedStandings(draftPickYear);
+                draftOrderSeason = completed.year;
+                draftOrder = buildDraftOrder(completed.teams, Object.values(leagueTeamManagersData || {}));
+        } catch (err) {
+                console.error('[drafts] Error deriving draft order:', err.message);
         }
 
         return {
@@ -53,6 +68,8 @@ export async function load({ url, fetch, locals }) {
                 draftPickOwnership,
                 draftPickYear,
                 approvedKeepers,
+                draftOrder,
+                draftOrderSeason,
                 seasonPhase,
                 isDraftPrep
         };

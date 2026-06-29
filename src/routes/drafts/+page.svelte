@@ -2,10 +2,19 @@
         import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
         export let data;
         const { upcomingDraftData, previousDraftsData, leagueTeamManagersData, playersData, draftPickOwnership, draftPickYear } = data;
-        // Forward-looking pick-ownership + approved-keeper boards belong to the
-        // pre-season draft-prep view only. During the live season the draft has
-        // already happened, so we show the actual draft board instead.
+        // Pre-season phase drives which tab opens by DEFAULT, but both views' data
+        // is always loaded so the owner can toggle freely at any point.
         const isDraftPrep = data.isDraftPrep ?? true;
+
+        // Upcoming draft order: Pick 1 → Pick N (worst finisher first, champion
+        // last), derived server-side from last completed season's final standings.
+        const draftOrder = data.draftOrder ?? [];
+        const draftOrderSeason = data.draftOrderSeason ?? null;
+
+        // Active view: Planning (draft order + picks-by-team + keepers) or Past
+        // Drafts (completed results). Default from the season phase, then let the
+        // owner switch manually.
+        let activeTab = isDraftPrep ? 'planning' : 'past';
 
         const pickRounds = draftPickOwnership?.rounds || 15;
         const pickTeams = [...(draftPickOwnership?.teams || [])].sort(
@@ -191,7 +200,66 @@
         </div>
 
         <div class="sn-container">
-                {#if isDraftPrep && pickTeams.length}
+                <div class="draft-tabs" role="tablist" aria-label="Draft Room views">
+                        <button
+                                type="button"
+                                role="tab"
+                                class="draft-tab"
+                                class:active={activeTab === 'planning'}
+                                aria-selected={activeTab === 'planning'}
+                                on:click={() => (activeTab = 'planning')}
+                        >
+                                Planning
+                        </button>
+                        <button
+                                type="button"
+                                role="tab"
+                                class="draft-tab"
+                                class:active={activeTab === 'past'}
+                                aria-selected={activeTab === 'past'}
+                                on:click={() => (activeTab = 'past')}
+                        >
+                                Past Drafts
+                        </button>
+                </div>
+
+                {#if activeTab === 'planning'}
+                        {#if draftOrder.length}
+                                <div class="sn-section-header">
+                                        <h2 class="sn-section-title">{draftPickYear} DRAFT ORDER</h2>
+                                </div>
+                                <p class="picks-intro">
+                                        The pick order for the {draftPickYear} draft — the reverse of
+                                        {#if draftOrderSeason}the {draftOrderSeason}{:else}last season's{/if}
+                                        final standings. Last place picks first
+                                        (<span class="lg-multi">Pick 1</span>); the champion picks last.
+                                </p>
+                                <ol class="order-list">
+                                        {#each draftOrder as entry}
+                                                <li class="sn-card flat order-item">
+                                                        <span class="order-no">{entry.pick}</span>
+                                                        <div class="sn-avatar">{ownershipInitials(entry.teamName)}</div>
+                                                        <div class="order-text">
+                                                                <div class="sn-team-name">{entry.teamName}</div>
+                                                                {#if entry.managerName && entry.managerName !== entry.teamName}
+                                                                        <div class="sn-team-meta">{entry.managerName}</div>
+                                                                {/if}
+                                                        </div>
+                                                </li>
+                                        {/each}
+                                </ol>
+                        {:else}
+                                <div class="sn-section-header">
+                                        <h2 class="sn-section-title">{draftPickYear} DRAFT ORDER</h2>
+                                </div>
+                                <p class="picks-intro">
+                                        Draft order isn't set yet — it's seeded from last season's final
+                                        standings once a season is in the books.
+                                </p>
+                        {/if}
+                {/if}
+
+                {#if activeTab === 'planning' && pickTeams.length}
                         <div class="sn-section-header">
                                 <h2 class="sn-section-title">{draftPickYear} DRAFT PICKS BY TEAM</h2>
                         </div>
@@ -229,7 +297,7 @@
                         </div>
                 {/if}
 
-                {#if isDraftPrep && keeperTeams.length}
+                {#if activeTab === 'planning' && keeperTeams.length}
                         <div class="sn-section-header">
                                 <h2 class="sn-section-title">{draftPickYear} KEEPERS</h2>
                         </div>
@@ -263,6 +331,7 @@
                         </div>
                 {/if}
 
+                {#if activeTab === 'past'}
                 {#if drafts.length}
                         <div class="sn-section-header">
                                 <h2 class="sn-section-title">
@@ -331,10 +400,70 @@
                                 </p>
                         </div>
                 {/if}
+                {/if}
         </div>
 </div>
 
 <style>
+        .draft-tabs {
+                display: inline-flex;
+                gap: 4px;
+                padding: 4px;
+                margin: 0 0 28px;
+                border: 1px solid var(--sn-border);
+                border-radius: 12px;
+                background: rgba(255, 255, 255, 0.02);
+        }
+        .draft-tab {
+                appearance: none;
+                border: none;
+                cursor: pointer;
+                padding: 8px 20px;
+                border-radius: 8px;
+                background: transparent;
+                color: var(--sn-text-mute);
+                font-weight: 800;
+                font-size: 0.82rem;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                transition: background 0.15s ease, color 0.15s ease;
+        }
+        .draft-tab:hover {
+                color: #fff;
+        }
+        .draft-tab.active {
+                background: var(--sn-lime);
+                color: #0a0a0a;
+        }
+
+        .order-list {
+                list-style: none;
+                margin: 0 0 44px;
+                padding: 0;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                gap: 12px;
+        }
+        .order-item {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 14px 16px;
+        }
+        .order-no {
+                font-family: monospace;
+                font-weight: 900;
+                font-size: 1.5rem;
+                color: var(--sn-lime);
+                line-height: 1;
+                min-width: 2ch;
+                text-align: center;
+        }
+        .order-text {
+                min-width: 0;
+                flex: 1;
+        }
+
         .picks-intro {
                 color: var(--sn-text-mute);
                 font-size: 0.92rem;

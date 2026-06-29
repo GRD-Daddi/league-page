@@ -381,6 +381,41 @@ export async function getArchivedStandings(year) {
         return rows;
 }
 
+/**
+ * Most recent COMPLETED season's final standings, worst finisher first.
+ *
+ * "Completed" means the season has a captured `final_rank` (FINAL playoff
+ * placement, not the regular-season leader). Rows are ordered by `final_rank`
+ * DESCENDING so the consolation-bracket winner (highest rank number = worst
+ * placement) comes first and the champion (rank 1) comes last — exactly the
+ * order the league uses to seed the next draft (worst picks first).
+ *
+ * `beforeYear` excludes the upcoming/in-progress season so a not-yet-finalized
+ * year never masquerades as the last completed one. Returns
+ * { year: number|null, teams: row[] } with an empty list when no completed
+ * season exists yet.
+ */
+export async function getLatestCompletedStandings(beforeYear = null) {
+        const hasBefore = Number.isFinite(beforeYear);
+        const { rows: yearRows } = await query(
+                `SELECT year FROM team_season_archive
+                 WHERE final_rank IS NOT NULL${hasBefore ? ' AND year < $1' : ''}
+                 GROUP BY year
+                 ORDER BY year DESC
+                 LIMIT 1`,
+                hasBefore ? [beforeYear] : []
+        );
+        if (!yearRows.length) return { year: null, teams: [] };
+        const year = yearRows[0].year;
+        const { rows } = await query(
+                `SELECT * FROM team_season_archive
+                 WHERE year = $1 AND final_rank IS NOT NULL
+                 ORDER BY final_rank DESC`,
+                [year]
+        );
+        return { year, teams: rows };
+}
+
 /** Archived final rosters for a season. */
 export async function getArchivedRosters(year) {
         if (!Number.isFinite(year)) return [];
