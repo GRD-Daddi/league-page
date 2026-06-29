@@ -272,6 +272,53 @@ CREATE TABLE IF NOT EXISTS keeper_selections (
 );
 
 CREATE INDEX IF NOT EXISTS keeper_selections_year_idx ON keeper_selections (year);
+
+-- League rule-change votes. Each proposal is one question with an option set.
+-- type: 'yesno' or 'multiple'. options is the ordered list of choices owners pick
+-- from. status: 'pending' (awaiting commissioner approval) -> 'open' (accepting
+-- ballots) -> 'closed' (tally final). deadline auto-closes the vote once passed.
+-- created_by is the proposing owner's identity (session userId); winning_option is
+-- recorded at close. source distinguishes in-app votes ('app') from commissioner
+-- imports of old Google Forms results ('imported'); imported votes are stored
+-- already closed with their tallies in imported_tally (a JSON {option: count} map)
+-- since there are no per-owner ballots to recompute from. year tags the season the
+-- vote belongs to (derived from import timestamps; null for live votes).
+CREATE TABLE IF NOT EXISTS vote_proposals (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        type TEXT NOT NULL DEFAULT 'multiple',
+        options JSONB NOT NULL DEFAULT '[]'::jsonb,
+        status TEXT NOT NULL DEFAULT 'pending',
+        deadline TIMESTAMPTZ,
+        created_by TEXT,
+        created_by_name TEXT,
+        winning_option TEXT,
+        source TEXT NOT NULL DEFAULT 'app',
+        imported_tally JSONB,
+        year INT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        closed_at TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS vote_proposals_status_idx ON vote_proposals (status);
+
+-- One ballot per owner per proposal. The uniqueness constraint backs an upsert so
+-- an owner can change their choice while the vote is still open. owner_id is the
+-- voting owner's session identity (guid/team_key); choice must be one of the
+-- proposal's options.
+CREATE TABLE IF NOT EXISTS vote_ballots (
+        id SERIAL PRIMARY KEY,
+        proposal_id INT NOT NULL REFERENCES vote_proposals (id) ON DELETE CASCADE,
+        owner_id TEXT NOT NULL,
+        owner_name TEXT,
+        choice TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (proposal_id, owner_id)
+);
+
+CREATE INDEX IF NOT EXISTS vote_ballots_proposal_idx ON vote_ballots (proposal_id);
 `;
 
 /**

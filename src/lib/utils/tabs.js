@@ -72,6 +72,11 @@ export const tabs = [
                 dest: '/records',
             },
             {
+                icon: 'how_to_vote',
+                label: 'Votes',
+                dest: '/votes',
+            },
+            {
                 icon: 'history_edu',
                 label: 'Constitution',
                 dest: '/constitution',
