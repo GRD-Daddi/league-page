@@ -1685,6 +1685,10 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7000ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/></svg>
             Key Players Returning to the Draft
           </h2>
+          <a href="/keepers" class="section-link">
+            Keepers
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
         </div>
 
         {#if hasReturningPlayers}
