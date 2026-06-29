@@ -190,6 +190,11 @@
         let keeperTeamNames = $derived(
                 new Map((c.keeperState?.teams || []).map((t) => [t.teamKey, t.teamName]))
         );
+        // team_key -> per-round over-subscription conflicts (more keepers cost a round
+        // than the team owns picks in it). Computed server-side in getKeeperState.
+        let keeperConflictsByTeam = $derived(
+                new Map((c.keeperState?.teams || []).map((t) => [t.teamKey, t.roundConflicts || []]))
+        );
         let keeperSelections = $derived(c.keeperState?.selections || []);
         let keeperPendingCount = $derived(keeperSelections.filter((s) => s.status !== 'approved').length);
         let keeperGroups = $derived.by(() => {
@@ -202,6 +207,7 @@
                         .map(([teamKey, picks]) => ({
                                 teamKey,
                                 teamName: keeperTeamNames.get(teamKey) || teamKey,
+                                conflicts: keeperConflictsByTeam.get(teamKey) || [],
                                 picks: picks.sort((a, b) => (a.cost_round ?? 0) - (b.cost_round ?? 0))
                         }))
                         .sort((a, b) => a.teamName.localeCompare(b.teamName));
@@ -609,6 +615,19 @@
                                 {#each keeperGroups as group}
                                         <div class="keeper-group">
                                                 <h3 class="keeper-team">{group.teamName}</h3>
+                                                {#if group.conflicts.length}
+                                                        <div class="banner warn">
+                                                                <strong>Round limit exceeded</strong> — more keepers cost a round than this team owns picks in it. The draft board will go negative until the extra keepers are reverted or the team acquires more picks.
+                                                                <ul class="skip-list">
+                                                                        {#each group.conflicts as conf}
+                                                                                <li>
+                                                                                        Round {conf.round}: owns {conf.owned} pick{conf.owned === 1 ? '' : 's'},
+                                                                                        {#if conf.approved > conf.owned}{conf.approved} approved keeper{conf.approved === 1 ? '' : 's'}{:else}{conf.selected} keeper{conf.selected === 1 ? '' : 's'} selected{/if}.
+                                                                                </li>
+                                                                        {/each}
+                                                                </ul>
+                                                        </div>
+                                                {/if}
                                                 <table class="keeper-table">
                                                         <thead>
                                                                 <tr>

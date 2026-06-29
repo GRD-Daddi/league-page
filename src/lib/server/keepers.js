@@ -129,13 +129,22 @@ export async function getKeeperState(year, yahooClient, leagueKey) {
         const teams = computeKeepers({ drafts, transactions, rostersMap, upcomingYear, pickOwnership, teamKeyRemap });
 
         // Index selections by team+player and tally per-team picks consumed by round.
+        // Track all selections and approved-only separately: the draft board and
+        // commissioner warnings care about APPROVED keepers (what will actually
+        // break the board), while live selectability counts everything committed.
         const selByTeamPlayer = new Map();
-        const consumedByTeamRound = new Map(); // teamKey -> Map(round -> count)
+        const consumedByTeamRound = new Map(); // teamKey -> Map(round -> count) — all selections
+        const approvedByTeamRound = new Map(); // teamKey -> Map(round -> count) — approved only
         for (const s of selections) {
                 selByTeamPlayer.set(`${s.team_key}::${s.player_key}`, s);
                 if (!consumedByTeamRound.has(s.team_key)) consumedByTeamRound.set(s.team_key, new Map());
                 const m = consumedByTeamRound.get(s.team_key);
                 m.set(s.cost_round, (m.get(s.cost_round) || 0) + 1);
+                if (s.status === 'approved') {
+                        if (!approvedByTeamRound.has(s.team_key)) approvedByTeamRound.set(s.team_key, new Map());
+                        const am = approvedByTeamRound.get(s.team_key);
+                        am.set(s.cost_round, (am.get(s.cost_round) || 0) + 1);
+                }
         }
 
         for (const team of teams) {
@@ -163,6 +172,34 @@ export async function getKeeperState(year, yahooClient, leagueKey) {
                         // Effective selectability for a manager picking right now.
                         p.canSelect = !!p.eligibleByRules && (p.selected || p.pickAvailable);
                 }
+
+                // Per-round over-subscription: each keeper consumes its cost-round pick,
+                // so if more keepers cost a round than the team owns picks in it, the
+                // draft board goes negative. Surface every conflicting round so the UI
+                // can warn managers/commissioners (separate from per-selection issues).
+                const approved = approvedByTeamRound.get(team.teamKey) || new Map();
+                const rounds = new Set([...consumed.keys(), ...approved.keys()]);
+                team.roundConflicts = [];
+                for (const round of rounds) {
+                        const owned = Number(team.picks?.[round - 1]) || 0;
+                        const selectedInRound = consumed.get(round) || 0;
+                        const approvedInRound = approved.get(round) || 0;
+                        const overSelected = selectedInRound > owned;
+                        const overApproved = approvedInRound > owned;
+                        if (overSelected || overApproved) {
+                                team.roundConflicts.push({
+                                        round,
+                                        owned,
+                                        selected: selectedInRound,
+                                        approved: approvedInRound,
+                                        overSelected,
+                                        overApproved
+                                });
+                        }
+                }
+                team.roundConflicts.sort((a, b) => a.round - b.round);
+                team.hasRoundConflict = team.roundConflicts.length > 0;
+                team.hasApprovedConflict = team.roundConflicts.some((c) => c.overApproved);
         }
 
         // Annotate each persisted selection with LIVE validity so the commissioner

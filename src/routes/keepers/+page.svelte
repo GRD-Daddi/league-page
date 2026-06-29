@@ -188,6 +188,16 @@
                                                         <div class="mine-flag">Your team</div>
                                                 {/if}
 
+                                                {#if team.roundConflicts?.length}
+                                                        <div class="round-warn">
+                                                                <strong>Over the round limit.</strong>
+                                                                {#each team.roundConflicts as conf}
+                                                                        <span class="round-warn-item">Round {conf.round}: {conf.selected} keeper{conf.selected === 1 ? '' : 's'} cost this round but only {conf.owned} pick{conf.owned === 1 ? '' : 's'} owned.</span>
+                                                                {/each}
+                                                                <span class="round-warn-fix">Remove a keeper in that round or acquire another pick.</span>
+                                                        </div>
+                                                {/if}
+
                                                 {#if cands.length}
                                                         <div class="player-list">
                                                                 {#each cands as p (p.playerKey)}
@@ -318,6 +328,22 @@
                 color: #ff8080;
                 font-weight: 700;
         }
+
+        .round-warn {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                padding: 10px 12px;
+                border: 1px solid rgba(255, 80, 80, 0.5);
+                border-left: 3px solid #ff5050;
+                border-radius: 8px;
+                background: rgba(255, 80, 80, 0.1);
+                font-size: 0.82rem;
+                color: #ffb0b0;
+        }
+        .round-warn strong { color: #ff8080; }
+        .round-warn-item { color: #ffd0d0; }
+        .round-warn-fix { color: var(--sn-text-mute); font-style: italic; }
 
         .from-note {
                 color: var(--sn-text-faint);

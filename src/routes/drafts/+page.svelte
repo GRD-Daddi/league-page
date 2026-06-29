@@ -212,10 +212,11 @@
                                                         {#each Array(pickRounds) as _, r}
                                                                 {@const count = Number(team.picks?.[r]) || 0}
                                                                 {@const consumed = keeperConsumed.get(`${team.teamKey}::${r + 1}`) || 0}
-                                                                <div class="picks-cell {count === 0 ? 'zero' : count > MAX_PICKS_PER_ROUND ? 'over' : count > 1 ? 'multi' : ''} {consumed > 0 ? 'keeper' : ''}" title={consumed > 0 ? `${consumed} keeper${consumed === 1 ? '' : 's'} consume this round` : count > MAX_PICKS_PER_ROUND ? `Over the ${MAX_PICKS_PER_ROUND}-pick round limit` : ''}>
+                                                                {@const oversub = consumed > count}
+                                                                <div class="picks-cell {count === 0 ? 'zero' : count > MAX_PICKS_PER_ROUND ? 'over' : count > 1 ? 'multi' : ''} {consumed > 0 ? 'keeper' : ''} {oversub ? 'oversub' : ''}" title={oversub ? `${consumed} keeper${consumed === 1 ? '' : 's'} cost round ${r + 1} but the team owns only ${count} pick${count === 1 ? '' : 's'} — over the limit` : consumed > 0 ? `${consumed} keeper${consumed === 1 ? '' : 's'} consume this round` : count > MAX_PICKS_PER_ROUND ? `Over the ${MAX_PICKS_PER_ROUND}-pick round limit` : ''}>
                                                                         <span class="pc-round">R{r + 1}</span>
                                                                         <span class="pc-count">{count}</span>
-                                                                        {#if consumed > 0}<span class="pc-keeper" title="Keeper consumes this round">K</span>{/if}
+                                                                        {#if oversub}<span class="pc-warn" title="Keepers exceed owned picks in this round">!</span>{:else if consumed > 0}<span class="pc-keeper" title="Keeper consumes this round">K</span>{/if}
                                                                 </div>
                                                         {/each}
                                                 </div>
@@ -444,6 +445,23 @@
                 font-weight: 900;
                 letter-spacing: 0.04em;
                 color: var(--sn-cyan);
+        }
+
+        /* Over-subscribed: more keepers cost this round than the team owns picks. */
+        .picks-cell.oversub {
+                position: relative;
+                border-color: rgba(255, 80, 80, 0.7);
+                background: rgba(255, 80, 80, 0.14);
+        }
+        .picks-cell.oversub .pc-count { color: #ff8080; }
+        .pc-warn {
+                position: absolute;
+                top: 1px;
+                right: 3px;
+                font-size: 11px;
+                font-weight: 900;
+                line-height: 1;
+                color: #ff8080;
         }
 
         .keeper-list {
