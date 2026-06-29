@@ -590,8 +590,8 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    margin: 14px 0 0;
-    padding: 10px 14px;
+    margin: 10px 0 0;
+    padding: 9px 13px;
     border-radius: 10px;
     background: rgba(204,255,0,0.06);
     border: 1px solid rgba(204,255,0,0.18);
@@ -1158,7 +1158,7 @@
     background: linear-gradient(135deg, #1a1d24, #0f1115);
     border: 1px solid #1f2937;
     border-radius: 14px;
-    padding: 28px 24px;
+    padding: 18px 20px;
     text-align: center;
     overflow: hidden;
   }
@@ -1168,9 +1168,9 @@
   .trophy-card.bronze { border-color: rgba(216,145,90,0.35); }
 
   /* Staircase (3rd → 2nd → 1st) — cards bottom-aligned via .podium-grid align-items:end; content centered */
-  .trophy-card.bronze { min-height: 240px; }
-  .trophy-card.silver { min-height: 300px; }
-  .trophy-card.gold   { min-height: 340px; }
+  .trophy-card.bronze { min-height: 168px; }
+  .trophy-card.silver { min-height: 196px; }
+  .trophy-card.gold   { min-height: 224px; }
 
   @media (max-width: 760px) {
     .trophy-card.bronze,
@@ -1183,7 +1183,7 @@
     font-weight: 900;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
   }
   .trophy-place.gold { color: #ffd24a; }
   .trophy-place.silver { color: #cbd5e1; }
@@ -1193,7 +1193,7 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    margin: 0 auto 16px;
+    margin: 0 auto 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1205,7 +1205,7 @@
     overflow: hidden;
   }
   .trophy-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .trophy-card.bronze .trophy-avatar { width: 60px; height: 60px; margin-bottom: 12px; }
+  .trophy-card.bronze .trophy-avatar { width: 60px; height: 60px; margin-bottom: 8px; }
   .trophy-card.gold .trophy-avatar { width: 88px; height: 88px; border-color: #ffd24a; }
 
   .trophy-team {
