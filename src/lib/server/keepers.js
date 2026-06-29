@@ -3,12 +3,22 @@ import { getCurrentSeasonYear, getSettings } from './pot.js';
 import { loadLeagueRostersWithFallback, loadLeagueUsers } from './dataLoaders.js';
 import { getDraftPickOwnership, DRAFT_ROUNDS } from './draftPicks.js';
 import { getDraftResultsArchive, getTransactionArchive, playerIdFromKey } from './keeperArchive.js';
+import { getArchivedStandings } from './archive.js';
 import { computeKeepers } from './keeperEngine.js';
 
 // Normalize a team name for cross-season owner bridging (case/space-insensitive).
 // Returns '' for empty/missing names so they never produce a spurious match.
 function normalizeTeamName(name) {
         return (name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+// Normalize an archived owner identity (manager nickname) for cross-season
+// bridging. Returns '' for empty/missing or Yahoo's masked "--hidden--" sentinel
+// so a hidden owner never produces a spurious franchise match.
+function normalizeManagerName(name) {
+        const nm = (name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+        if (!nm || nm === '--hidden--') return '';
+        return nm;
 }
 
 /**
@@ -192,6 +202,49 @@ export async function getKeeperState(year, yahooClient, leagueKey, viewerKey = n
                 if (currentKey && currentKey !== rawKey && !claimedKeys.has(currentKey)) {
                         claimedKeys.add(currentKey);
                         teamKeyRemap.set(rawKey, currentKey);
+                }
+        }
+        // Pass 3: a franchise that is BOTH hidden (no GUID) AND renamed between
+        // seasons fails passes 1 and 2 — there's no GUID to match and the team
+        // name changed. Bridge those by the league's stable archived OWNER identity
+        // (team_season_archive.manager_name), which is recorded reliably per season
+        // including the upcoming one. Only run when fallback rosters remain
+        // unbridged and we know which past season they came from.
+        const fallbackYear = Number(rostersResult?.fromSeason);
+        const unbridged = rosterIds.filter((rid) => {
+                const rawKey = rostersMap[rid]?.metadata?.team_key;
+                return rawKey && !teamKeyRemap.has(rawKey) && !claimedKeys.has(rawKey);
+        });
+        if (Number.isFinite(fallbackYear) && fallbackYear !== upcomingYear && unbridged.length) {
+                const [upcomingArchive, fallbackArchive] = await Promise.all([
+                        getArchivedStandings(upcomingYear).catch(() => []),
+                        getArchivedStandings(fallbackYear).catch(() => [])
+                ]);
+                // upcoming manager identity -> upcoming team_key (drop ambiguous/hidden).
+                const upcomingKeyByManager = new Map();
+                const dupManagers = new Set();
+                for (const row of upcomingArchive || []) {
+                        const mn = normalizeManagerName(row?.manager_name);
+                        if (!mn || !row?.team_key) continue;
+                        if (upcomingKeyByManager.has(mn)) dupManagers.add(mn);
+                        else upcomingKeyByManager.set(mn, row.team_key);
+                }
+                for (const mn of dupManagers) upcomingKeyByManager.delete(mn);
+                // fallback-season team_key -> that season's archived manager identity.
+                const managerByFallbackKey = new Map();
+                for (const row of fallbackArchive || []) {
+                        const mn = normalizeManagerName(row?.manager_name);
+                        if (mn && row?.team_key) managerByFallbackKey.set(row.team_key, mn);
+                }
+                for (const rid of unbridged) {
+                        const rawKey = rostersMap[rid]?.metadata?.team_key;
+                        if (!rawKey || teamKeyRemap.has(rawKey)) continue;
+                        const mn = managerByFallbackKey.get(rawKey);
+                        const currentKey = mn ? upcomingKeyByManager.get(mn) : null;
+                        if (currentKey && currentKey !== rawKey && !claimedKeys.has(currentKey)) {
+                                claimedKeys.add(currentKey);
+                                teamKeyRemap.set(rawKey, currentKey);
+                        }
                 }
         }
 
