@@ -32,6 +32,22 @@ function normalizeOption(value) {
 }
 
 /**
+ * Determines the season (year) a closed proposal belongs to for archive grouping.
+ * Imported votes carry an explicit `year`; live votes that have since closed fall
+ * back to the year they closed (or were created). Returns null when no year can be
+ * determined so the caller can bucket it as "Undated".
+ */
+function deriveSeason(proposal) {
+        if (Number.isFinite(proposal?.year)) return proposal.year;
+        for (const value of [proposal?.closed_at, proposal?.created_at]) {
+                if (!value) continue;
+                const d = new Date(value);
+                if (!Number.isNaN(d.getTime())) return d.getFullYear();
+        }
+        return null;
+}
+
+/**
  * Computes per-option counts + the winning option for a proposal. App votes tally
  * their ballots; imported votes use their stored imported_tally map. Returns
  * { counts: [{option, votes}], totalVotes, winningOption } with counts ordered to
@@ -192,6 +208,7 @@ export async function listProposals(session, leagueUsers = []) {
                         createdByName: p.created_by_name,
                         source: p.source,
                         year: p.year,
+                        season: p.status === 'closed' ? deriveSeason(p) : null,
                         createdAt: p.created_at,
                         closedAt: p.closed_at,
                         winningOption: p.status === 'closed' ? p.winning_option : null,

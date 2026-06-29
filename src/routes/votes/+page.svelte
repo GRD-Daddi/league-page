@@ -10,6 +10,30 @@
         let pendingVotes = $derived(v?.pending || []);
         let closedVotes = $derived(v?.closed || []);
 
+        // Group closed votes by season for the Archive tab. Seasons are ordered
+        // most-recent-first; votes with no determinable season fall into an
+        // "Undated" group shown last. Within a season the server's closed-date
+        // ordering is preserved.
+        let closedBySeason = $derived.by(() => {
+                const groups = new Map();
+                for (const vote of closedVotes) {
+                        const key = Number.isFinite(vote.season) ? vote.season : null;
+                        if (!groups.has(key)) groups.set(key, []);
+                        groups.get(key).push(vote);
+                }
+                return [...groups.entries()]
+                        .sort((a, b) => {
+                                if (a[0] === null) return 1;
+                                if (b[0] === null) return -1;
+                                return b[0] - a[0];
+                        })
+                        .map(([season, votes]) => ({
+                                season,
+                                label: season === null ? 'Undated' : String(season),
+                                votes
+                        }));
+        });
+
         let activeTab = $state('open');
 
         // ── Propose form state ──
@@ -298,43 +322,51 @@
                                         <p>Closed and imported votes will be archived here with their final results.</p>
                                 </div>
                         {:else}
-                                {#each closedVotes as p (p.id)}
-                                        <section class="sn-card sn-card-pad vote closed">
-                                                <div class="vote-head">
-                                                        <div>
-                                                                <h2 class="block-title">{p.title}</h2>
-                                                                {#if p.description && p.source !== 'imported'}<p class="block-sub">{p.description}</p>{/if}
-                                                        </div>
-                                                        <div class="vote-meta">
-                                                                {#if p.source === 'imported'}<span class="sn-badge">{p.year || 'Imported'}</span>{/if}
-                                                                <span class="sn-badge cyan">Closed</span>
-                                                        </div>
+                                {#each closedBySeason as group (group.label)}
+                                        <div class="season-group">
+                                                <div class="season-head">
+                                                        <h2 class="season-title">{group.label}</h2>
+                                                        <span class="season-count">{group.votes.length} vote{group.votes.length === 1 ? '' : 's'}</span>
                                                 </div>
 
-                                                {#if p.winningOption}
-                                                        <div class="winner">
-                                                                <span class="winner-label">Winner</span>
-                                                                <strong>{p.winningOption}</strong>
-                                                        </div>
-                                                {:else}
-                                                        <div class="winner none"><span class="winner-label">No votes recorded</span></div>
-                                                {/if}
-
-                                                <div class="results">
-                                                        {#each p.counts as c (c.option)}
-                                                                <div class="result-row" class:won={c.option === p.winningOption}>
-                                                                        <span class="fill" style={`width:${pct(c.votes, p.totalVotes)}%`}></span>
-                                                                        <span class="opt-label">{c.option}</span>
-                                                                        <span class="opt-count">{c.votes} · {pct(c.votes, p.totalVotes)}%</span>
+                                                {#each group.votes as p (p.id)}
+                                                        <section class="sn-card sn-card-pad vote closed">
+                                                                <div class="vote-head">
+                                                                        <div>
+                                                                                <h2 class="block-title">{p.title}</h2>
+                                                                                {#if p.description && p.source !== 'imported'}<p class="block-sub">{p.description}</p>{/if}
+                                                                        </div>
+                                                                        <div class="vote-meta">
+                                                                                <span class="sn-badge cyan">Closed</span>
+                                                                        </div>
                                                                 </div>
-                                                        {/each}
-                                                </div>
 
-                                                <div class="vote-foot">
-                                                        <span class="muted">{p.totalVotes} vote{p.totalVotes === 1 ? '' : 's'}</span>
-                                                        {#if p.closedAt}<span class="muted">Closed {fmtDate(p.closedAt)}</span>{/if}
-                                                </div>
-                                        </section>
+                                                                {#if p.winningOption}
+                                                                        <div class="winner">
+                                                                                <span class="winner-label">Winner</span>
+                                                                                <strong>{p.winningOption}</strong>
+                                                                        </div>
+                                                                {:else}
+                                                                        <div class="winner none"><span class="winner-label">No votes recorded</span></div>
+                                                                {/if}
+
+                                                                <div class="results">
+                                                                        {#each p.counts as c (c.option)}
+                                                                                <div class="result-row" class:won={c.option === p.winningOption}>
+                                                                                        <span class="fill" style={`width:${pct(c.votes, p.totalVotes)}%`}></span>
+                                                                                        <span class="opt-label">{c.option}</span>
+                                                                                        <span class="opt-count">{c.votes} · {pct(c.votes, p.totalVotes)}%</span>
+                                                                                </div>
+                                                                        {/each}
+                                                                </div>
+
+                                                                <div class="vote-foot">
+                                                                        <span class="muted">{p.totalVotes} vote{p.totalVotes === 1 ? '' : 's'}</span>
+                                                                        {#if p.closedAt}<span class="muted">Closed {fmtDate(p.closedAt)}</span>{/if}
+                                                                </div>
+                                                        </section>
+                                                {/each}
+                                        </div>
                                 {/each}
                         {/if}
                 {/if}
@@ -373,6 +405,30 @@
         .block-sub { color: var(--sn-text-dim); font-size: 0.92rem; line-height: 1.55; margin: 8px 0 0; }
 
         .propose, .import, .vote { margin-bottom: 20px; }
+
+        .season-group { margin-bottom: 28px; }
+        .season-head {
+                display: flex;
+                align-items: baseline;
+                gap: 12px;
+                margin: 0 0 14px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid var(--sn-border);
+        }
+        .season-title {
+                font-size: 1.4rem;
+                font-weight: 900;
+                font-style: italic;
+                letter-spacing: -0.02em;
+                margin: 0;
+        }
+        .season-count {
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--sn-text-mute);
+        }
 
         .field { display: block; margin: 16px 0; }
         .field > span { display: block; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sn-text-mute); margin-bottom: 8px; }
