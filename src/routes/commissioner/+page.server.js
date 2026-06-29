@@ -16,6 +16,8 @@ import {
 } from '$lib/server/pot.js';
 import { getArchivedSeasons } from '$lib/server/archive.js';
 import { getDraftPickOwnership, saveDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
+import { getKeeperState, setAllKeeperStatus, approveKeeper, approveAllKeepers } from '$lib/server/keepers.js';
+import { backfillKeeperHistory, getArchiveStats } from '$lib/server/keeperArchive.js';
 import { getYahooTradedPicks, teamNumFromKey } from '$lib/yahoo-adapter/index.js';
 
 function parseYear(value, fallback) {
@@ -104,6 +106,20 @@ export async function load({ locals, url }) {
                 yahooDraftPicks = [];
         }
 
+        let keeperState = { teams: [], selections: [], upcomingYear: year, rounds: DRAFT_ROUNDS };
+        try {
+                keeperState = await getKeeperState(year, locals.yahooClient, locals.leagueKey);
+        } catch (err) {
+                console.error('[commissioner] Error loading keeper state:', err.message);
+        }
+
+        let keeperArchiveStats = null;
+        try {
+                keeperArchiveStats = await getArchiveStats();
+        } catch (err) {
+                console.error('[commissioner] Error loading keeper archive stats:', err.message);
+        }
+
         return {
                 commissioner: {
                         ...data,
@@ -111,7 +127,9 @@ export async function load({ locals, url }) {
                         archivedSeasons,
                         draftPicks,
                         yahooDraftPicks,
-                        draftRounds: DRAFT_ROUNDS
+                        draftRounds: DRAFT_ROUNDS,
+                        keeperState,
+                        keeperArchiveStats
                 }
         };
 }
@@ -427,5 +445,67 @@ export const actions = {
 
                 await saveDraftPickOwnership(year, entries);
                 return { success: true, action: 'saveDraftPicks' };
+        },
+
+        approveKeeper: async ({ request, locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                const form = await request.formData();
+                const year = parseYear(form.get('year'), getCurrentSeasonYear());
+                const teamKey = (form.get('teamKey') || '').toString().trim();
+                const playerKey = (form.get('playerKey') || '').toString().trim();
+                const status = (form.get('status') || 'approved').toString();
+
+                if (!teamKey || !playerKey) return fail(400, { error: 'Missing team or player' });
+
+                const res = await approveKeeper(year, teamKey, playerKey, status, {
+                        yahooClient: locals.yahooClient,
+                        leagueKey: locals.leagueKey
+                });
+                if (!res.ok) return fail(400, { error: res.error });
+                return { success: true, action: 'approveKeeper' };
+        },
+
+        approveAllKeepers: async ({ request, locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                const form = await request.formData();
+                const year = parseYear(form.get('year'), getCurrentSeasonYear());
+                const status = (form.get('status') || 'approved').toString();
+
+                // Reverting everyone to pending needs no validation.
+                if (status !== 'approved') {
+                        await setAllKeeperStatus(year, 'pending');
+                        return { success: true, action: 'approveAllKeepers', approvedCount: 0, skipped: [] };
+                }
+
+                const res = await approveAllKeepers(year, {
+                        yahooClient: locals.yahooClient,
+                        leagueKey: locals.leagueKey
+                });
+                if (!res.ok) return fail(400, { error: res.error });
+                return {
+                        success: true,
+                        action: 'approveAllKeepers',
+                        approvedCount: res.approvedCount,
+                        skipped: res.skipped
+                };
+        },
+
+        backfillKeeperHistory: async ({ locals }) => {
+                const denied = await ensureCommissioner(locals);
+                if (denied) return denied;
+
+                if (!locals.yahooClient || !locals.leagueKey) {
+                        return fail(400, { error: 'Yahoo login is required to backfill keeper history.' });
+                }
+
+                const result = await backfillKeeperHistory(locals.yahooClient, locals.leagueKey);
+                if (!result.ok) {
+                        return fail(400, { error: result.error || 'No keeper history could be imported.' });
+                }
+                return { success: true, action: 'backfillKeeperHistory', keeperBackfill: result };
         }
 };

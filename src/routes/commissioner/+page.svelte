@@ -12,6 +12,7 @@
             { id: 'champion', label: 'Champion & Points' },
             { id: 'members', label: 'Buy-ins' },
             { id: 'draft', label: 'Draft Picks' },
+            { id: 'keepers', label: 'Keepers' },
             { id: 'history', label: 'History' }
         ];
 
@@ -178,6 +179,28 @@
                                 .map((p) => ({ teamName: team.teamName, round: p.round, count: p.count }))
                 )
         );
+
+        // Keeper approvals: map team_key -> name and group the selections by team so
+        // the commissioner can approve/revert each manager's submissions.
+        let keeperTeamNames = $derived(
+                new Map((c.keeperState?.teams || []).map((t) => [t.teamKey, t.teamName]))
+        );
+        let keeperSelections = $derived(c.keeperState?.selections || []);
+        let keeperPendingCount = $derived(keeperSelections.filter((s) => s.status !== 'approved').length);
+        let keeperGroups = $derived.by(() => {
+                const byTeam = new Map();
+                for (const s of keeperSelections) {
+                        if (!byTeam.has(s.team_key)) byTeam.set(s.team_key, []);
+                        byTeam.get(s.team_key).push(s);
+                }
+                return [...byTeam.entries()]
+                        .map(([teamKey, picks]) => ({
+                                teamKey,
+                                teamName: keeperTeamNames.get(teamKey) || teamKey,
+                                picks: picks.sort((a, b) => (a.cost_round ?? 0) - (b.cost_round ?? 0))
+                        }))
+                        .sort((a, b) => a.teamName.localeCompare(b.teamName));
+        });
 </script>
 
 <svelte:head>
@@ -522,6 +545,130 @@
                         {/if}
                 </section>
                 {/if}
+
+                {#if activeTab === 'keepers'}
+                <!-- Keeper approvals -->
+                <section class="card full">
+                        <h2>{c.year} Keeper Approvals</h2>
+                        <p class="card-sub">Managers submit their keepers on the public Keepers page; approve them here. Approved keepers are surfaced on the Draft Room and consume the team's pick in the keeper's cost round. The keeper engine reads imported draft + transaction history — run the import below if numbers look off.</p>
+
+                        <form
+                                method="POST"
+                                action="?/backfillKeeperHistory"
+                                use:enhance={() => {
+                                        submitting.keeperBackfill = true;
+                                        return async ({ update }) => {
+                                                await update();
+                                                submitting.keeperBackfill = false;
+                                        };
+                                }}
+                        >
+                                <button class="btn" type="submit" disabled={submitting.keeperBackfill}>
+                                        {submitting.keeperBackfill ? 'Importing history… this can take a minute' : 'Import keeper history from Yahoo'}
+                                </button>
+                        </form>
+                        {#if c.keeperArchiveStats}
+                                <p class="card-sub" style="margin-top:10px;">
+                                        Imported: {c.keeperArchiveStats.drafts?.picks ?? 0} draft picks across {c.keeperArchiveStats.drafts?.seasons ?? 0} season(s){#if c.keeperArchiveStats.drafts?.min_year}, {c.keeperArchiveStats.drafts.min_year}–{c.keeperArchiveStats.drafts.max_year}{/if}; {c.keeperArchiveStats.transactions?.events ?? 0} transaction events.
+                                </p>
+                        {/if}
+                        {#if form?.action === 'backfillKeeperHistory' && form?.keeperBackfill}
+                                <div class="banner ok">Imported {form.keeperBackfill.picks} picks and {form.keeperBackfill.transactions} transaction events from {form.keeperBackfill.seasons?.length || 0} season(s).</div>
+                        {/if}
+
+                        {#if keeperSelections.length}
+                                <div class="keeper-actions">
+                                        <form method="POST" action="?/approveAllKeepers" use:enhance={keepValues}>
+                                                <input type="hidden" name="year" value={c.year} />
+                                                <input type="hidden" name="status" value="approved" />
+                                                <button class="btn" type="submit" disabled={keeperPendingCount === 0}>Approve all ({keeperPendingCount} pending)</button>
+                                        </form>
+                                        <form method="POST" action="?/approveAllKeepers" use:enhance={keepValues}>
+                                                <input type="hidden" name="year" value={c.year} />
+                                                <input type="hidden" name="status" value="pending" />
+                                                <button class="btn ghost" type="submit">Revert all to pending</button>
+                                        </form>
+                                </div>
+
+                                {#if form?.action === 'approveAllKeepers' && form?.skipped?.length}
+                                        <div class="banner warn">
+                                                <strong>{form.skipped.length} selection{form.skipped.length === 1 ? '' : 's'} held back</strong> — not approved because they failed re-validation:
+                                                <ul class="skip-list">
+                                                        {#each form.skipped as s}
+                                                                <li>{s.playerName || s.teamKey}: {s.issues?.join('; ')}</li>
+                                                        {/each}
+                                                </ul>
+                                        </div>
+                                {/if}
+
+                                {#each keeperGroups as group}
+                                        <div class="keeper-group">
+                                                <h3 class="keeper-team">{group.teamName}</h3>
+                                                <table class="keeper-table">
+                                                        <thead>
+                                                                <tr>
+                                                                        <th>Player</th>
+                                                                        <th>Cost</th>
+                                                                        <th>Acquired</th>
+                                                                        <th>Status</th>
+                                                                        <th></th>
+                                                                </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                                {#each group.picks as k}
+                                                                        <tr class={k.valid === false ? 'krow-invalid' : ''}>
+                                                                                <td>
+                                                                                        {k.player_name || k.player_key}
+                                                                                        {#if k.issues?.length}
+                                                                                                <div class="kflags">
+                                                                                                        {#each k.issues as issue}
+                                                                                                                <span class="kflag invalid">⚠ {issue}</span>
+                                                                                                        {/each}
+                                                                                                </div>
+                                                                                        {/if}
+                                                                                        {#if k.warnings?.length}
+                                                                                                <div class="kflags">
+                                                                                                        {#each k.warnings as warn}
+                                                                                                                <span class="kflag warn">{warn}</span>
+                                                                                                        {/each}
+                                                                                                </div>
+                                                                                        {/if}
+                                                                                </td>
+                                                                                <td>Round {k.cost_round}</td>
+                                                                                <td>{k.acquisition_year || '—'}</td>
+                                                                                <td>
+                                                                                        <span class="kstatus {k.status === 'approved' ? 'approved' : 'pending'}">{k.status === 'approved' ? 'Approved' : 'Pending'}</span>
+                                                                                </td>
+                                                                                <td class="kactions">
+                                                                                        {#if k.status === 'approved'}
+                                                                                                <form method="POST" action="?/approveKeeper" use:enhance={keepValues}>
+                                                                                                        <input type="hidden" name="year" value={c.year} />
+                                                                                                        <input type="hidden" name="teamKey" value={k.team_key} />
+                                                                                                        <input type="hidden" name="playerKey" value={k.player_key} />
+                                                                                                        <input type="hidden" name="status" value="pending" />
+                                                                                                        <button class="chip ghost" type="submit">Revert</button>
+                                                                                                </form>
+                                                                                        {:else}
+                                                                                                <form method="POST" action="?/approveKeeper" use:enhance={keepValues}>
+                                                                                                        <input type="hidden" name="year" value={c.year} />
+                                                                                                        <input type="hidden" name="teamKey" value={k.team_key} />
+                                                                                                        <input type="hidden" name="playerKey" value={k.player_key} />
+                                                                                                        <input type="hidden" name="status" value="approved" />
+                                                                                                        <button class="chip" type="submit">Approve</button>
+                                                                                                </form>
+                                                                                        {/if}
+                                                                                </td>
+                                                                        </tr>
+                                                                {/each}
+                                                        </tbody>
+                                                </table>
+                                        </div>
+                                {/each}
+                        {:else}
+                                <div class="banner">No keepers have been submitted yet. Managers can select keepers from the public Keepers page.</div>
+                        {/if}
+                </section>
+                {/if}
         </div>
 </div>
 
@@ -699,4 +846,25 @@
         .bf-year { font-family: monospace; font-weight: 800; color: #00f0ff; min-width: 48px; }
         .bf-detail { color: #9ca3af; }
         .archived-summary { margin-top: 14px; font-size: 0.78rem; color: #6b7280; }
+
+        .keeper-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 8px; }
+        .keeper-group { margin-top: 18px; }
+        .keeper-team { font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0 0 8px; }
+        .keeper-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        .keeper-table th {
+                text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase;
+                letter-spacing: 0.08em; color: #6b7280; padding: 6px 10px; border-bottom: 1px solid #1f2937;
+        }
+        .keeper-table td { padding: 8px 10px; border-bottom: 1px solid #14181f; color: #d1d5db; }
+        .keeper-table .kactions { text-align: right; }
+        .kstatus { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 9px; border-radius: 999px; }
+        .kstatus.approved { background: rgba(204,255,0,0.15); border: 1px solid rgba(204,255,0,0.4); color: #ccff00; }
+        .kstatus.pending { background: rgba(148,163,184,0.12); border: 1px solid #374151; color: #9ca3af; }
+        .krow-invalid td { background: rgba(255,60,60,0.06); }
+        .kflags { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+        .kflag { font-size: 11px; font-weight: 700; line-height: 1.3; }
+        .kflag.invalid { color: #ff8080; }
+        .kflag.warn { color: #ffd24a; }
+        .skip-list { margin: 8px 0 0; padding-left: 18px; font-weight: 600; }
+        .skip-list li { margin-bottom: 3px; }
 </style>

@@ -50,6 +50,48 @@
 
         const drafts = buildDrafts(previousDraftsData, upcomingDraftData);
 
+        // Approved keepers for the upcoming draft. Each keeper consumes its team's
+        // pick in the keeper's cost round, so surface them and flag the consumed cell.
+        const approvedKeepers = data.approvedKeepers ?? [];
+        const teamNameByKey = new Map(pickTeams.map((t) => [t.teamKey, t.teamName]));
+
+        function keeperName(k) {
+                if (k.player_name) return k.player_name;
+                const p = resolvePlayer(k.player_id || k.player_key);
+                if (p) return `${p.fn ?? ''} ${p.ln ?? ''}`.trim() || 'Unknown Player';
+                return 'Unknown Player';
+        }
+
+        function keeperMeta(k) {
+                const p = resolvePlayer(k.player_id || k.player_key);
+                if (!p) return '';
+                return [p.pos, p.t].filter(Boolean).join(' · ');
+        }
+
+        const keeperConsumed = (() => {
+                const m = new Map();
+                for (const k of approvedKeepers) {
+                        const key = `${k.team_key}::${k.cost_round}`;
+                        m.set(key, (m.get(key) || 0) + 1);
+                }
+                return m;
+        })();
+
+        const keeperTeams = (() => {
+                const byTeam = new Map();
+                for (const k of approvedKeepers) {
+                        if (!byTeam.has(k.team_key)) byTeam.set(k.team_key, []);
+                        byTeam.get(k.team_key).push(k);
+                }
+                return [...byTeam.entries()]
+                        .map(([teamKey, list]) => ({
+                                teamKey,
+                                teamName: teamNameByKey.get(teamKey) || teamKey,
+                                keepers: list.sort((a, b) => (a.cost_round ?? 0) - (b.cost_round ?? 0))
+                        }))
+                        .sort((a, b) => a.teamName.localeCompare(b.teamName));
+        })();
+
         let selectedYear;
         $: if (selectedYear == null && drafts.length) selectedYear = drafts[0].year;
 
@@ -169,12 +211,48 @@
                                                 <div class="picks-rounds">
                                                         {#each Array(pickRounds) as _, r}
                                                                 {@const count = Number(team.picks?.[r]) || 0}
-                                                                <div class="picks-cell {count === 0 ? 'zero' : count > MAX_PICKS_PER_ROUND ? 'over' : count > 1 ? 'multi' : ''}" title={count > MAX_PICKS_PER_ROUND ? `Over the ${MAX_PICKS_PER_ROUND}-pick round limit` : ''}>
+                                                                {@const consumed = keeperConsumed.get(`${team.teamKey}::${r + 1}`) || 0}
+                                                                <div class="picks-cell {count === 0 ? 'zero' : count > MAX_PICKS_PER_ROUND ? 'over' : count > 1 ? 'multi' : ''} {consumed > 0 ? 'keeper' : ''}" title={consumed > 0 ? `${consumed} keeper${consumed === 1 ? '' : 's'} consume this round` : count > MAX_PICKS_PER_ROUND ? `Over the ${MAX_PICKS_PER_ROUND}-pick round limit` : ''}>
                                                                         <span class="pc-round">R{r + 1}</span>
                                                                         <span class="pc-count">{count}</span>
+                                                                        {#if consumed > 0}<span class="pc-keeper" title="Keeper consumes this round">K</span>{/if}
                                                                 </div>
                                                         {/each}
                                                 </div>
+                                        </div>
+                                {/each}
+                        </div>
+                {/if}
+
+                {#if keeperTeams.length}
+                        <div class="sn-section-header">
+                                <h2 class="sn-section-title">{draftPickYear} KEEPERS</h2>
+                        </div>
+                        <p class="picks-intro">
+                                Approved keepers heading into the {draftPickYear} draft. Each keeper costs — and
+                                consumes — its team's pick in the listed round.
+                        </p>
+                        <div class="picks-grid">
+                                {#each keeperTeams as kt}
+                                        <div class="sn-card flat picks-card">
+                                                <div class="picks-card-head">
+                                                        <div class="sn-avatar">{ownershipInitials(kt.teamName)}</div>
+                                                        <div class="picks-team-text">
+                                                                <div class="sn-team-name">{kt.teamName}</div>
+                                                                <div class="sn-team-meta">{kt.keepers.length} keeper{kt.keepers.length === 1 ? '' : 's'}</div>
+                                                        </div>
+                                                </div>
+                                                <ul class="keeper-list">
+                                                        {#each kt.keepers as k}
+                                                                <li class="keeper-item">
+                                                                        <div class="ki-main">
+                                                                                <span class="ki-name">{keeperName(k)}</span>
+                                                                                {#if keeperMeta(k)}<span class="ki-meta">{keeperMeta(k)}</span>{/if}
+                                                                        </div>
+                                                                        <span class="ki-round" title="Costs a round {k.cost_round} pick">R{k.cost_round}</span>
+                                                                </li>
+                                                        {/each}
+                                                </ul>
                                         </div>
                                 {/each}
                         </div>
@@ -352,6 +430,64 @@
                 background: rgba(255, 80, 80, 0.12);
         }
         .picks-cell.over .pc-count { color: #ff8080; }
+
+        .picks-cell.keeper {
+                position: relative;
+                border-color: rgba(0, 240, 255, 0.5);
+                background: rgba(0, 240, 255, 0.08);
+        }
+        .pc-keeper {
+                position: absolute;
+                top: 2px;
+                right: 3px;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: 0.04em;
+                color: var(--sn-cyan);
+        }
+
+        .keeper-list {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+        }
+        .keeper-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 8px 10px;
+                border: 1px solid var(--sn-border);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.02);
+        }
+        .ki-main { display: flex; flex-direction: column; min-width: 0; }
+        .ki-name {
+                font-weight: 700;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+        }
+        .ki-meta {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--sn-text-faint);
+        }
+        .ki-round {
+                font-family: monospace;
+                font-weight: 900;
+                font-size: 0.9rem;
+                color: var(--sn-cyan);
+                border: 1px solid rgba(0, 240, 255, 0.4);
+                border-radius: 6px;
+                padding: 3px 8px;
+                flex-shrink: 0;
+        }
 
         .draft-board {
                 display: flex;

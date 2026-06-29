@@ -205,6 +205,73 @@ CREATE TABLE IF NOT EXISTS draft_pick_ownership (
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         PRIMARY KEY (year, team_key, round)
 );
+
+-- Durable per-pick draft history, one row per drafted player per season. Feeds
+-- the keeper engine: the round a player was drafted in is their sticky keeper
+-- cost, and is_keeper flags re-designations across seasons. player_id is the
+-- stable numeric Yahoo id (the part after ".p.") so a player's lineage can be
+-- tracked across seasons even though the full player_key's game prefix changes.
+CREATE TABLE IF NOT EXISTS draft_results_archive (
+        year INT NOT NULL,
+        league_key TEXT,
+        round INT,
+        pick_no INT,
+        player_key TEXT NOT NULL,
+        player_id TEXT,
+        player_name TEXT,
+        team_key TEXT,
+        roster_id INT,
+        is_keeper BOOLEAN NOT NULL DEFAULT false,
+        cost INT,
+        captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (year, player_key)
+);
+
+CREATE INDEX IF NOT EXISTS draft_results_archive_player_idx ON draft_results_archive (player_id);
+
+-- Durable transaction log decomposed into per-player events. Each add/drop/trade
+-- becomes one row so the keeper engine can replay a player's acquisition timeline:
+-- a non-trade "drop" breaks the keeper lineage; an "add" (waiver/FA) starts a new
+-- lineage at the round-6 cost; a "trade" carries the existing lineage to the new
+-- owner. year is the SEASON year of the move (Sep–Feb maps to the start year).
+CREATE TABLE IF NOT EXISTS transaction_archive (
+        id SERIAL PRIMARY KEY,
+        transaction_id TEXT NOT NULL,
+        year INT NOT NULL,
+        type TEXT NOT NULL,
+        player_key TEXT NOT NULL,
+        player_id TEXT,
+        player_name TEXT,
+        from_roster_id INT,
+        to_roster_id INT,
+        timestamp BIGINT,
+        captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (transaction_id, player_key, type)
+);
+
+CREATE INDEX IF NOT EXISTS transaction_archive_player_idx ON transaction_archive (player_id);
+
+-- Manager-submitted keeper picks for an upcoming draft, approved by the
+-- commissioner. status: 'pending' (selected by manager) or 'approved'. cost_round
+-- is the draft round the keeper consumes; acquisition_year is the lineage start
+-- the engine derived (informational). One keeper row per team per player per year.
+CREATE TABLE IF NOT EXISTS keeper_selections (
+        id SERIAL PRIMARY KEY,
+        year INT NOT NULL,
+        team_key TEXT NOT NULL,
+        roster_id INT,
+        player_key TEXT NOT NULL,
+        player_id TEXT,
+        player_name TEXT,
+        cost_round INT,
+        acquisition_year INT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        submitted_by TEXT,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (year, team_key, player_key)
+);
+
+CREATE INDEX IF NOT EXISTS keeper_selections_year_idx ON keeper_selections (year);
 `;
 
 /**

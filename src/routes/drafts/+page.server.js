@@ -3,6 +3,7 @@ import { requireAuth } from '$lib/server/authGuard.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { getDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
+import { getApprovedKeepers } from '$lib/server/keepers.js';
 
 export async function load({ url, fetch, locals }) {
         requireAuth(locals, url);
@@ -24,13 +25,21 @@ export async function load({ url, fetch, locals }) {
                 console.error('[drafts] Error loading draft pick ownership:', err.message);
         }
 
+        let approvedKeepers = [];
+        try {
+                approvedKeepers = await getApprovedKeepers(draftPickYear);
+        } catch (err) {
+                console.error('[drafts] Error loading approved keepers:', err.message);
+        }
+
         return {
                 upcomingDraftData,
                 previousDraftsData,
                 leagueTeamManagersData,
                 playersData,
                 draftPickOwnership,
-                draftPickYear
+                draftPickYear,
+                approvedKeepers
         };
 }
 
