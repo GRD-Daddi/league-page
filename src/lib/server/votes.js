@@ -312,16 +312,52 @@ export async function commissionerClose(session, id) {
 }
 
 /**
- * Parses CSV text into an array of string-cell rows. Handles quoted fields,
- * escaped quotes ("") and commas/newlines inside quotes — the format Google
- * Forms / Sheets exports use. Blank trailing lines are dropped.
+ * Detects the field delimiter used by a CSV by counting unquoted candidate
+ * delimiters in the header line. Supports comma (Google Forms / US Sheets),
+ * semicolon (European Excel locales) and tab (TSV exports). Defaults to comma
+ * when nothing clearly wins, so well-formed comma CSVs are never misread.
  */
-export function parseCsv(text) {
+function detectDelimiter(text) {
+        const firstLine = (text || '').split('\n')[0] || '';
+        const candidates = [',', ';', '\t'];
+        let best = ',';
+        let bestCount = 0;
+        for (const d of candidates) {
+                let count = 0;
+                let inQuotes = false;
+                for (let i = 0; i < firstLine.length; i++) {
+                        const ch = firstLine[i];
+                        if (ch === '"') {
+                                if (inQuotes && firstLine[i + 1] === '"') i++;
+                                else inQuotes = !inQuotes;
+                        } else if (ch === d && !inQuotes) {
+                                count++;
+                        }
+                }
+                if (count > bestCount) {
+                        bestCount = count;
+                        best = d;
+                }
+        }
+        return best;
+}
+
+/**
+ * Parses CSV text into an array of string-cell rows. Handles quoted fields,
+ * escaped quotes ("") and delimiters/newlines inside quotes — the format Google
+ * Forms / Sheets exports use. A leading UTF-8 BOM (common in Excel exports) is
+ * stripped so the first header is not corrupted. The delimiter is auto-detected
+ * (comma / semicolon / tab) unless one is passed explicitly. Blank lines dropped.
+ */
+export function parseCsv(text, delimiter) {
         const rows = [];
         let row = [];
         let field = '';
         let inQuotes = false;
-        const s = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        let s = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        // Strip a leading UTF-8 BOM so the first header cell stays clean.
+        if (s.charCodeAt(0) === 0xfeff) s = s.slice(1);
+        const delim = delimiter || detectDelimiter(s);
 
         for (let i = 0; i < s.length; i++) {
                 const ch = s[i];
@@ -338,7 +374,7 @@ export function parseCsv(text) {
                         }
                 } else if (ch === '"') {
                         inQuotes = true;
-                } else if (ch === ',') {
+                } else if (ch === delim) {
                         row.push(field);
                         field = '';
                 } else if (ch === '\n') {
@@ -424,9 +460,19 @@ export async function importHistoricalVotes(session, csvText) {
         let imported = 0;
         const skipped = [];
         const errors = [];
+        // Two columns can share a header; only the first is imported (the second
+        // would otherwise collide on title+year), so flag the rest explicitly.
+        const seenTitles = new Set();
 
         for (const col of questionCols) {
                 const questionTitle = header[col];
+
+                const titleKey = questionTitle.toLowerCase();
+                if (seenTitles.has(titleKey)) {
+                        skipped.push(`"${questionTitle}" — duplicate column in this file`);
+                        continue;
+                }
+                seenTitles.add(titleKey);
 
                 // Tally distinct answers down the column, preserving first-seen order.
                 const order = [];
