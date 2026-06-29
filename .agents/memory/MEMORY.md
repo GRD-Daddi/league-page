@@ -25,5 +25,6 @@
 - [Pot projection from uncollected buy-ins](pot-projection-uncollected-funds.md) — upcoming-season pot/pool projected from expected members (season_archive.num_teams), flagged Projected; real potTotal/getPotTotal stay collected-only.
 - [Design system](design-system.md) — SMUI fully removed; build UI with plain Svelte + stadium.css (.sn-* classes) + LinearProgress.svelte, never reintroduce @smui.
 - [Keepers engine](keepers-engine.md) — 3-season cap (draft=yr1), drop breaks lineage, cost=last-drafted round (waiver/FA=R6) sticky thru trades; keeper consumes a pick in the upcoming-year board.
+- [Yahoo keeper flags source](yahoo-keeper-flags.md) — keeper status is on roster is_keeper.kept, NOT draftresults; league keeper since 2022; cost=first non-keeper round; import stamps is_keeper from rosters.
 - [Keeper cross-season team_key bridge](keeper-cross-season-teamkey-bridge.md) — preseason rosters fall back to last season (new league key + reshuffled .t.N); remap to upcoming key by owner GUID (then unambiguous team name), never .t.N, or every team shows "no pick".
 - [Yahoo transaction player-movement shape](yahoo-transaction-player-shape.md) — library puts player moves under player.transaction (not .transaction_data); reading wrong field → empty adds/drops → "0 transaction events" import & broken /transactions page.

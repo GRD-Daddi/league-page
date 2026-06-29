@@ -9,6 +9,84 @@ export async function getYahooDraftResults(leagueKey, yahooClient = null) {
         return convertDraftResultsToSleeperFormat(draftResults, leagueKey);
 }
 
+// Yahoo returns each entity as an array of single-key attribute objects
+// ([{player_id:..},{name:..},..]); flatten them into one plain object.
+function flattenSegments(arr) {
+        const o = {};
+        if (Array.isArray(arr)) {
+                for (const x of arr) {
+                        if (x && typeof x === 'object') Object.assign(o, x);
+                }
+        }
+        return o;
+}
+
+/**
+ * Return the set of numeric Yahoo player_ids that were KEPT in a given season.
+ *
+ * Yahoo does NOT expose keeper status on the draft-results endpoint — a kept
+ * player is just a normal pick there. Keeper status lives on the per-team roster
+ * as `is_keeper.kept`. We enumerate every team's roster for the season and
+ * collect the kept players so the draft archive can be stamped with the real
+ * keeper flag (which drives keeper-lineage continuation in keeperEngine).
+ */
+export async function getSeasonKeeperPlayerIds(leagueKey, yahooClient = null) {
+        const yf = yahooClient || getYahooClient();
+        if (!yf) throw new Error('Yahoo client not initialized');
+
+        const keeperIds = new Set();
+
+        const teamsRaw = await withRetry(() =>
+                rawYahooGet(`https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/teams`, yf)
+        );
+        const league = teamsRaw?.fantasy_content?.league;
+        const teamsSeg = Array.isArray(league)
+                ? league.find((s) => s && s.teams)?.teams
+                : league?.teams;
+        const teamWraps = collectionToArray(teamsSeg);
+
+        const teamKeys = [];
+        for (const tw of teamWraps) {
+                const meta = flattenSegments(tw?.team?.[0]);
+                if (meta.team_key) teamKeys.push(meta.team_key);
+        }
+
+        for (const teamKey of teamKeys) {
+                let raw;
+                try {
+                        raw = await withRetry(() =>
+                                rawYahooGet(
+                                        `https://fantasysports.yahooapis.com/fantasy/v2/team/${teamKey}/roster/players`,
+                                        yf
+                                )
+                        );
+                } catch (err) {
+                        console.error('[keeperFlags] roster failed for', teamKey, err?.message);
+                        continue;
+                }
+                const team = raw?.fantasy_content?.team;
+                const rosterObj = Array.isArray(team)
+                        ? team.find((s) => s && s.roster)?.roster
+                        : team?.roster;
+                const players = rosterObj?.['0']?.players;
+                if (!players) continue;
+                for (const k of Object.keys(players)) {
+                        if (k === 'count') continue;
+                        const attrs = flattenSegments(players[k]?.player?.[0]);
+                        const kept = attrs?.is_keeper?.kept;
+                        if (kept === true || kept === '1' || kept === 1) {
+                                const pid =
+                                        attrs.player_id != null && attrs.player_id !== ''
+                                                ? String(attrs.player_id)
+                                                : String(attrs.player_key || '').match(/\.p\.(\d+)/)?.[1] || null;
+                                if (pid) keeperIds.add(pid);
+                        }
+                }
+        }
+
+        return keeperIds;
+}
+
 export async function getYahooDraftData(leagueKey, yahooClient = null) {
         const yf = yahooClient || getYahooClient();
         if (!yf) throw new Error('Yahoo client not initialized');

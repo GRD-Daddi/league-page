@@ -1,6 +1,7 @@
 import { query, getPool, initDb } from './db.js';
 import { getCurrentSeasonYear } from './pot.js';
 import { loadLeagueData, loadDraftResults, loadLeagueTransactions } from './dataLoaders.js';
+import { getSeasonKeeperPlayerIds } from '$lib/yahoo-adapter/draftAdapter.js';
 
 /**
  * Persistence for the keeper engine: durable draft-pick history and a
@@ -23,7 +24,7 @@ export function playerIdFromKey(playerKey) {
  * { player_id (= player_key), round, pick_no, roster_id, is_keeper,
  *   metadata: { team_key, is_keeper, cost } }.
  */
-export async function saveDraftResults(year, leagueKey, picks) {
+export async function saveDraftResults(year, leagueKey, picks, keeperIds = null) {
         if (!Number.isFinite(year) || !Array.isArray(picks) || picks.length === 0) return 0;
         await initDb();
         const client = await getPool().connect();
@@ -41,7 +42,9 @@ export async function saveDraftResults(year, leagueKey, picks) {
                         const rosterId = Number.isFinite(p?.roster_id)
                                 ? p.roster_id
                                 : (parseInt(p?.roster_id, 10) || null);
-                        const isKeeper = !!(p?.metadata?.is_keeper || p?.is_keeper);
+                        const isKeeper = keeperIds
+                                ? keeperIds.has(playerId)
+                                : !!(p?.metadata?.is_keeper || p?.is_keeper);
                         const cost = p?.metadata?.cost != null ? (parseInt(p.metadata.cost, 10) || null) : null;
                         const playerName = p?.metadata?.player_name || p?.player_name || null;
                         await client.query(
@@ -183,7 +186,19 @@ export async function captureKeeperData(yahooClient, leagueKey) {
                 const year = parseInt(leagueData?.season, 10);
                 if (Number.isFinite(year)) {
                         const picks = await loadDraftResults(yahooClient, leagueKey);
-                        if (Array.isArray(picks) && picks.length) await saveDraftResults(year, leagueKey, picks);
+                        if (Array.isArray(picks) && picks.length) {
+                                let keeperIds = null;
+                                try {
+                                        keeperIds = await getSeasonKeeperPlayerIds(leagueKey, yahooClient);
+                                } catch (err) {
+                                        console.error('[keeperArchive] keeper flags failed:', err?.message);
+                                }
+                                if (keeperIds) {
+                                        await saveDraftResults(year, leagueKey, picks, keeperIds);
+                                } else {
+                                        console.warn('[keeperArchive] skipping draft save for', year, '— keeper flags unavailable');
+                                }
+                        }
                 }
         } catch (err) {
                 console.error('[keeperArchive] draft capture failed:', err?.message);
@@ -211,6 +226,7 @@ export async function backfillKeeperHistory(yahooClient, startLeagueKey) {
         const seasons = [];
         let totalPicks = 0;
         let totalTx = 0;
+        let totalKeepers = 0;
 
         while (currentKey && guard < 15) {
                 guard++;
@@ -226,9 +242,20 @@ export async function backfillKeeperHistory(yahooClient, startLeagueKey) {
                 const year = parseInt(leagueData.season, 10);
                 if (Number.isFinite(year)) {
                         try {
-                                const picks = await loadDraftResults(yahooClient, currentKey);
-                                if (Array.isArray(picks) && picks.length) {
-                                        totalPicks += await saveDraftResults(year, currentKey, picks);
+                                let keeperIds = null;
+                                try {
+                                        keeperIds = await getSeasonKeeperPlayerIds(currentKey, yahooClient);
+                                        totalKeepers += keeperIds.size;
+                                } catch (err) {
+                                        console.error('[keeperBackfill] keeper flags failed for', year, err?.message);
+                                }
+                                if (keeperIds) {
+                                        const picks = await loadDraftResults(yahooClient, currentKey);
+                                        if (Array.isArray(picks) && picks.length) {
+                                                totalPicks += await saveDraftResults(year, currentKey, picks, keeperIds);
+                                        }
+                                } else {
+                                        console.warn('[keeperBackfill] skipping draft save for', year, '— keeper flags unavailable');
                                 }
                         } catch (err) {
                                 console.error('[keeperBackfill] draft results failed for', year, err?.message);
@@ -247,5 +274,5 @@ export async function backfillKeeperHistory(yahooClient, startLeagueKey) {
                 currentKey = leagueData.previous_league_id || null;
         }
 
-        return { ok: seasons.length > 0, seasons, picks: totalPicks, transactions: totalTx };
+        return { ok: seasons.length > 0, seasons, picks: totalPicks, transactions: totalTx, keepers: totalKeepers };
 }
