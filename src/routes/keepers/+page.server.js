@@ -6,17 +6,20 @@ import { captureKeeperData, getKeptKeepers } from '$lib/server/keeperArchive.js'
 import { getArchivedRosters } from '$lib/server/archive.js';
 import { loadLeagueData, loadNFLState, loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
 import { resolveSeasonPhase, isDraftPrepPhase } from '$lib/utils/seasonPhase.js';
+import { requireAuth } from '$lib/server/authGuard.js';
 
-// The Keepers page is PUBLIC: anyone can view the keeper room read-only. Only
-// the select/unselect actions require a logged-in manager (enforced per-action).
-export async function load({ locals, fetch }) {
+// The Keepers page is login-gated like every other league page: logged-out
+// visitors are redirected to the homepage login prompt before any data loads.
+// The select/unselect actions additionally enforce per-team ownership.
+export async function load({ locals, url, fetch }) {
+        requireAuth(locals, url);
+
         const { yahooClient, leagueKey } = locals;
         const year = getCurrentSeasonYear();
 
         // Fire-and-forget snapshot of the current league's draft + transactions so
         // the engine stays fresh without a manual backfill. Best-effort: failures
-        // are logged inside captureKeeperData and never block the page. Skipped for
-        // logged-out visitors who have no Yahoo client.
+        // are logged inside captureKeeperData and never block the page.
         if (yahooClient && leagueKey) {
                 captureKeeperData(yahooClient, leagueKey).catch(() => {});
         }
@@ -55,22 +58,13 @@ export async function load({ locals, fetch }) {
         const state = await getKeeperState(year, yahooClient, leagueKey, locals.session?.userId || null);
         const myTeamKey = locals.session?.managerInfo?.metadata?.team_key || null;
 
-        // Logged-out visitors have no Yahoo client, so live rosters can't load.
-        // Still expose a genuine read-only view of the keepers already locked in,
-        // grouped by team (team names recovered from archived rosters).
-        let publicTeams = null;
-        if (state.requiresAuth) {
-                publicTeams = await buildPublicView(state.selections, state.upcomingYear);
-        }
-
         return {
                 keepers: {
                         ...state,
                         seasonPhase,
                         myTeamKey,
                         isLoggedIn: !!locals.session?.userId,
-                        isCommissioner: isCommissioner(locals.session),
-                        publicTeams
+                        isCommissioner: isCommissioner(locals.session)
                 }
         };
 }
@@ -138,29 +132,6 @@ async function buildCapturedKeepers(year, yahooClient, leagueKey, fetch) {
                         nflTeam: p?.t || null,
                         costRound: row.cost ?? row.round ?? null
                 });
-        }
-        return [...byTeam.values()].sort((a, b) => a.teamName.localeCompare(b.teamName));
-}
-
-async function buildPublicView(selections, upcomingYear) {
-        const nameByTeam = new Map();
-        for (const y of [upcomingYear, upcomingYear - 1, upcomingYear - 2]) {
-                const rows = await getArchivedRosters(y).catch(() => []);
-                for (const r of rows) {
-                        if (r.team_key && !nameByTeam.has(r.team_key)) nameByTeam.set(r.team_key, r.team_name);
-                }
-                if (nameByTeam.size) break;
-        }
-        const byTeam = new Map();
-        for (const s of selections || []) {
-                if (!byTeam.has(s.team_key)) {
-                        byTeam.set(s.team_key, {
-                                teamKey: s.team_key,
-                                teamName: nameByTeam.get(s.team_key) || 'Team',
-                                players: []
-                        });
-                }
-                byTeam.get(s.team_key).players.push(s);
         }
         return [...byTeam.values()].sort((a, b) => a.teamName.localeCompare(b.teamName));
 }

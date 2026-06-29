@@ -25,7 +25,6 @@
         $: rounds = keepers?.rounds || 15;
         $: teams = keepers?.teams || [];
         $: myTeamKey = keepers?.myTeamKey || null;
-        $: publicTeams = keepers?.publicTeams || [];
         // Live-season read-only view: keeper selection is over, so show who was
         // actually kept this season instead of the editable selection room.
         $: showCaptured = !!keepers?.showCaptured;
@@ -229,52 +228,6 @@
                                 <div class="sn-empty">
                                         <h3>No keepers this season</h3>
                                         <p>No players were kept for the {keepers?.upcomingYear} season — every roster spot came from the draft.</p>
-                                </div>
-                        {/if}
-                {:else if keepers?.requiresAuth}
-                        <div class="sn-card flat login-prompt">
-                                <div>
-                                        <strong>Viewing in read-only mode.</strong>
-                                        <span>Log in with Yahoo to see full keeper eligibility and lock in your own keepers.</span>
-                                </div>
-                                <a class="sn-btn primary" href="/auth/login"><span>Log in with Yahoo</span></a>
-                        </div>
-
-                        {#if publicTeams.length}
-                                <h2 class="section-title">KEEPERS LOCKED IN · {keepers?.upcomingYear}</h2>
-                                <div class="teams-grid">
-                                        {#each publicTeams as team (team.teamKey)}
-                                                <div class="sn-card team-card">
-                                                        <div class="team-head">
-                                                                <div class="sn-avatar">{initials(team.teamName)}</div>
-                                                                <div class="team-text">
-                                                                        <div class="sn-team-name">{team.teamName}</div>
-                                                                </div>
-                                                        </div>
-                                                        <div class="player-list">
-                                                                {#each team.players as p (p.player_key)}
-                                                                        <div class="player-row {p.status === 'approved' ? 'selected' : ''}">
-                                                                                <div class="player-main">
-                                                                                        <span class="player-name">{p.player_name}</span>
-                                                                                        <div class="player-tags">
-                                                                                                <span class="sn-badge">R{p.cost_round}</span>
-                                                                                                {#if p.status === 'approved'}
-                                                                                                        <span class="sn-badge lime">Approved</span>
-                                                                                                {:else}
-                                                                                                        <span class="sn-badge cyan">Pending</span>
-                                                                                                {/if}
-                                                                                        </div>
-                                                                                </div>
-                                                                        </div>
-                                                                {/each}
-                                                        </div>
-                                                </div>
-                                        {/each}
-                                </div>
-                        {:else}
-                                <div class="sn-empty">
-                                        <h3>No keepers locked in yet</h3>
-                                        <p>Once managers select their keepers, they'll appear here for everyone to see.</p>
                                 </div>
                         {/if}
                 {:else if !teams.length}
@@ -531,19 +484,6 @@
                 font-size: 0.85rem;
                 margin: 0 0 20px;
         }
-
-        .login-prompt {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 16px;
-                flex-wrap: wrap;
-                padding: 16px 20px;
-                margin-bottom: 24px;
-                border-left: 3px solid var(--sn-cyan);
-        }
-        .login-prompt strong { color: #fff; display: block; }
-        .login-prompt span { color: var(--sn-text-mute); font-size: 0.88rem; }
 
         .section-title {
                 margin: 32px 0 4px;
