@@ -55,6 +55,10 @@ export function resolveLineage(playerId, draftsById, txById) {
 
         let lineage = null;
         let startedFromKeeper = false;
+        // The event that began the currently-active lineage. Every event from this
+        // one onward belongs to the lineage the player can still be kept on; anything
+        // before it was reset by a drop and is "previous history".
+        let lineageStart = null;
 
         for (const ev of events) {
                 if (ev.kind === 'draft') {
@@ -67,28 +71,33 @@ export function resolveLineage(playerId, draftsById, txById) {
                                 costRound: ev.round || WAIVER_COST_ROUND,
                                 source: ev.isKeeper ? 'keeper' : 'draft'
                         };
+                        lineageStart = ev;
                         // A keeper draft with no prior lineage in our data means history
                         // starts mid-stream — the true acquisition is older than we know.
                         startedFromKeeper = !!ev.isKeeper;
                 } else if (ev.kind === 'add') {
                         lineage = { acquisitionYear: ev.year, costRound: WAIVER_COST_ROUND, source: 'waiver' };
+                        lineageStart = ev;
                         startedFromKeeper = false;
                 } else if (ev.kind === 'trade') {
                         if (!lineage) {
                                 // Traded to this owner with no known prior lineage — treat as a
                                 // round-6 acquisition at the trade year and flag for review.
                                 lineage = { acquisitionYear: ev.year, costRound: WAIVER_COST_ROUND, source: 'trade' };
+                                lineageStart = ev;
                                 startedFromKeeper = true;
                         } else {
                                 lineage.traded = true;
                         }
                 } else if (ev.kind === 'drop') {
                         lineage = null;
+                        lineageStart = null;
                         startedFromKeeper = false;
                 }
         }
 
-        return { lineage, startedFromKeeper, hasHistory: events.length > 0 };
+        const startIndex = lineageStart ? events.indexOf(lineageStart) : -1;
+        return { lineage, startedFromKeeper, hasHistory: events.length > 0, events, startIndex };
 }
 
 function buildIndexes(drafts, transactions) {
@@ -116,7 +125,18 @@ function buildIndexes(drafts, transactions) {
  */
 export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById, upcomingYear, teamPicks, roundsMax }) {
         const playerId = playerIdFromKey(playerKey);
-        const { lineage, startedFromKeeper, hasHistory } = resolveLineage(playerId, draftsById, txById);
+        const { lineage, startedFromKeeper, hasHistory, events, startIndex } = resolveLineage(playerId, draftsById, txById);
+
+        // A drill-in timeline of every recorded move for this player, oldest first.
+        // `current` flags the events that make up the active keeper lineage (from the
+        // most recent acquisition onward); earlier ones were reset by a drop.
+        const history = (events || []).map((ev, i) => ({
+                year: ev.year,
+                kind: ev.kind,
+                round: ev.kind === 'draft' ? ev.round || null : null,
+                isKeeper: ev.kind === 'draft' ? !!ev.isKeeper : false,
+                current: startIndex >= 0 && i >= startIndex
+        }));
 
         const name = detail
                 ? `${detail.fn || ''} ${detail.ln || ''}`.trim() || detail.full_name || 'Unknown Player'
@@ -130,7 +150,8 @@ export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById,
                 nflTeam: detail?.t || detail?.team || null,
                 img: detail?.img || null,
                 teamKey,
-                needsReview: false
+                needsReview: false,
+                history
         };
 
         const maxRound = Number.isFinite(roundsMax) && roundsMax > 0 ? roundsMax : 15;

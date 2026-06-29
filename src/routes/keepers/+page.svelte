@@ -91,6 +91,31 @@
                         .sort((a, b) => a.round - b.round);
         }
 
+        // Per-player drill-in: which lineage timelines are expanded (keyed by
+        // teamKey::playerKey so the same player on different teams never collide).
+        let openLineage = {};
+        function toggleLineage(key) {
+                openLineage = { ...openLineage, [key]: !openLineage[key] };
+        }
+
+        // Friendly label for one lineage event in the drill-in timeline.
+        function lineageLabel(ev) {
+                switch (ev.kind) {
+                        case 'draft': {
+                                const rnd = ev.round ? ` · round ${ev.round}` : '';
+                                return ev.isKeeper ? `Kept (keeper draft)${rnd}` : `Drafted${rnd}`;
+                        }
+                        case 'add':
+                                return 'Added off waivers / FA';
+                        case 'trade':
+                                return 'Acquired via trade';
+                        case 'drop':
+                                return 'Dropped — lineage reset';
+                        default:
+                                return ev.kind;
+                }
+        }
+
         // Surface the manager's own team first.
         $: sortedTeams = [...teams].sort((a, b) => {
                 const am = a.teamKey === myTeamKey ? 0 : 1;
@@ -268,6 +293,24 @@
                                                                                                                         {/if}
                                                                                                                 </div>
                                                                                                                 <div class="player-reason {p.eligible ? '' : 'warn'}">{p.reason}</div>
+                                                                                                                <button type="button" class="lineage-toggle" on:click={() => toggleLineage(team.teamKey + '::' + p.playerKey)} aria-expanded={!!openLineage[team.teamKey + '::' + p.playerKey]}>
+                                                                                                                        {openLineage[team.teamKey + '::' + p.playerKey] ? 'Hide history' : 'View history'}
+                                                                                                                </button>
+                                                                                                                {#if openLineage[team.teamKey + '::' + p.playerKey]}
+                                                                                                                        {@const hist = p.history || []}
+                                                                                                                        {#if hist.length}
+                                                                                                                                <ol class="lineage">
+                                                                                                                                        {#each hist as ev}
+                                                                                                                                                <li class="lineage-ev {ev.current ? 'current' : 'past'}">
+                                                                                                                                                        <span class="lineage-year">{ev.year}</span>
+                                                                                                                                                        <span class="lineage-text">{lineageLabel(ev)}</span>
+                                                                                                                                                </li>
+                                                                                                                                        {/each}
+                                                                                                                                </ol>
+                                                                                                                        {:else}
+                                                                                                                                <div class="lineage-empty">No draft or transaction history on record.</div>
+                                                                                                                        {/if}
+                                                                                                                {/if}
                                                                                                         </div>
                                                                                                         {#if editable}
                                                                                                                 <div class="player-action">
@@ -304,8 +347,25 @@
                                                                 <div class="inel-list">
                                                                         {#each inel as p (p.playerKey)}
                                                                                 <div class="inel-row">
-                                                                                        <span class="inel-name">{p.name}</span>
-                                                                                        <span class="inel-reason">{p.reason}</span>
+                                                                                        <button type="button" class="inel-head" on:click={() => toggleLineage(team.teamKey + '::' + p.playerKey)} aria-expanded={!!openLineage[team.teamKey + '::' + p.playerKey]}>
+                                                                                                <span class="inel-name">{p.name}</span>
+                                                                                                <span class="inel-reason">{p.reason}</span>
+                                                                                        </button>
+                                                                                        {#if openLineage[team.teamKey + '::' + p.playerKey]}
+                                                                                                {@const hist = p.history || []}
+                                                                                                {#if hist.length}
+                                                                                                        <ol class="lineage">
+                                                                                                                {#each hist as ev}
+                                                                                                                        <li class="lineage-ev {ev.current ? 'current' : 'past'}">
+                                                                                                                                <span class="lineage-year">{ev.year}</span>
+                                                                                                                                <span class="lineage-text">{lineageLabel(ev)}</span>
+                                                                                                                        </li>
+                                                                                                                {/each}
+                                                                                                        </ol>
+                                                                                                {:else}
+                                                                                                        <div class="lineage-empty">No draft or transaction history on record.</div>
+                                                                                                {/if}
+                                                                                        {/if}
                                                                                 </div>
                                                                         {/each}
                                                                 </div>
@@ -565,6 +625,63 @@
         }
         .player-reason.warn { color: #ffb454; }
 
+        .lineage-toggle {
+                margin-top: 6px;
+                padding: 0;
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                color: var(--sn-cyan);
+        }
+        .lineage-toggle:hover { text-decoration: underline; }
+
+        .lineage {
+                list-style: none;
+                margin: 8px 0 2px;
+                padding: 0 0 0 14px;
+                border-left: 2px solid var(--sn-border);
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+        }
+        .lineage-ev {
+                position: relative;
+                display: flex;
+                align-items: baseline;
+                gap: 10px;
+                font-size: 0.78rem;
+        }
+        .lineage-ev::before {
+                content: '';
+                position: absolute;
+                left: -19px;
+                top: 6px;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--sn-text-faint);
+        }
+        .lineage-ev.current::before { background: var(--sn-cyan); }
+        .lineage-ev.past { opacity: 0.55; }
+        .lineage-year {
+                flex-shrink: 0;
+                font-weight: 800;
+                color: #fff;
+                font-variant-numeric: tabular-nums;
+        }
+        .lineage-text { color: var(--sn-text-mute); }
+        .lineage-ev.current .lineage-text { color: #fff; }
+        .lineage-empty {
+                margin: 8px 0 2px;
+                font-size: 0.78rem;
+                font-style: italic;
+                color: var(--sn-text-faint);
+        }
+
         .player-action { flex-shrink: 0; }
         .no-pick {
                 font-size: 0.75rem;
@@ -596,11 +713,26 @@
         }
         .inel-row {
                 display: flex;
-                justify-content: space-between;
-                gap: 12px;
+                flex-direction: column;
+                gap: 6px;
                 font-size: 0.8rem;
                 color: var(--sn-text-mute);
         }
+        .inel-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 12px;
+                width: 100%;
+                padding: 0;
+                background: none;
+                border: none;
+                cursor: pointer;
+                text-align: left;
+                font: inherit;
+                color: inherit;
+        }
+        .inel-head:hover .inel-name { color: var(--sn-cyan); }
         .inel-name { color: var(--sn-text-mute); font-weight: 700; }
         .inel-reason { color: var(--sn-text-faint); text-align: right; }
 
