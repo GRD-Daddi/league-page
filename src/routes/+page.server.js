@@ -6,6 +6,51 @@ import { resolveSeasonPhase } from '$lib/utils/seasonPhase.js';
 import { getYahooTradedPicks } from '$lib/yahoo-adapter/index.js';
 import { getDraftPickOwnership } from '$lib/server/draftPicks.js';
 import { getOpenVoteAlerts } from '$lib/server/votes.js';
+import { getKeeperState } from '$lib/server/keepers.js';
+import { KEEPER_MAX_SEASONS } from '$lib/utils/keeperRules.js';
+
+// "Key players returning to the draft": rostered players who can no longer be
+// kept because they hit the season cap AND were genuinely kept the full distance
+// (a recorded keeper re-draft each eligible year). Requiring real keeper events
+// excludes players that only LOOK maxed-out from missing transaction history
+// (e.g. a 2023 draftee never actually kept) — those aren't the marquee names a
+// team is forced to surrender, they're just data gaps.
+function deriveReturningPlayers(keeperState, ownerByTeam) {
+        const minKeptEvents = Math.max(1, KEEPER_MAX_SEASONS - 1);
+        const seen = new Set();
+        const out = [];
+        for (const team of keeperState?.teams || []) {
+                for (const p of team.players || []) {
+                        if (!Number.isFinite(p.acquisitionYear)) continue; // lineage must be known & sane
+                        // Genuinely cap-exhausted (not just any !eligibleByRules — guards against
+                        // malformed/future acquisition years where remainingYears stays positive).
+                        if (!(Number.isFinite(p.remainingYears) && p.remainingYears <= 0)) continue;
+                        const keptEvents = (p.history || []).filter((h) => h.current && h.isKeeper).length;
+                        if (keptEvents < minKeptEvents) continue; // must have gone the full distance
+                        const key = `${p.teamKey}::${p.playerKey}`;
+                        if (seen.has(key)) continue;
+                        seen.add(key);
+                        out.push({
+                                name: p.name,
+                                pos: p.pos || null,
+                                nflTeam: p.nflTeam || null,
+                                img: p.img || null,
+                                costRound: p.costRound || null,
+                                sinceYear: p.acquisitionYear,
+                                teamName: ownerByTeam.get(team.teamKey) || team.teamName || null
+                        });
+                }
+        }
+        // Cheapest-round keepers first (the stars kept on a bargain pick), then
+        // longest-tenured, then name — surfaces the marquee names at the top.
+        out.sort(
+                (a, b) =>
+                        (a.costRound || 99) - (b.costRound || 99) ||
+                        (a.sinceYear || 0) - (b.sinceYear || 0) ||
+                        a.name.localeCompare(b.name)
+        );
+        return out;
+}
 
 // Numeric Yahoo team number (the "N" in "...t.N") from a team key.
 function teamNumFromKey(teamKey) {
@@ -193,6 +238,31 @@ export async function load({ locals, url }) {
                                 return null;
                         });
 
+                // Marquee players forced back into the draft pool — only computed during the
+                // preseason/offseason draft-prep window, when the homepage actually shows
+                // this section. Reuses the per-viewer keeper cache so it adds no extra Yahoo
+                // load on top of the Keepers page. Best-effort: never break the homepage.
+                let returningPlayers = null;
+                if (seasonPhase === 'preseason' || seasonPhase === 'offseason') {
+                        try {
+                                const keeperState = await getKeeperState(
+                                        getCurrentSeasonYear(),
+                                        yahooClient,
+                                        leagueKey,
+                                        locals.session?.userId || null
+                                );
+                                const ownerByTeam = new Map();
+                                for (const u of users || []) {
+                                        const tk = u?.metadata?.team_key;
+                                        if (tk) ownerByTeam.set(tk, u?.metadata?.manager_nickname || u?.metadata?.team_name || null);
+                                }
+                                returningPlayers = deriveReturningPlayers(keeperState, ownerByTeam);
+                        } catch (err) {
+                                console.error('[homepage] Error computing returning players:', err.message);
+                                returningPlayers = null;
+                        }
+                }
+
                 return {
                         nflState,
                         potData: authedPotData,
@@ -204,6 +274,8 @@ export async function load({ locals, url }) {
                         draftPicksByTeam,
                         draftPicksSource,
                         draftOrder,
+                        returningPlayers,
+                        keeperMaxSeasons: KEEPER_MAX_SEASONS,
                         rosters: rostersResult?.rosters ?? null,
                         users,
                         requiresAuth: false,

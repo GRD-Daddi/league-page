@@ -139,6 +139,12 @@
   $: hasVoteAlerts = pendingVotes.length > 0;
   $: voteAlertClosingSoon = !!voteAlerts?.closingSoon;
 
+  // Marquee players forced back into the draft pool because they hit the keeper
+  // season cap (computed server-side; only the genuinely full-term keepers).
+  $: returningPlayers = Array.isArray(data?.returningPlayers) ? data.returningPlayers : [];
+  $: hasReturningPlayers = returningPlayers.length > 0;
+  $: keeperMaxSeasons = data?.keeperMaxSeasons ?? 3;
+
   function deadlineLabel(p) {
     if (!p?.deadline) return 'No deadline';
     const h = p.hoursLeft;
@@ -1357,6 +1363,32 @@
     letter-spacing: 0.1em;
     margin-top: 2px;
   }
+
+  .returning-slot.filled {
+    border: 1px solid #26303d;
+    border-style: solid;
+  }
+  .returning-orb.filled {
+    background: linear-gradient(135deg, #2a1a4a, #1a1030);
+    border-color: #4c1d95;
+    color: #a78bfa;
+    overflow: hidden;
+  }
+  .returning-text .rt-name.filled {
+    color: #e5e7eb;
+    font-style: normal;
+  }
+  .returning-text .rt-sub.filled {
+    color: #9ca3af;
+  }
+  .returning-text .rt-team {
+    font-size: 11px;
+    color: #a78bfa;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+  }
 </style>
 
 <div class="sn-page">
@@ -1636,6 +1668,57 @@
     <!-- Draft Prep (preseason / offseason) -->
     <div class="content" style="display:block;">
 
+      <!-- Key Players Returning to the Draft -->
+      <div style="margin-bottom: 56px;">
+        <div class="section-header">
+          <h2 class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7000ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/></svg>
+            Key Players Returning to the Draft
+          </h2>
+        </div>
+
+        {#if hasReturningPlayers}
+          <div class="returning-grid">
+            {#each returningPlayers as p}
+              <div class="returning-slot filled">
+                <div class="returning-orb filled">
+                  {#if p.img}
+                    <img src={p.img} alt={p.name} style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />
+                  {:else}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+                  {/if}
+                </div>
+                <div class="returning-text">
+                  <div class="rt-name filled">{p.name}</div>
+                  <div class="rt-sub filled">{[p.pos, p.nflTeam, p.costRound ? `R${p.costRound}` : null].filter(Boolean).join(' · ')}</div>
+                  {#if p.teamName}<div class="rt-team">{p.teamName}</div>{/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+          <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
+            Hit the {keeperMaxSeasons}-season keeper limit — back in the draft pool.
+          </p>
+        {:else}
+          <div class="returning-grid">
+            {#each Array(6) as _, i}
+              <div class="returning-slot">
+                <div class="returning-orb">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+                </div>
+                <div class="returning-text">
+                  <div class="rt-name">Player Slot {i + 1}</div>
+                  <div class="rt-sub">To be announced</div>
+                </div>
+              </div>
+            {/each}
+          </div>
+          <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
+            The notable players re-entering the draft pool will be revealed before draft day.
+          </p>
+        {/if}
+      </div>
+
       <!-- Draft Picks by Team -->
       <div style="margin-bottom: 56px;">
         <div class="section-header">
@@ -1703,33 +1786,6 @@
             <p style="margin:0;">Draft picks will appear here once the league is configured.</p>
           </div>
         {/if}
-      </div>
-
-      <!-- Key Players Returning to the Draft -->
-      <div>
-        <div class="section-header">
-          <h2 class="section-title">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7000ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/></svg>
-            Key Players Returning to the Draft
-          </h2>
-        </div>
-
-        <div class="returning-grid">
-          {#each Array(6) as _, i}
-            <div class="returning-slot">
-              <div class="returning-orb">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
-              </div>
-              <div class="returning-text">
-                <div class="rt-name">Player Slot {i + 1}</div>
-                <div class="rt-sub">To be announced</div>
-              </div>
-            </div>
-          {/each}
-        </div>
-        <p style="color:#4b5563; font-size:12px; margin-top:14px; text-transform:uppercase; letter-spacing:0.08em;">
-          The notable players re-entering the draft pool will be revealed before draft day.
-        </p>
       </div>
 
     </div>
