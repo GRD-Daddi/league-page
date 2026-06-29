@@ -67,7 +67,10 @@ async function buildPublicView(selections, upcomingYear) {
 function authForTeam(locals, teamKey) {
         if (!locals?.session?.userId) return fail(401, { error: 'Not authenticated' });
         const myTeamKey = locals.session?.managerInfo?.metadata?.team_key;
-        if (!isCommissioner(locals.session) && teamKey !== myTeamKey) {
+        // Everyone — including the commissioner — may only set keepers for their own
+        // team here. Commissioner overrides happen in the commissioner settings, not
+        // on the public keeper room.
+        if (teamKey !== myTeamKey) {
                 return fail(403, { error: 'You can only set keepers for your own team.' });
         }
         return null;

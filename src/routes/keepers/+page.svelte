@@ -8,7 +8,6 @@
         $: keepers = data.keepers;
         $: teams = keepers?.teams || [];
         $: myTeamKey = keepers?.myTeamKey || null;
-        $: canEditAny = !!keepers?.isCommissioner;
         $: publicTeams = keepers?.publicTeams || [];
 
         // Players whose keeper window is exhausted (kept the max number of seasons)
@@ -50,7 +49,7 @@
         }
 
         function canEditTeam(team) {
-                return canEditAny || (myTeamKey && team.teamKey === myTeamKey);
+                return !!(myTeamKey && team.teamKey === myTeamKey);
         }
 
         // Eligible-by-rules players are the keeper candidates; the rest are shown muted.
