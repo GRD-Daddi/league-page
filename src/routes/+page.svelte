@@ -1162,7 +1162,7 @@
 
   /* Staircase (3rd → 2nd → 1st) — cards bottom-aligned via .podium-grid align-items:end */
   .trophy-card.bronze { padding: 20px 18px; }
-  .trophy-card.silver { padding: 30px 22px; }
+  .trophy-card.silver { padding: 64px 22px 30px; }
   .trophy-card.gold   { padding: 40px 24px; }
 
   @media (max-width: 760px) {
