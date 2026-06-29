@@ -587,12 +587,13 @@
   .pot-desc strong { color: #fff; }
 
   .pot-amount-pill {
-    display: inline-flex;
+    display: flex;
+    width: fit-content;
     align-items: center;
     gap: 16px;
     margin-top: 6px;
-    padding: 12px 28px;
-    border-radius: 999px;
+    padding: 10px 26px;
+    border-radius: 16px;
     border: 1px solid rgba(204,255,0,0.55);
     background: rgba(204,255,0,0.04);
     box-shadow: 0 0 44px rgba(204,255,0,0.16);
