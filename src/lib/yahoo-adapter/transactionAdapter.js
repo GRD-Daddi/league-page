@@ -115,7 +115,9 @@ function convertSingleTransaction(trans, picksByTx = new Map()) {
         
         players.forEach(playerWrapper => {
                 const player = Array.isArray(playerWrapper) ? playerWrapper[0] : playerWrapper;
-                const transactionData = Array.isArray(playerWrapper) ? playerWrapper[1]?.transaction_data?.[0] : playerWrapper.transaction_data;
+                const transactionData = Array.isArray(playerWrapper)
+                        ? playerWrapper[1]?.transaction_data?.[0]
+                        : (playerWrapper.transaction || playerWrapper.transaction_data);
                 
                 const playerId = player.player_key || player.player_id;
                 const sourceType = transactionData?.source_type || '';
