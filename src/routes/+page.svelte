@@ -586,6 +586,22 @@
 
   .pot-desc strong { color: #fff; }
 
+  .pot-stakes {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(204,255,0,0.06);
+    border: 1px solid rgba(204,255,0,0.18);
+    color: #9ca3af;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  .pot-stakes svg { flex-shrink: 0; color: #ccff00; }
+  .pot-stakes strong { color: #ccff00; font-weight: 800; }
+
   .trophy-card.gold.is-beat {
     border-color: rgba(204,255,0,0.55);
     box-shadow: 0 0 44px rgba(204,255,0,0.16);
@@ -1452,6 +1468,11 @@
           <div class="pot-main">
             <div class="pot-label"><span class="pot-dot"></span> The Carryover Pot</div>
             <div class="pot-amount">{money(displayPotTotal)}</div>
+
+            <div class="pot-stakes">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+              <span>Rolls over every season — <strong>go back-to-back</strong> to take it all.</span>
+            </div>
 
             <div class="podium-block">
               {#if podium?.podium?.length}
