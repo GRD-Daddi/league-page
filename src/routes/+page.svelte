@@ -130,6 +130,31 @@
     if (map) return map[rnd] ?? 0;
     return 1;
   }
+
+  // Open votes this owner still needs to weigh in on (server-computed). Drives
+  // the in-app banner that nudges owners to vote — and reminds them when a
+  // deadline is approaching.
+  $: voteAlerts = data?.voteAlerts ?? null;
+  $: pendingVotes = Array.isArray(voteAlerts?.needsVote) ? voteAlerts.needsVote : [];
+  $: hasVoteAlerts = pendingVotes.length > 0;
+  $: voteAlertClosingSoon = !!voteAlerts?.closingSoon;
+
+  function deadlineLabel(p) {
+    if (!p?.deadline) return 'No deadline';
+    const h = p.hoursLeft;
+    if (h == null) return 'No deadline';
+    if (h <= 0) return 'Closing now';
+    if (h < 24) return `Closes in ${h} hour${h === 1 ? '' : 's'}`;
+    const days = Math.ceil(h / 24);
+    return `Closes in ${days} day${days === 1 ? '' : 's'}`;
+  }
+
+  // Comma-separated preview of the open vote titles for the multi-vote banner.
+  $: voteTitlesSummary = (() => {
+    const titles = pendingVotes.map((p) => p.title);
+    if (titles.length <= 3) return titles.join(', ');
+    return `${titles.slice(0, 3).join(', ')} and ${titles.length - 3} more`;
+  })();
 </script>
 
 <style>
@@ -306,6 +331,134 @@
     background: #1f2937;
     color: #00f0ff;
     border-color: #4b5563;
+  }
+
+  /* ── Open Vote Nudge banner ── */
+  .vote-banner {
+    border-bottom: 1px solid #1f2937;
+    background:
+      radial-gradient(700px 200px at 12% -40%, rgba(0,240,255,0.12), transparent 70%),
+      #0c0d11;
+  }
+
+  .vote-banner.soon {
+    background:
+      radial-gradient(700px 200px at 12% -40%, rgba(250,204,21,0.16), transparent 70%),
+      #0c0d11;
+  }
+
+  .vote-banner-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .vote-banner-icon {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00f0ff;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+  }
+
+  .vote-banner.soon .vote-banner-icon {
+    color: #facc15;
+    background: rgba(250, 204, 21, 0.12);
+    border-color: rgba(250, 204, 21, 0.45);
+  }
+
+  .vote-banner-body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .vote-banner-eyebrow {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #00f0ff;
+    margin-bottom: 4px;
+  }
+
+  .vote-banner.soon .vote-banner-eyebrow {
+    color: #facc15;
+  }
+
+  .vote-banner-title {
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vote-banner-sub {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vote-banner-cta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    background: #00f0ff;
+    color: #000;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0 22px;
+    height: 46px;
+    border: none;
+    cursor: pointer;
+    transform: skewX(-10deg);
+    text-decoration: none;
+    transition: background 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+  }
+
+  .vote-banner-cta:hover {
+    background: #33f4ff;
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
+  }
+
+  .vote-banner.soon .vote-banner-cta {
+    background: #facc15;
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.25);
+  }
+
+  .vote-banner.soon .vote-banner-cta:hover {
+    background: #fbd84a;
+    box-shadow: 0 0 30px rgba(250, 204, 21, 0.45);
+  }
+
+  .vote-banner-cta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transform: skewX(10deg);
+  }
+
+  @media (max-width: 640px) {
+    .vote-banner-inner { flex-wrap: wrap; }
+    .vote-banner-cta { width: 100%; justify-content: center; }
   }
 
   /* ── League Pot band ── */
@@ -1244,6 +1397,42 @@
       </div>
     </div>
   </div>
+
+  <!-- Open Vote Nudge -->
+  {#if hasVoteAlerts}
+    <div class="vote-banner" class:soon={voteAlertClosingSoon}>
+      <div class="vote-banner-inner">
+        <div class="vote-banner-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H7a2 2 0 0 1-2-2V7Z"/><path d="M22 19a2 2 0 0 1-2 2H7"/></svg>
+        </div>
+        <div class="vote-banner-body">
+          <div class="vote-banner-eyebrow">
+            {#if voteAlertClosingSoon}Vote Closing Soon{:else}League Vote Open{/if}
+          </div>
+          <div class="vote-banner-title">
+            {#if pendingVotes.length === 1}
+              {pendingVotes[0].title}
+            {:else}
+              {pendingVotes.length} open votes need your ballot
+            {/if}
+          </div>
+          <div class="vote-banner-sub">
+            {#if pendingVotes.length === 1}
+              {deadlineLabel(pendingVotes[0])} · cast your vote before it closes.
+            {:else}
+              {voteTitlesSummary} · head to the votes page to weigh in.
+            {/if}
+          </div>
+        </div>
+        <a href="/votes" class="vote-banner-cta">
+          <span>
+            Vote Now
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </a>
+      </div>
+    </div>
+  {/if}
 
   <!-- League Pot & Payouts -->
   {#if pot && !data?.requiresAuth}

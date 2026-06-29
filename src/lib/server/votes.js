@@ -209,6 +209,64 @@ export async function listProposals(session, leagueUsers = []) {
         };
 }
 
+// Open votes closing within this window are flagged so the homepage banner can
+// nudge owners who still haven't cast a ballot before the deadline lapses.
+const CLOSING_SOON_MS = 48 * 60 * 60 * 1000;
+
+/**
+ * Lightweight notification feed for the homepage banner. Returns the open votes
+ * the current owner still needs to weigh in on, newest deadline first, each
+ * flagged when its deadline is approaching so the banner can surface a reminder.
+ *
+ * Shape: { open, pending, closingSoon, needsVote: [{ id, title, deadline,
+ * closingSoon, hoursLeft }] }. Returns an empty feed for logged-out visitors.
+ */
+export async function getOpenVoteAlerts(session) {
+        const owner = getCurrentOwner(session);
+        if (!owner) return { open: 0, pending: 0, closingSoon: false, needsVote: [] };
+
+        // Sweep expired votes first so a lapsed deadline never shows as "open".
+        await autoCloseExpired();
+
+        const { rows: open } = await query(
+                `SELECT id, title, deadline FROM vote_proposals
+                 WHERE status = 'open'
+                 ORDER BY deadline ASC NULLS LAST, created_at DESC`
+        );
+        if (!open.length) return { open: 0, pending: 0, closingSoon: false, needsVote: [] };
+
+        const ids = open.map((p) => p.id);
+        const { rows: mine } = await query(
+                `SELECT proposal_id FROM vote_ballots
+                 WHERE owner_id = $1 AND proposal_id = ANY($2::int[])`,
+                [owner.ownerId, ids]
+        );
+        const voted = new Set(mine.map((b) => b.proposal_id));
+
+        const now = Date.now();
+        const needsVote = open
+                .filter((p) => !voted.has(p.id))
+                .map((p) => {
+                        const deadlineMs = p.deadline ? new Date(p.deadline).getTime() : null;
+                        const msLeft = deadlineMs != null ? deadlineMs - now : null;
+                        const closingSoon = msLeft != null && msLeft > 0 && msLeft <= CLOSING_SOON_MS;
+                        return {
+                                id: p.id,
+                                title: p.title,
+                                deadline: p.deadline,
+                                closingSoon,
+                                hoursLeft: msLeft != null ? Math.max(0, Math.ceil(msLeft / (60 * 60 * 1000))) : null
+                        };
+                });
+
+        return {
+                open: open.length,
+                pending: needsVote.length,
+                closingSoon: needsVote.some((p) => p.closingSoon),
+                needsVote
+        };
+}
+
 /**
  * Creates a new proposal in 'pending' state. Any logged-in owner may propose;
  * it stays hidden from voting until a commissioner approves it. Validates the

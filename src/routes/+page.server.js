@@ -5,6 +5,7 @@ import { getSeasonPodiums } from '$lib/server/archiveStats.js';
 import { resolveSeasonPhase } from '$lib/utils/seasonPhase.js';
 import { getYahooTradedPicks } from '$lib/yahoo-adapter/index.js';
 import { getDraftPickOwnership } from '$lib/server/draftPicks.js';
+import { getOpenVoteAlerts } from '$lib/server/votes.js';
 
 // Numeric Yahoo team number (the "N" in "...t.N") from a team key.
 function teamNumFromKey(teamKey) {
@@ -43,9 +44,18 @@ export async function load({ locals, url }) {
                         leagueData: null,
                         rosters: null,
                         users: null,
-                        requiresAuth: true
+                        requiresAuth: true,
+                        voteAlerts: null
                 };
         }
+
+        // Open-vote nudge for the in-app banner: which open votes this owner still
+        // needs to weigh in on, with deadline-approaching reminders. Best-effort —
+        // a votes-table hiccup must never break the homepage.
+        const voteAlerts = await getOpenVoteAlerts(locals.session).catch((err) => {
+                console.error('[homepage] Error loading vote alerts:', err.message);
+                return null;
+        });
 
         const { yahooClient, leagueKey } = locals;
 
@@ -196,7 +206,8 @@ export async function load({ locals, url }) {
                         draftOrder,
                         rosters: rostersResult?.rosters ?? null,
                         users,
-                        requiresAuth: false
+                        requiresAuth: false,
+                        voteAlerts
                 };
         } catch (error) {
                 console.error('[homepage] Error loading data:', error.message);
@@ -209,7 +220,8 @@ export async function load({ locals, url }) {
                         leagueData: null,
                         rosters: null,
                         users: null,
-                        error: error.message
+                        error: error.message,
+                        voteAlerts
                 };
         }
 }
