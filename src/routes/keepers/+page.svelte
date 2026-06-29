@@ -21,6 +21,7 @@
 
         $: keepers = data.keepers;
         $: maxKeepers = keepers?.maxKeepers ?? 2;
+        $: rounds = keepers?.rounds || 15;
         $: teams = keepers?.teams || [];
         $: myTeamKey = keepers?.myTeamKey || null;
         $: publicTeams = keepers?.publicTeams || [];
@@ -271,6 +272,19 @@
                                                                 <span class="round-warn-fix">Remove a keeper in that round or acquire another pick.</span>
                                                         </div>
                                                 {/if}
+
+                                                <div class="picks-overview">
+                                                        <div class="picks-overview-label">Draft picks by round</div>
+                                                        <div class="picks-grid">
+                                                                {#each Array(rounds) as _, i}
+                                                                        {@const count = team.picks?.[i] || 0}
+                                                                        <div class="pick-cell {count === 0 ? 'empty' : ''}" title="Round {i + 1}: {count} pick{count === 1 ? '' : 's'}">
+                                                                                <span class="pick-round">R{i + 1}</span>
+                                                                                <span class="pick-count">{count}</span>
+                                                                        </div>
+                                                                {/each}
+                                                        </div>
+                                                </div>
 
                                                 {#if groups.length}
                                                         <div class="round-groups">
@@ -567,6 +581,53 @@
                 letter-spacing: 0.08em;
                 text-transform: uppercase;
                 color: var(--sn-cyan);
+        }
+
+        .picks-overview {
+                border: 1px solid var(--sn-border);
+                border-radius: 12px;
+                padding: 12px;
+                background: rgba(0, 240, 255, 0.03);
+        }
+        .picks-overview-label {
+                font-size: 0.7rem;
+                font-weight: 800;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--sn-text-faint);
+                margin-bottom: 10px;
+        }
+        .picks-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+                gap: 6px;
+        }
+        .pick-cell {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2px;
+                padding: 6px 2px;
+                border: 1px solid var(--sn-border);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.02);
+        }
+        .pick-cell .pick-round {
+                font-size: 0.62rem;
+                font-weight: 800;
+                letter-spacing: 0.04em;
+                color: var(--sn-text-faint);
+        }
+        .pick-cell .pick-count {
+                font-size: 0.95rem;
+                font-weight: 900;
+                color: #fff;
+        }
+        .pick-cell.empty {
+                opacity: 0.4;
+        }
+        .pick-cell.empty .pick-count {
+                color: var(--sn-text-faint);
         }
 
         .round-groups { display: flex; flex-direction: column; gap: 16px; }
