@@ -1116,22 +1116,12 @@
     font-size: 0.875rem;
   }
 
-  /* ── Last Season Trophies band ── */
-  .trophy-band {
-    border-bottom: 1px solid #1f2937;
-    background:
-      radial-gradient(900px 240px at 80% -40%, rgba(255,210,74,0.10), transparent 70%),
-      radial-gradient(700px 200px at 10% 0%, rgba(0,240,255,0.08), transparent 70%),
-      #0a0a0c;
+  /* ── Last season podium (inside pot section) ── */
+  .podium-block {
+    margin-top: 28px;
   }
 
-  .trophy-inner {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 56px 24px;
-  }
-
-  .band-eyebrow {
+  .podium-block-title {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -1140,30 +1130,7 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: #ffd24a;
-    margin-bottom: 10px;
-  }
-
-  .band-title {
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
-    font-weight: 900;
-    font-style: italic;
-    text-transform: uppercase;
-    letter-spacing: -0.02em;
-    margin: 0 0 6px;
-    color: #fff;
-  }
-
-  .band-title .accent {
-    background: linear-gradient(to right, #ffd24a, #ff8a3d);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .band-sub {
-    color: #9ca3af;
-    font-size: 0.95rem;
-    margin: 0 0 28px;
+    margin-bottom: 16px;
   }
 
   .podium-grid {
@@ -1512,6 +1479,65 @@
                 {/if}
               {/if}
             </div>
+
+            <div class="podium-block">
+              <div class="podium-block-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                {podium?.year ?? lastChampion?.year ?? 'Last'} Season Podium
+              </div>
+              {#if podium?.podium?.length}
+                <div class="podium-grid">
+                  {#each [2, 1, 3] as place}
+                    {@const t = podium.podium.find((p) => p.place === place)}
+                    <div class="trophy-card {PLACE_TONE[place]}">
+                      <div class="trophy-place {PLACE_TONE[place]}">{PLACE_LABELS[place]} Place</div>
+                      {#if t}
+                        <div class="trophy-avatar">
+                          {#if t.logo}<img src={t.logo} alt={t.ownerName ?? t.name} />{:else}{initials(t.ownerName ?? t.name)}{/if}
+                        </div>
+                        <div class="trophy-team">{t.ownerName ?? t.name}</div>
+                        {#if t.ownerName && t.name}<div class="trophy-sub">{t.name}</div>{/if}
+                        {#if t.wins != null}
+                          <div class="trophy-meta">{t.wins}-{t.losses}{#if t.pointsFor != null} &bull; {t.pointsFor.toFixed(0)} PF{/if}</div>
+                        {/if}
+                      {:else}
+                        <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+                        <div class="trophy-empty">To be decided</div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {:else if lastChampion?.name}
+                <div class="podium-grid">
+                  <div class="trophy-card silver">
+                    <div class="trophy-place silver">2nd Place</div>
+                    <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+                    <div class="trophy-empty">Not recorded</div>
+                  </div>
+                  <div class="trophy-card gold">
+                    <div class="trophy-place gold">Champion</div>
+                    <div class="trophy-avatar">{initials(lastChampion.name)}</div>
+                    <div class="trophy-team">{lastChampion.name}</div>
+                    <div class="trophy-meta">{lastChampion.year} Champion</div>
+                  </div>
+                  <div class="trophy-card bronze">
+                    <div class="trophy-place bronze">3rd Place</div>
+                    <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+                    <div class="trophy-empty">Not recorded</div>
+                  </div>
+                </div>
+              {:else}
+                <div class="podium-grid">
+                  {#each [2, 1, 3] as place}
+                    <div class="trophy-card {PLACE_TONE[place]}">
+                      <div class="trophy-place {PLACE_TONE[place]}">{place === 1 ? 'Champion' : `${PLACE_LABELS[place]} Place`}</div>
+                      <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+                      <div class="trophy-empty">To be crowned</div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
           </div>
 
           <!-- This year's payout pool -->
@@ -1592,73 +1618,6 @@
         </div>
       </div>
     </div>
-  {/if}
-
-  <!-- Last Season Trophies -->
-  {#if !data?.requiresAuth}
-  <div class="trophy-band">
-    <div class="trophy-inner">
-      <div class="band-eyebrow">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-        {podium?.year ?? lastChampion?.year ?? 'Last'} Season
-      </div>
-      <h2 class="band-title">THE <span class="accent">TROPHY ROOM</span></h2>
-      <p class="band-sub">Last season's top three finishers.</p>
-
-      {#if podium?.podium?.length}
-        <div class="podium-grid">
-          {#each [2, 1, 3] as place}
-            {@const t = podium.podium.find((p) => p.place === place)}
-            <div class="trophy-card {PLACE_TONE[place]}">
-              <div class="trophy-place {PLACE_TONE[place]}">{PLACE_LABELS[place]} Place</div>
-              {#if t}
-                <div class="trophy-avatar">
-                  {#if t.logo}<img src={t.logo} alt={t.ownerName ?? t.name} />{:else}{initials(t.ownerName ?? t.name)}{/if}
-                </div>
-                <div class="trophy-team">{t.ownerName ?? t.name}</div>
-                {#if t.ownerName && t.name}<div class="trophy-sub">{t.name}</div>{/if}
-                {#if t.wins != null}
-                  <div class="trophy-meta">{t.wins}-{t.losses}{#if t.pointsFor != null} &bull; {t.pointsFor.toFixed(0)} PF{/if}</div>
-                {/if}
-              {:else}
-                <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
-                <div class="trophy-empty">To be decided</div>
-              {/if}
-            </div>
-          {/each}
-        </div>
-      {:else if lastChampion?.name}
-        <div class="podium-grid">
-          <div class="trophy-card silver">
-            <div class="trophy-place silver">2nd Place</div>
-            <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
-            <div class="trophy-empty">Not recorded</div>
-          </div>
-          <div class="trophy-card gold">
-            <div class="trophy-place gold">Champion</div>
-            <div class="trophy-avatar">{initials(lastChampion.name)}</div>
-            <div class="trophy-team">{lastChampion.name}</div>
-            <div class="trophy-meta">{lastChampion.year} Champion</div>
-          </div>
-          <div class="trophy-card bronze">
-            <div class="trophy-place bronze">3rd Place</div>
-            <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
-            <div class="trophy-empty">Not recorded</div>
-          </div>
-        </div>
-      {:else}
-        <div class="podium-grid">
-          {#each [2, 1, 3] as place}
-            <div class="trophy-card {PLACE_TONE[place]}">
-              <div class="trophy-place {PLACE_TONE[place]}">{place === 1 ? 'Champion' : `${PLACE_LABELS[place]} Place`}</div>
-              <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
-              <div class="trophy-empty">To be crowned</div>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </div>
-  </div>
   {/if}
 
   {#if isDraftPrep}
