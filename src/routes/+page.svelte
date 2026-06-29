@@ -54,9 +54,11 @@
 
   // Projection: until every member has paid their buy-in, the pot and pool read
   // low (only collected funds count). Show the projected figures with a clear
-  // "estimated" flag, and the real numbers once all funds are in.
+  // "estimated" flag, and the real numbers once all funds are in. Projections are
+  // a PRE-SEASON forecast only — once the season is live (regular/playoffs) the
+  // pot shows the actual collected balance, never a "Projected" headline.
   $: projection = pot?.projection ?? null;
-  $: poolIsEstimate = !!projection && !projection.fullyCollected && projection.expectedMembers > 0;
+  $: poolIsEstimate = isDraftPrep && !!projection && !projection.fullyCollected && projection.expectedMembers > 0;
   $: displayPotTotal = poolIsEstimate ? projection.potTotalProjected : pot?.potTotal ?? 0;
   $: displayPoolTotal = poolIsEstimate ? projection.payoutPoolProjected : pot?.payoutPool?.remaining ?? 0;
 
@@ -71,6 +73,18 @@
 
   $: phase = data?.seasonPhase ?? 'regular';
   $: isDraftPrep = phase === 'preseason' || phase === 'offseason';
+
+  // Hero badge honors the resolved season phase (the single source of truth) — a
+  // pulsing "Live" badge only appears when the season is actually live. In the
+  // pre-season/off-season it reads the phase plainly instead of "Live • Season".
+  $: isLivePhase = phase === 'regular' || phase === 'playoffs';
+  $: heroBadge = (() => {
+    if (phase === 'preseason') return 'Preseason';
+    if (phase === 'offseason') return 'Offseason';
+    if (phase === 'playoffs') return 'Playoffs';
+    const s = data?.nflState;
+    return s?.week > 0 ? `Week ${s.week}` : 'Regular Season';
+  })();
 
   $: podium = data?.lastSeasonPodium ?? null;
 
@@ -226,12 +240,23 @@
     margin-bottom: 16px;
   }
 
+  .live-badge.idle {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.3);
+  }
+
   .live-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: #ccff00;
     animation: pulse 2s infinite;
+  }
+
+  .live-badge.idle .live-dot {
+    background: #94a3b8;
+    animation: none;
   }
 
   @keyframes pulse {
@@ -1399,10 +1424,10 @@
       <img src="/stadium-hero.png" alt="Stadium" />
     </div>
     <div class="hero-inner">
-      {#if weekLabel}
-        <div class="live-badge">
+      {#if heroBadge}
+        <div class="live-badge" class:idle={!isLivePhase}>
           <span class="live-dot"></span>
-          Live &bull; {weekLabel}
+          {#if isLivePhase}Live &bull; {heroBadge}{:else}{heroBadge}{/if}
         </div>
       {/if}
 

@@ -1,35 +1,48 @@
-import { loadLeagueData, loadDraftResults, loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
+import { loadLeagueData, loadDraftResults, loadLeagueUsers, loadPlayers, loadNFLState } from '$lib/server/dataLoaders.js';
 import { requireAuth } from '$lib/server/authGuard.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { getDraftPickOwnership, DRAFT_ROUNDS } from '$lib/server/draftPicks.js';
 import { getApprovedKeepers } from '$lib/server/keepers.js';
+import { resolveSeasonPhase, isDraftPrepPhase } from '$lib/utils/seasonPhase.js';
 
 export async function load({ url, fetch, locals }) {
         requireAuth(locals, url);
 
         const { yahooClient, leagueKey } = locals;
 
-        const [upcomingDraftData, previousDraftsData, leagueTeamManagersData, playersData] = await waitForAll(
+        const [upcomingDraftData, previousDraftsData, leagueTeamManagersData, playersData, nflState, leagueData] = await waitForAll(
                 loadDraftResults(yahooClient, leagueKey),
                 loadPreviousDrafts(yahooClient, leagueKey),
                 loadLeagueUsersAsMap(yahooClient, leagueKey),
                 loadPlayers(fetch),
+                loadNFLState(yahooClient),
+                loadLeagueData(yahooClient, leagueKey),
         );
+
+        // Forward-looking sections (upcoming pick ownership + approved keepers) are a
+        // PRE-SEASON view only. Once the season is live (regular/playoffs) the draft
+        // has happened, so the page shows the actual draft board instead.
+        const seasonPhase = resolveSeasonPhase(nflState, leagueData);
+        const isDraftPrep = isDraftPrepPhase(seasonPhase);
 
         const draftPickYear = getCurrentSeasonYear();
         let draftPickOwnership = { rounds: DRAFT_ROUNDS, teams: [] };
-        try {
-                draftPickOwnership = await getDraftPickOwnership(draftPickYear);
-        } catch (err) {
-                console.error('[drafts] Error loading draft pick ownership:', err.message);
-        }
-
         let approvedKeepers = [];
-        try {
-                approvedKeepers = await getApprovedKeepers(draftPickYear);
-        } catch (err) {
-                console.error('[drafts] Error loading approved keepers:', err.message);
+        // Only the pre-season draft-prep view consumes upcoming pick ownership and
+        // approved keepers; skip the work entirely once the season is live.
+        if (isDraftPrep) {
+                try {
+                        draftPickOwnership = await getDraftPickOwnership(draftPickYear);
+                } catch (err) {
+                        console.error('[drafts] Error loading draft pick ownership:', err.message);
+                }
+
+                try {
+                        approvedKeepers = await getApprovedKeepers(draftPickYear);
+                } catch (err) {
+                        console.error('[drafts] Error loading approved keepers:', err.message);
+                }
         }
 
         return {
@@ -39,7 +52,9 @@ export async function load({ url, fetch, locals }) {
                 playersData,
                 draftPickOwnership,
                 draftPickYear,
-                approvedKeepers
+                approvedKeepers,
+                seasonPhase,
+                isDraftPrep
         };
 }
 

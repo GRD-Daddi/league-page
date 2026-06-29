@@ -2,6 +2,10 @@
         import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
         export let data;
         const { upcomingDraftData, previousDraftsData, leagueTeamManagersData, playersData, draftPickOwnership, draftPickYear } = data;
+        // Forward-looking pick-ownership + approved-keeper boards belong to the
+        // pre-season draft-prep view only. During the live season the draft has
+        // already happened, so we show the actual draft board instead.
+        const isDraftPrep = data.isDraftPrep ?? true;
 
         const pickRounds = draftPickOwnership?.rounds || 15;
         const pickTeams = [...(draftPickOwnership?.teams || [])].sort(
@@ -187,7 +191,7 @@
         </div>
 
         <div class="sn-container">
-                {#if pickTeams.length}
+                {#if isDraftPrep && pickTeams.length}
                         <div class="sn-section-header">
                                 <h2 class="sn-section-title">{draftPickYear} DRAFT PICKS BY TEAM</h2>
                         </div>
@@ -225,7 +229,7 @@
                         </div>
                 {/if}
 
-                {#if keeperTeams.length}
+                {#if isDraftPrep && keeperTeams.length}
                         <div class="sn-section-header">
                                 <h2 class="sn-section-title">{draftPickYear} KEEPERS</h2>
                         </div>

@@ -25,6 +25,10 @@
         $: teams = keepers?.teams || [];
         $: myTeamKey = keepers?.myTeamKey || null;
         $: publicTeams = keepers?.publicTeams || [];
+        // Live-season read-only view: keeper selection is over, so show who was
+        // actually kept this season instead of the editable selection room.
+        $: showCaptured = !!keepers?.showCaptured;
+        $: capturedKeepers = keepers?.capturedKeepers || [];
 
         // Players whose keeper window is exhausted (kept the max number of seasons)
         // and therefore return to the upcoming draft pool. Only those with a known
@@ -175,7 +179,49 @@
                         <div class="sn-card flat form-error">{form.error}</div>
                 {/if}
 
-                {#if keepers?.requiresAuth}
+                {#if showCaptured}
+                        {#if capturedKeepers.length}
+                                <h2 class="section-title">KEEPERS KEPT · {keepers?.upcomingYear}</h2>
+                                <p class="from-note">
+                                        The {keepers?.upcomingYear} season is underway — here are the keepers each team
+                                        locked in for this year's draft. Selection reopens before next season.
+                                </p>
+                                <div class="teams-grid">
+                                        {#each capturedKeepers as team (team.teamKey)}
+                                                <div class="sn-card team-card">
+                                                        <div class="team-head">
+                                                                <div class="sn-avatar">{initials(team.teamName)}</div>
+                                                                <div class="team-text">
+                                                                        <div class="sn-team-name">{team.teamName}</div>
+                                                                        {#if team.manager}
+                                                                                <div class="sn-team-meta">{team.manager}</div>
+                                                                        {/if}
+                                                                </div>
+                                                        </div>
+                                                        <div class="player-list">
+                                                                {#each team.players as p (p.playerKey)}
+                                                                        <div class="player-row selected">
+                                                                                <div class="player-main">
+                                                                                        <span class="player-name">{p.name}</span>
+                                                                                        <div class="player-tags">
+                                                                                                {#if p.pos}<span class="sn-badge">{p.pos}</span>{/if}
+                                                                                                {#if p.nflTeam}<span class="sn-badge">{p.nflTeam}</span>{/if}
+                                                                                                {#if p.costRound}<span class="sn-badge lime">R{p.costRound}</span>{/if}
+                                                                                        </div>
+                                                                                </div>
+                                                                        </div>
+                                                                {/each}
+                                                        </div>
+                                                </div>
+                                        {/each}
+                                </div>
+                        {:else}
+                                <div class="sn-empty">
+                                        <h3>No keepers this season</h3>
+                                        <p>No players were kept for the {keepers?.upcomingYear} season — every roster spot came from the draft.</p>
+                                </div>
+                        {/if}
+                {:else if keepers?.requiresAuth}
                         <div class="sn-card flat login-prompt">
                                 <div>
                                         <strong>Viewing in read-only mode.</strong>

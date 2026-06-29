@@ -152,6 +152,22 @@ export async function getDraftResultsArchive() {
         return rows;
 }
 
+/**
+ * The players ACTUALLY kept for a given season — the captured draft-results rows
+ * flagged is_keeper. This is the read-only "what really happened" record the
+ * Keepers page shows once the season is live (the draft has come and gone).
+ */
+export async function getKeptKeepers(year) {
+        const { rows } = await query(
+                `SELECT year, round, pick_no, player_key, player_id, player_name, team_key, roster_id, cost
+                 FROM draft_results_archive
+                 WHERE year = $1 AND is_keeper = true
+                 ORDER BY team_key ASC, cost ASC NULLS LAST, round ASC`,
+                [year]
+        );
+        return rows;
+}
+
 export async function getTransactionArchive() {
         const { rows } = await query(
                 `SELECT transaction_id, year, type, player_key, player_id, from_roster_id, to_roster_id, timestamp
