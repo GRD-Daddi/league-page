@@ -126,6 +126,8 @@
                                 return 'Acquired via trade';
                         case 'drop':
                                 return 'Dropped — lineage reset';
+                        case 'inferred-origin':
+                                return 'Acquired (before keeper records)';
                         default:
                                 return ev.kind;
                 }
@@ -318,8 +320,8 @@
                                                                                                                         {#if hist.length}
                                                                                                                                 <ol class="lineage">
                                                                                                                                         {#each hist as ev}
-                                                                                                                                                <li class="lineage-ev {ev.current ? 'current' : 'past'}">
-                                                                                                                                                        <span class="lineage-year">{ev.year}</span>
+                                                                                                                                                <li class="lineage-ev {ev.current ? 'current' : 'past'}{ev.inferred ? ' inferred' : ''}">
+                                                                                                                                                        <span class="lineage-year">{ev.inferred ? '~' : ''}{ev.year}</span>
                                                                                                                                                         <span class="lineage-text">{lineageLabel(ev)}</span>
                                                                                                                                                 </li>
                                                                                                                                         {/each}
@@ -375,8 +377,8 @@
                                                                                                 {#if hist.length}
                                                                                                         <ol class="lineage">
                                                                                                                 {#each hist as ev}
-                                                                                                                        <li class="lineage-ev {ev.current ? 'current' : 'past'}">
-                                                                                                                                <span class="lineage-year">{ev.year}</span>
+                                                                                                                        <li class="lineage-ev {ev.current ? 'current' : 'past'}{ev.inferred ? ' inferred' : ''}">
+                                                                                                                                <span class="lineage-year">{ev.inferred ? '~' : ''}{ev.year}</span>
                                                                                                                                 <span class="lineage-text">{lineageLabel(ev)}</span>
                                                                                                                         </li>
                                                                                                                 {/each}
@@ -694,6 +696,9 @@
         }
         .lineage-text { color: var(--sn-text-mute); }
         .lineage-ev.current .lineage-text { color: #fff; }
+        .lineage-ev.inferred .lineage-text { font-style: italic; color: var(--sn-text-mute); }
+        .lineage-ev.inferred .lineage-year { opacity: 0.7; }
+        .lineage-ev.inferred::before { background: var(--sn-text-mute); opacity: 0.6; }
         .lineage-empty {
                 margin: 8px 0 2px;
                 font-size: 0.78rem;

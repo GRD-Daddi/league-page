@@ -134,6 +134,45 @@ describe('evaluatePlayer eligibility', () => {
                 expect(out.eligible).toBe(false);
         });
 
+        it('infers a pre-records origin season when the lineage starts as a keeper', () => {
+                // Puka-style: undrafted waiver pickup whose add was never archived, then
+                // kept 2024 + 2025. A keep in 2024 implies a 2023 roster spot, so the
+                // engine must count 3 seasons (origin + 2 keeps) and surface that origin.
+                const out = evaluatePlayer({
+                        ...base,
+                        draftsById: draftMap('100', [
+                                { year: 2024, round: 6, is_keeper: true }, // first record = a keep
+                                { year: 2025, round: 6, is_keeper: true }
+                        ]),
+                        upcomingYear: 2026
+                });
+                expect(out.source).toBe('keeper');
+                expect(out.needsReview).toBe(true);
+                expect(out.seasonsHeld).toBe(3); // implied 2023 origin + 2024 + 2025 keeps
+                expect(out.remainingYears).toBe(0);
+                expect(out.eligibleByRules).toBe(false);
+                // The timeline must show the inferred origin so 3 seasons reconcile.
+                const inferred = out.history.find((h) => h.kind === 'inferred-origin');
+                expect(inferred).toBeTruthy();
+                expect(inferred.year).toBe(2023);
+                expect(inferred.isKeeper).toBe(false);
+        });
+
+        it('does NOT infer an origin season for a trade with no prior draft lineage', () => {
+                // A traded-in player with no recorded draft history starts a lineage too,
+                // but we have no basis to invent a pre-trade origin season — only true
+                // keeper-start lineages get the inferred-origin row.
+                const out = evaluatePlayer({
+                        ...base,
+                        draftsById: new Map(),
+                        txById: txMap('100', [{ type: 'trade', year: 2024, timestamp: 1 }]),
+                        upcomingYear: 2026
+                });
+                expect(out.source).toBe('trade');
+                expect(out.needsReview).toBe(true);
+                expect(out.history.some((h) => h.kind === 'inferred-origin')).toBe(false);
+        });
+
         it('flags unknown-history players for review but does not auto-block them', () => {
                 const out = evaluatePlayer({
                         ...base,

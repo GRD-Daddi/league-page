@@ -186,12 +186,33 @@ export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById,
                 out.eligibleByRules = out.remainingYears >= 1;
                 out.needsReview = !!startedFromKeeper;
 
+                // When the active lineage starts with a KEEPER draft, the player was
+                // acquired at least one season earlier than our records show — you can
+                // only "keep" someone you already rostered. Surface that implied origin
+                // season so the timeline reconciles with the counted tenure (otherwise a
+                // genuine 3-season keeper appears to show only 2 kept seasons).
+                if (startedFromKeeper && lineage.source === 'keeper') {
+                        out.history = [
+                                {
+                                        year: lineage.acquisitionYear - 1,
+                                        kind: 'inferred-origin',
+                                        round: null,
+                                        isKeeper: false,
+                                        current: true,
+                                        inferred: true
+                                },
+                                ...out.history
+                        ];
+                }
+
                 const srcLabel =
                         lineage.source === 'waiver'
                                 ? `Waiver/FA pickup ${lineage.acquisitionYear}`
                                 : lineage.source === 'trade'
                                         ? `Acquired via trade ${lineage.acquisitionYear}`
-                                        : `Drafted ${lineage.acquisitionYear} (round ${out.costRound})`;
+                                        : lineage.source === 'keeper'
+                                                ? `Acquired ~${lineage.acquisitionYear - 1}, kept since ${lineage.acquisitionYear}`
+                                                : `Drafted ${lineage.acquisitionYear} (round ${out.costRound})`;
                 const tradedNote = lineage.traded && lineage.source !== 'trade' ? ', traded since' : '';
 
                 if (!out.eligibleByRules) {
