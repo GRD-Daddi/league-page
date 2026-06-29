@@ -160,7 +160,7 @@ function buildIndexes(drafts, transactions) {
  * ({ fn, ln, pos, t, img }). `teamPicks` is the team's per-round pick counts for
  * the upcoming draft (1-indexed by round → teamPicks[round-1]).
  */
-export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById, upcomingYear, teamPicks, roundsMax }) {
+export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById, upcomingYear, teamPicks, roundsMax, capturedDraftYears }) {
         const playerId = playerIdFromKey(playerKey);
         const { lineage, startedFromKeeper, hasHistory, events, startIndex, resetReason } = resolveLineage(playerId, draftsById, txById);
 
@@ -231,18 +231,51 @@ export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById,
                 // only "keep" someone you already rostered. Surface that implied origin
                 // season so the timeline reconciles with the counted tenure (otherwise a
                 // genuine 3-season keeper appears to show only 2 kept seasons).
+                const originYear = lineage.acquisitionYear - 1;
+                // If that implied origin season's draft WAS captured and this player is
+                // absent from it, the player provably wasn't drafted that year — so they
+                // entered the roster mid-season off waivers/FA (the only way to then be
+                // kept the next year). Promote the vague "Acquired (before records)" guess
+                // to a definite waiver pickup. (We can't tell waiver from an in-season
+                // trade without transaction data, but waiver/FA is the common case and
+                // carries the same round-6 keeper cost the engine already assigns.)
+                const originIsWaiver =
+                        startedFromKeeper &&
+                        lineage.source === 'keeper' &&
+                        !!capturedDraftYears &&
+                        capturedDraftYears.has(originYear);
                 if (startedFromKeeper && lineage.source === 'keeper') {
                         out.history = [
-                                {
-                                        year: lineage.acquisitionYear - 1,
-                                        kind: 'inferred-origin',
-                                        round: null,
-                                        isKeeper: false,
-                                        current: true,
-                                        inferred: true
-                                },
+                                originIsWaiver
+                                        ? {
+                                                        year: originYear,
+                                                        kind: 'origin-waiver',
+                                                        round: null,
+                                                        isKeeper: false,
+                                                        current: true,
+                                                        inferred: false
+                                                }
+                                        : {
+                                                        year: originYear,
+                                                        kind: 'inferred-origin',
+                                                        round: null,
+                                                        isKeeper: false,
+                                                        current: true,
+                                                        inferred: true
+                                                },
                                 ...out.history
                         ];
+                }
+
+                if (originIsWaiver) {
+                        // The player is provably absent from that season's fully-captured
+                        // draft, so they entered the roster mid-season — overwhelmingly a
+                        // waiver/FA pickup (which also carries the round-6 cost the engine
+                        // assigns). We can't rule out an in-season trade without transaction
+                        // data, so this stays a REVIEW item (needsReview is left on) and the
+                        // UI invites the commissioner to correct a trade.
+                        out.originSource = 'waiver';
+                        out.originYear = originYear;
                 }
 
                 const srcLabel =
@@ -251,7 +284,9 @@ export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById,
                                 : lineage.source === 'trade'
                                         ? `Acquired via trade ${lineage.acquisitionYear}`
                                         : lineage.source === 'keeper'
-                                                ? `Acquired ~${lineage.acquisitionYear - 1}, kept since ${lineage.acquisitionYear}`
+                                                ? originIsWaiver
+                                                        ? `Picked up off waivers/FA ${originYear}, kept since ${lineage.acquisitionYear}`
+                                                        : `Acquired ~${originYear}, kept since ${lineage.acquisitionYear}`
                                                 : `Drafted ${lineage.acquisitionYear} (round ${out.costRound})`;
                 const tradedNote = lineage.traded && lineage.source !== 'trade' ? ', traded since' : '';
 
@@ -291,6 +326,25 @@ export function computeKeepers({ drafts, transactions, rostersMap, upcomingYear,
         const { draftsById, txById } = buildIndexes(drafts, transactions);
         const roundsMax = pickOwnership?.rounds || 15;
 
+        // Seasons whose draft was captured COMPLETELY. Used by evaluatePlayer to decide
+        // whether a player's absence from a season's draft is real evidence (acquired
+        // off waivers/FA mid-season) or just a missing record. A partially-imported
+        // season would make a genuinely-drafted player look undrafted, so only count
+        // years whose pick count is substantial relative to the fullest season we have
+        // (real drafts are 150-180 picks; a fragment is far smaller).
+        const picksByYear = new Map();
+        for (const d of drafts || []) {
+                const y = Number(d.year);
+                if (!Number.isFinite(y)) continue;
+                picksByYear.set(y, (picksByYear.get(y) || 0) + 1);
+        }
+        const maxYearPicks = Math.max(0, ...picksByYear.values());
+        const completeThreshold = Math.max(50, maxYearPicks * 0.5);
+        const capturedDraftYears = new Set();
+        for (const [y, count] of picksByYear) {
+                if (count >= completeThreshold) capturedDraftYears.add(y);
+        }
+
         const picksByTeam = new Map();
         for (const team of pickOwnership?.teams || []) {
                 picksByTeam.set(team.teamKey, team.picks || []);
@@ -316,7 +370,8 @@ export function computeKeepers({ drafts, transactions, rostersMap, upcomingYear,
                                 txById,
                                 upcomingYear,
                                 teamPicks,
-                                roundsMax
+                                roundsMax,
+                                capturedDraftYears
                         })
                 );
 

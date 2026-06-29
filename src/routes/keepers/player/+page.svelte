@@ -30,6 +30,8 @@
                         }
                         case 'add':
                                 return 'Added off waivers / free agency';
+                        case 'origin-waiver':
+                                return 'Picked up off waivers / free agency';
                         case 'trade':
                                 return 'Acquired via trade';
                         case 'drop':
@@ -103,15 +105,15 @@
                                         <span class="verdict-label">Cost round</span>
                                         <span class="verdict-value">Round {player.costRound}</span>
                                         <span class="verdict-note">
-                                                {player.source === 'waiver'
+                                                {player.source === 'waiver' || player.originSource === 'waiver'
                                                         ? `Waiver/FA pickups cost a round ${WAIVER_COST_ROUND} pick`
                                                         : 'The round this player was last drafted (sticks across trades)'}
                                         </span>
                                 </div>
                                 <div class="sn-card flat verdict">
                                         <span class="verdict-label">Acquired</span>
-                                        <span class="verdict-value">{player.acquisitionYear || '—'}</span>
-                                        <span class="verdict-note">{sourceLabel(player.source)}</span>
+                                        <span class="verdict-value">{player.originSource === 'waiver' ? player.originYear : player.acquisitionYear || '—'}</span>
+                                        <span class="verdict-note">{player.originSource === 'waiver' ? 'Waiver / free-agent pickup' : sourceLabel(player.source)}</span>
                                 </div>
                                 <div class="sn-card flat verdict">
                                         <span class="verdict-label">Keeper years left</span>
@@ -132,10 +134,17 @@
 
                         {#if player.needsReview}
                                 <div class="sn-card flat review-note">
-                                        <strong>History begins mid-stream.</strong>
-                                        The earliest recorded move is already a keeper or trade, so the true original
-                                        acquisition is older than the data we have. The commissioner should verify the
-                                        acquisition year and cost.
+                                        {#if player.originSource === 'waiver'}
+                                                <strong>Picked up off waivers / free agency in {player.originYear}.</strong>
+                                                This player isn't in the {player.originYear} draft (which we have in full), so
+                                                they joined the roster mid-season — then was kept the following year. If they
+                                                actually arrived via an in-season trade, the commissioner can adjust it.
+                                        {:else}
+                                                <strong>History begins mid-stream.</strong>
+                                                The earliest recorded move is already a keeper or trade, so the true original
+                                                acquisition is older than the data we have. The commissioner should verify the
+                                                acquisition year and cost.
+                                        {/if}
                                 </div>
                         {/if}
 

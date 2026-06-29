@@ -127,6 +127,8 @@
                         }
                         case 'add':
                                 return 'Added off waivers / FA';
+                        case 'origin-waiver':
+                                return 'Picked up off waivers / FA';
                         case 'trade':
                                 return 'Acquired via trade';
                         case 'drop':

@@ -194,6 +194,52 @@ describe('evaluatePlayer eligibility', () => {
                 expect(inferred.isKeeper).toBe(false);
         });
 
+        it('promotes the inferred origin to a waiver pickup when that season\'s draft was captured', () => {
+                // Same Puka-style keeper chain, but now we KNOW 2023\'s draft was captured
+                // (it is in capturedDraftYears) and this player is absent from it — proof he
+                // entered the roster mid-2023 off waivers/FA, not via the draft.
+                const out = evaluatePlayer({
+                        ...base,
+                        draftsById: draftMap('100', [
+                                { year: 2024, round: 6, is_keeper: true },
+                                { year: 2025, round: 6, is_keeper: true }
+                        ]),
+                        upcomingYear: 2026,
+                        capturedDraftYears: new Set([2023, 2024, 2025])
+                });
+                expect(out.originSource).toBe('waiver');
+                expect(out.originYear).toBe(2023);
+                // Still a review item — without transaction data we can't rule out a trade.
+                expect(out.needsReview).toBe(true);
+                expect(out.seasonsHeld).toBe(3);
+                expect(out.eligibleByRules).toBe(false);
+                expect(out.reason).toContain('Picked up off waivers/FA 2023');
+                // The timeline shows a definite waiver origin, not the vague inferred row.
+                const origin = out.history.find((h) => h.kind === 'origin-waiver');
+                expect(origin).toBeTruthy();
+                expect(origin.year).toBe(2023);
+                expect(origin.inferred).toBe(false);
+                expect(out.history.some((h) => h.kind === 'inferred-origin')).toBe(false);
+        });
+
+        it('keeps the vague inferred origin when that season\'s draft was NOT captured', () => {
+                // Without the origin season in capturedDraftYears we cannot prove waivers vs a
+                // missing draft record, so it stays the cautious "before records" inference.
+                const out = evaluatePlayer({
+                        ...base,
+                        draftsById: draftMap('100', [
+                                { year: 2024, round: 6, is_keeper: true },
+                                { year: 2025, round: 6, is_keeper: true }
+                        ]),
+                        upcomingYear: 2026,
+                        capturedDraftYears: new Set([2024, 2025]) // 2023 draft never captured
+                });
+                expect(out.originSource).toBeUndefined();
+                expect(out.needsReview).toBe(true);
+                expect(out.history.some((h) => h.kind === 'inferred-origin')).toBe(true);
+                expect(out.history.some((h) => h.kind === 'origin-waiver')).toBe(false);
+        });
+
         it('does NOT infer an origin season for a trade with no prior draft lineage', () => {
                 // A traded-in player with no recorded draft history starts a lineage too,
                 // but we have no basis to invent a pre-trade origin season — only true
