@@ -187,7 +187,17 @@ export async function rawYahooGet(url, yahooClient = null, _retried = false) {
         const sep = url.includes('?') ? '&' : '?';
         const fullUrl = `${url}${sep}format=json`;
 
-        const headers = { Accept: 'application/json' };
+        // Yahoo's anti-abuse layer returns "999 Request denied" (a non-JSON body)
+        // to API GETs that arrive without a browser-like User-Agent, especially
+        // under burst load (e.g. the keeper/archive backfill fanning out many
+        // calls). The default Node/undici UA trips this, so every transaction
+        // capture silently failed and transaction_archive stayed empty. Sending a
+        // browser UA makes Yahoo serve the JSON normally.
+        const headers = {
+                Accept: 'application/json',
+                'User-Agent':
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        };
         if (token) headers.Authorization = `Bearer ${token}`;
 
         const resp = await fetch(fullUrl, { method: 'GET', headers });

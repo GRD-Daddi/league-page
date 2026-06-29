@@ -52,6 +52,23 @@ parsed `data`, same shape rawYahooGet returns). Bypassing api() also bypasses it
 token_expired auto-refresh, so rawYahooGet re-implements a single refresh+retry via
 `client.refreshToken`.
 
+## Yahoo 999 "Request denied" = missing browser User-Agent on GETs
+Under burst load (keeper/archive backfill fanning out many calls) Yahoo's anti-abuse
+layer returns a non-JSON body `999 Request denied` to API GETs that arrive with the
+default Node/undici User-Agent. `rawYahooGet` classified this as retryable, retries
+exhausted, and the call failed — so `transaction_archive` stayed EMPTY (0 rows) and
+the keeper engine had no drop/add data to reset drafted→dropped→re-picked players.
+
+**Why it's sneaky:** a single low-volume call (e.g. a one-off diagnostic) usually
+slips through, so it looks intermittent. It's the SERVER's burst of GETs that gets
+denied, not any one request.
+
+**How to apply:** `rawYahooGet` (yahooClient.js) MUST send a browser-like
+`User-Agent` header (a desktop Chrome UA string). This is the GET path for ALL Yahoo
+data loads via the `client.api` override, so the header fixes every endpoint, not
+just backfill. Don't remove it. (Server-only — `User-Agent` is a forbidden header in
+browsers, but Yahoo GETs always run server-side here.)
+
 ## rostersResult.rosters is a MAP, not an array
 `loadLeagueRosters` → `processRosters` returns `{ rosters: rosterMap, ... }` where
 `rosters` is an object keyed by id, not an array. Always iterate with
