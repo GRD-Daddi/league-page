@@ -72,18 +72,14 @@
                 return !!(myTeamKey && team.teamKey === myTeamKey);
         }
 
-        function ineligible(team) {
-                return team.players.filter((p) => !p.eligibleByRules);
-        }
-
-        // Group a team's keeper-eligible players by their cost round, with the team's
-        // pick capacity for that round so the UI can show "you have N picks here" and
-        // block further keepers once the round's picks are used up. Recomputed every
-        // time `data` refreshes (after each select/remove), so capacity stays live.
+        // Group ALL of a team's players by their cost round — eligible AND
+        // ineligible. Ineligible players (max seasons reached, returning to the
+        // draft pool) are shown right alongside everyone else, just clearly
+        // flagged, instead of being tucked away in a hidden disclosure. The
+        // capacity header still reflects only eligible/selected keepers.
         function roundGroups(team) {
                 const byRound = new Map();
-                // Picks consumed per round counts EVERY selected player in that round, even
-                // one that has since become ineligible-by-rules (and so isn't listed below),
+                // Picks consumed per round counts EVERY selected player in that round,
                 // so the capacity header always matches the server's true consumption.
                 const usedByRound = new Map();
                 for (const p of team.players) {
@@ -91,21 +87,26 @@
                                 const cr = p.costRound || 0;
                                 usedByRound.set(cr, (usedByRound.get(cr) || 0) + 1);
                         }
-                        if (!p.eligibleByRules) continue;
                         const r = p.costRound || 0;
                         if (!byRound.has(r)) byRound.set(r, []);
                         byRound.get(r).push(p);
                 }
                 return [...byRound.entries()]
                         .map(([round, players]) => {
-                                const owned = players[0]?.ownedPicksInRound ?? (team.picks?.[round - 1] || 0);
+                                const owned = players.find((p) => p.ownedPicksInRound != null)?.ownedPicksInRound ?? (team.picks?.[round - 1] || 0);
                                 const used = usedByRound.get(round) || 0;
+                                const eligibleCount = players.filter((p) => p.eligibleByRules).length;
                                 return {
                                         round,
                                         owned,
                                         used,
                                         remaining: owned - used,
-                                        players: players.sort((a, b) => a.name.localeCompare(b.name))
+                                        eligibleCount,
+                                        // Eligible players first, then ineligible; alphabetical within each.
+                                        players: players.sort((a, b) => {
+                                                if (!!a.eligibleByRules !== !!b.eligibleByRules) return a.eligibleByRules ? -1 : 1;
+                                                return a.name.localeCompare(b.name);
+                                        })
                                 };
                         })
                         .sort((a, b) => a.round - b.round);
@@ -294,7 +295,6 @@
                                 {#each sortedTeams as team (team.teamKey)}
                                         {@const editable = canEditTeam(team)}
                                         {@const groups = roundGroups(team)}
-                                        {@const inel = ineligible(team)}
                                         <div class="sn-card team-card {team.teamKey === myTeamKey ? 'mine' : ''}">
                                                 <div class="team-head">
                                                         <div class="sn-avatar">{initials(team.teamName)}</div>
@@ -354,13 +354,13 @@
                                                                                                         <span class="round-cap {g.remaining <= 0 ? 'full' : 'open'}">{g.used}/{g.owned} kept · {Math.max(g.remaining, 0)} left</span>
                                                                                                 {/if}
                                                                                         {:else}
-                                                                                                <span class="round-cap muted">{g.players.length} player{g.players.length === 1 ? '' : 's'}</span>
+                                                                                                <span class="round-cap muted">{g.eligibleCount} eligible{g.players.length > g.eligibleCount ? ` · ${g.players.length - g.eligibleCount} ineligible` : ''}</span>
                                                                                         {/if}
                                                                                 </div>
                                                                                 <div class="player-list">
                                                                                         {#each g.players as p (p.playerKey)}
                                                                                                 {@const blocked = editable && !p.selected && !p.canSelect}
-                                                                                                <div class="player-row {p.selected ? 'selected' : ''} {blocked ? 'blocked' : ''}">
+                                                                                                <div class="player-row {p.selected ? 'selected' : ''} {blocked ? 'blocked' : ''} {!p.eligibleByRules ? 'ineligible' : ''}">
                                                                                                         <div class="player-main">
                                                                                                                 <span class="player-name">{p.name}</span>
                                                                                                                 <div class="player-tags">
@@ -369,6 +369,9 @@
                                                                                                                         {/if}
                                                                                                                         {#if p.nflTeam}
                                                                                                                                 <span class="player-nfl">{p.nflTeam}</span>
+                                                                                                                        {/if}
+                                                                                                                        {#if !p.eligibleByRules}
+                                                                                                                                <span class="sn-badge slate">Ineligible</span>
                                                                                                                         {/if}
                                                                                                                         {#if p.status === 'approved'}
                                                                                                                                 <span class="sn-badge lime">Approved</span>
@@ -413,6 +416,8 @@
                                                                                                                                         <input type="hidden" name="playerKey" value={p.playerKey} />
                                                                                                                                         <button class="sn-btn ghost" type="submit" disabled={submitting[team.teamKey + '::' + p.playerKey]}><span>{submitting[team.teamKey + '::' + p.playerKey] ? 'Saving…' : 'Remove'}</span></button>
                                                                                                                                 </form>
+                                                                                                                        {:else if !p.eligibleByRules}
+                                                                                                                                <span class="no-pick">Ineligible</span>
                                                                                                                         {:else if p.canSelect}
                                                                                                                                 <form method="POST" action="?/select" use:enhance={() => submitKeeper(team.teamKey + '::' + p.playerKey)}>
                                                                                                                                         <input type="hidden" name="teamKey" value={team.teamKey} />
@@ -436,42 +441,6 @@
                                                         <div class="no-cands">No keeper-eligible players.</div>
                                                 {/if}
 
-                                                {#if inel.length}
-                                                        <details class="inel">
-                                                                <summary>{inel.length} ineligible player{inel.length === 1 ? '' : 's'}</summary>
-                                                                <div class="inel-list">
-                                                                        {#each inel as p (p.playerKey)}
-                                                                                <div class="inel-row">
-                                                                                        <button type="button" class="inel-head" on:click={() => toggleLineage(team.teamKey + '::' + p.playerKey)} aria-expanded={!!openLineage[team.teamKey + '::' + p.playerKey]}>
-                                                                                                <span class="inel-name">{p.name}</span>
-                                                                                                <span class="inel-reason">{p.reason}</span>
-                                                                                        </button>
-                                                                                        {#if openLineage[team.teamKey + '::' + p.playerKey]}
-                                                                                                {@const hist = p.history || []}
-                                                                                                {#if hist.length}
-                                                                                                        <ol class="lineage">
-                                                                                                                {#each hist as ev}
-                                                                                                                        {#if ev.resetReason}
-                                                                                                                                <li class="lineage-reset">
-                                                                                                                                        <span class="lineage-reset-text">{keeperResetReasonLabel(ev.resetReason)}</span>
-                                                                                                                                </li>
-                                                                                                                        {/if}
-                                                                                                                        <li class="lineage-ev {ev.current ? 'current' : 'past'}{ev.inferred ? ' inferred' : ''}">
-                                                                                                                                <span class="lineage-year">{ev.inferred ? '~' : ''}{ev.year}</span>
-                                                                                                                                <span class="lineage-text">{lineageLabel(ev)}</span>
-                                                                                                                        </li>
-                                                                                                                {/each}
-                                                                                                        </ol>
-                                                                                                        <a class="lineage-link" href={lineagePath(team.teamKey, p.playerKey)}>View full lineage →</a>
-                                                                                                {:else}
-                                                                                                        <div class="lineage-empty">No draft or transaction history on record.</div>
-                                                                                                {/if}
-                                                                                        {/if}
-                                                                                </div>
-                                                                        {/each}
-                                                                </div>
-                                                        </details>
-                                                {/if}
                                         </div>
                                 {/each}
                         </div>
@@ -887,44 +856,8 @@
                 font-style: italic;
         }
 
-        .inel { margin-top: 4px; }
-        .inel summary {
-                cursor: pointer;
-                font-size: 0.8rem;
-                font-weight: 700;
-                color: var(--sn-text-faint);
-                letter-spacing: 0.03em;
-        }
-        .inel-list {
-                margin-top: 10px;
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-        }
-        .inel-row {
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-                font-size: 0.8rem;
-                color: var(--sn-text-mute);
-        }
-        .inel-head {
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                gap: 12px;
-                width: 100%;
-                padding: 0;
-                background: none;
-                border: none;
-                cursor: pointer;
-                text-align: left;
-                font: inherit;
-                color: inherit;
-        }
-        .inel-head:hover .inel-name { color: var(--sn-cyan); }
-        .inel-name { color: var(--sn-text-mute); font-weight: 700; }
-        .inel-reason { color: var(--sn-text-faint); text-align: right; }
+        .player-row.ineligible { opacity: 0.62; }
+        .player-row.ineligible .player-name { color: var(--sn-text-mute); }
 
         @media (max-width: 640px) {
                 .teams-grid { grid-template-columns: 1fr; }

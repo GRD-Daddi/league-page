@@ -264,6 +264,7 @@
 .sn-badge.lime   { color: var(--sn-lime); border-color: rgba(204,255,0,0.4);  background: rgba(204,255,0,0.08); }
 .sn-badge.purple { color: #b388ff;        border-color: rgba(112,0,255,0.5);  background: rgba(112,0,255,0.12); }
 .sn-badge.amber  { color: #ffb74d;        border-color: rgba(255,167,38,0.5); background: rgba(255,167,38,0.12); }
+.sn-badge.slate  { color: #94a3b8;        border-color: rgba(148,163,184,0.4); background: rgba(148,163,184,0.1); }
 
 /* ── Buttons ── */
 .sn-btn {
