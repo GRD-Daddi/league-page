@@ -27,3 +27,9 @@ years also avoids slow/failing live calls when only browsing history.
 - Records cards deep-link by record type: game records (have week+matchupId) →
   `/matchups?year=&week=&matchup=`; season records → `/standings?year=&team=`. The
   target pages highlight/scroll to the matching matchup card / team row.
+- Rosters now follows this too, with two extra constraints: (1) roster snapshotting
+  started recently, so only offer year tabs for `currentYear` (live) + years from
+  `getRosterArchiveYears()` (= seasons with players>0); older seasons exist in
+  season_archive but have empty roster_archive and must NOT be selectable. (2) Some
+  backfilled seasons (e.g. 2025) have ZEROED team_season_archive W/L but valid
+  final_rank — suppress a synthetic "0-0" record and show "Finished #N" instead.

@@ -1,10 +1,23 @@
 <script>
         import LinearProgress from '$lib/LinearProgress.svelte';
+        import { goto } from '$app/navigation';
+        import { page } from '$app/stores';
 
         export let data;
-        const rostersInfo = data.rostersInfo;
+
+        $: years = data?.years ?? [];
+        $: selectedYear = data?.selectedYear;
+        $: isLive = data?.isLive;
+        $: rostersInfo = data?.rostersInfo;
+        $: archivedTeams = data?.archivedTeams ?? [];
 
         let filter = '';
+
+        function selectYear(y) {
+                const params = new URLSearchParams($page.url.searchParams);
+                params.set('year', y);
+                goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
+        }
 
         function initials(name) {
                 return (name ?? '??')
@@ -72,132 +85,203 @@
         </div>
 
         <div class="sn-container">
-                {#await rostersInfo}
-                        <div class="sn-loading">
-                                <p>Retrieving roster data…</p>
-                                <br />
-                                <LinearProgress indeterminate />
+                {#if years.length > 1}
+                        <div class="year-tabs">
+                                {#each years as y}
+                                        <button
+                                                class="year-tab"
+                                                class:active={y.year === selectedYear}
+                                                on:click={() => selectYear(y.year)}
+                                        >
+                                                {y.year}
+                                                {#if y.status !== 'complete'}<span class="live-dot" title="Live / in progress"></span>{/if}
+                                        </button>
+                                {/each}
                         </div>
-                {:then [leagueData, rosterData, leagueTeamManagers, playersInfo]}
-                        {@const players = { ...(playersInfo?.players ?? {}), ...(rosterData?.yahooPlayers ?? {}) }}
-                        {@const teams = buildTeams(rosterData, leagueTeamManagers ?? {}, players)}
-                        {#if rosterData?.fromSeason}
-                                <div class="sn-season-note">
-                                        Your {leagueData?.season ?? ''} draft hasn't happened yet — showing final <strong>{rosterData.fromSeason}</strong> rosters in the meantime.
-                                </div>
-                        {/if}
-                        {#if teams.length === 0}
-                                <div class="sn-empty">
-                                        <h3>No Rosters Yet</h3>
-                                        <p>Team rosters will appear once your league is connected.</p>
-                                </div>
-                        {:else}
-                                <div style="margin-bottom: 28px; max-width: 360px;">
-                                        <input
-                                                class="sn-input"
-                                                style="width: 100%;"
-                                                type="text"
-                                                placeholder="Filter teams…"
-                                                bind:value={filter}
-                                        />
-                                </div>
+                {/if}
 
-                                {@const filtered = teams.filter((t) => t.teamName.toLowerCase().includes(filter.trim().toLowerCase()))}
-                                {#if filtered.length === 0}
-                                        <div class="sn-empty">
-                                                <h3>No Teams Found</h3>
-                                                <p>No teams match "{filter}".</p>
-                                        </div>
-                                {:else}
-                                        <div class="roster-grid">
-                                                {#each filtered as team}
-                                                        <div class="sn-card sn-card-pad">
-                                                                <div class="team-header">
-                                                                        <div class="sn-avatar lg">
-                                                                                {#if team.logo}
-                                                                                        <img src={team.logo} alt={team.teamName} />
-                                                                                {:else}
-                                                                                        {initials(team.teamName)}
-                                                                                {/if}
-                                                                        </div>
-                                                                        <div class="team-header-text">
-                                                                                <div class="sn-team-name" style="font-size: 1.15rem;">{team.teamName}</div>
-                                                                                {#if team.manager}
-                                                                                        <div class="sn-team-meta">{team.manager}</div>
-                                                                                {/if}
-                                                                                <div class="record">{team.record}</div>
-                                                                        </div>
-                                                                </div>
-
-                                                                {#if !team.hasPlayers}
-                                                                        <div class="sn-empty" style="padding: 32px 16px; margin-top: 16px;">
-                                                                                <h3>No Players</h3>
-                                                                                <p>Roster data is not available for this team yet.</p>
-                                                                        </div>
-                                                                {:else}
-                                                                        <div class="roster-section">
-                                                                                <div class="roster-section-title">
-                                                                                        <span class="sn-badge lime">Starters</span>
-                                                                                </div>
-                                                                                {#each team.starters as player}
-                                                                                        <div class="player-row">
-                                                                                                <div class="player-info">
-                                                                                                        <div class="player-pic">
-                                                                                                                {#if player.img}
-                                                                                                                        <img src={player.img} alt={player.name} loading="lazy" />
-                                                                                                                {:else}
-                                                                                                                        {initials(player.name)}
-                                                                                                                {/if}
-                                                                                                        </div>
-                                                                                                        <span class="player-name">{player.name}</span>
-                                                                                                </div>
-                                                                                                {#if player.pos}
-                                                                                                        <span class="sn-badge cyan">{player.pos}</span>
-                                                                                                {/if}
-                                                                                        </div>
-                                                                                {/each}
-                                                                        </div>
-
-                                                                        {#if team.bench.length}
-                                                                                <div class="roster-section">
-                                                                                        <div class="roster-section-title">
-                                                                                                <span class="sn-badge">Bench</span>
-                                                                                        </div>
-                                                                                        {#each team.bench as player}
-                                                                                                <div class="player-row">
-                                                                                                        <div class="player-info">
-                                                                                                                <div class="player-pic">
-                                                                                                                        {#if player.img}
-                                                                                                                                <img src={player.img} alt={player.name} loading="lazy" />
-                                                                                                                        {:else}
-                                                                                                                                {initials(player.name)}
-                                                                                                                        {/if}
-                                                                                                                </div>
-                                                                                                                <span class="player-name muted">{player.name}</span>
-                                                                                                        </div>
-                                                                                                        {#if player.pos}
-                                                                                                                <span class="sn-badge">{player.pos}</span>
-                                                                                                        {/if}
-                                                                                                </div>
-                                                                                        {/each}
-                                                                                </div>
-                                                                        {/if}
-                                                                {/if}
-                                                        </div>
-                                                {/each}
+                {#if isLive}
+                        {#await rostersInfo}
+                                <div class="sn-loading">
+                                        <p>Retrieving roster data…</p>
+                                        <br />
+                                        <LinearProgress indeterminate />
+                                </div>
+                        {:then [leagueData, rosterData, leagueTeamManagers, playersInfo]}
+                                {@const players = { ...(playersInfo?.players ?? {}), ...(rosterData?.yahooPlayers ?? {}) }}
+                                {@const teams = buildTeams(rosterData, leagueTeamManagers ?? {}, players)}
+                                {#if rosterData?.fromSeason}
+                                        <div class="sn-season-note">
+                                                Your {leagueData?.season ?? ''} draft hasn't happened yet — showing final <strong>{rosterData.fromSeason}</strong> rosters in the meantime.
                                         </div>
                                 {/if}
-                        {/if}
-                {:catch error}
-                        <div class="sn-empty">
-                                <h3>Something Went Wrong</h3>
-                                <p>{error.message}</p>
+                                {@render rosterBoard(teams)}
+                        {:catch error}
+                                <div class="sn-empty">
+                                        <h3>Something Went Wrong</h3>
+                                        <p>{error.message}</p>
+                                </div>
+                        {/await}
+                {:else}
+                        <div class="sn-season-note">
+                                Final <strong>{selectedYear}</strong> rosters — every team's squad as it stood when the season ended.
                         </div>
-                {/await}
+                        {@render rosterBoard(archivedTeams)}
+                {/if}
         </div>
 </div>
 
+{#snippet rosterBoard(teams)}
+        {#if teams.length === 0}
+                <div class="sn-empty">
+                        <h3>No Rosters{isLive ? ' Yet' : ''}</h3>
+                        <p>
+                                {#if isLive}
+                                        Team rosters will appear once your league is connected.
+                                {:else}
+                                        No archived rosters were found for {selectedYear}.
+                                {/if}
+                        </p>
+                </div>
+        {:else}
+                <div style="margin-bottom: 28px; max-width: 360px;">
+                        <input
+                                class="sn-input"
+                                style="width: 100%;"
+                                type="text"
+                                placeholder="Filter teams…"
+                                bind:value={filter}
+                        />
+                </div>
+
+                {@const filtered = teams.filter((t) => t.teamName.toLowerCase().includes(filter.trim().toLowerCase()))}
+                {#if filtered.length === 0}
+                        <div class="sn-empty">
+                                <h3>No Teams Found</h3>
+                                <p>No teams match "{filter}".</p>
+                        </div>
+                {:else}
+                        <div class="roster-grid">
+                                {#each filtered as team}
+                                        <div class="sn-card sn-card-pad">
+                                                <div class="team-header">
+                                                        <div class="sn-avatar lg">
+                                                                {#if team.logo}
+                                                                        <img src={team.logo} alt={team.teamName} />
+                                                                {:else}
+                                                                        {initials(team.teamName)}
+                                                                {/if}
+                                                        </div>
+                                                        <div class="team-header-text">
+                                                                <div class="sn-team-name" style="font-size: 1.15rem;">{team.teamName}</div>
+                                                                {#if team.manager}
+                                                                        <div class="sn-team-meta">{team.manager}</div>
+                                                                {/if}
+                                                                {#if team.record}
+                                                                        <div class="record">{team.record}</div>
+                                                                {:else if team.rank}
+                                                                        <div class="record">Finished #{team.rank}</div>
+                                                                {/if}
+                                                        </div>
+                                                </div>
+
+                                                {#if !team.hasPlayers}
+                                                        <div class="sn-empty" style="padding: 32px 16px; margin-top: 16px;">
+                                                                <h3>No Players</h3>
+                                                                <p>Roster data is not available for this team yet.</p>
+                                                        </div>
+                                                {:else}
+                                                        <div class="roster-section">
+                                                                <div class="roster-section-title">
+                                                                        <span class="sn-badge lime">Starters</span>
+                                                                </div>
+                                                                {#each team.starters as player}
+                                                                        <div class="player-row">
+                                                                                <div class="player-info">
+                                                                                        <div class="player-pic">
+                                                                                                {#if player.img}
+                                                                                                        <img src={player.img} alt={player.name} loading="lazy" />
+                                                                                                {:else}
+                                                                                                        {initials(player.name)}
+                                                                                                {/if}
+                                                                                        </div>
+                                                                                        <span class="player-name">{player.name}</span>
+                                                                                </div>
+                                                                                {#if player.pos}
+                                                                                        <span class="sn-badge cyan">{player.pos}</span>
+                                                                                {/if}
+                                                                        </div>
+                                                                {/each}
+                                                        </div>
+
+                                                        {#if team.bench.length}
+                                                                <div class="roster-section">
+                                                                        <div class="roster-section-title">
+                                                                                <span class="sn-badge">Bench</span>
+                                                                        </div>
+                                                                        {#each team.bench as player}
+                                                                                <div class="player-row">
+                                                                                        <div class="player-info">
+                                                                                                <div class="player-pic">
+                                                                                                        {#if player.img}
+                                                                                                                <img src={player.img} alt={player.name} loading="lazy" />
+                                                                                                        {:else}
+                                                                                                                {initials(player.name)}
+                                                                                                        {/if}
+                                                                                                </div>
+                                                                                                <span class="player-name muted">{player.name}</span>
+                                                                                        </div>
+                                                                                        {#if player.pos}
+                                                                                                <span class="sn-badge">{player.pos}</span>
+                                                                                        {/if}
+                                                                                </div>
+                                                                        {/each}
+                                                                </div>
+                                                        {/if}
+                                                {/if}
+                                        </div>
+                                {/each}
+                        </div>
+                {/if}
+        {/if}
+{/snippet}
+
 <style>
+        .year-tabs {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 28px;
+        }
+        .year-tab {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+                border-radius: 999px;
+                border: 1px solid var(--sn-border);
+                background: var(--sn-surface-2);
+                color: var(--sn-text-mute);
+                font-family: monospace;
+                font-weight: 700;
+                font-size: 0.9rem;
+                cursor: pointer;
+                transition: all 0.15s ease;
+        }
+        .year-tab:hover { color: #fff; border-color: var(--sn-text-faint); }
+        .year-tab.active {
+                background: var(--sn-lime);
+                color: #0a0a0a;
+                border-color: var(--sn-lime);
+        }
+        .live-dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: var(--sn-cyan);
+                box-shadow: 0 0 8px var(--sn-cyan);
+        }
+
         .roster-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

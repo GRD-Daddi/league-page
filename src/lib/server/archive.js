@@ -391,6 +391,22 @@ export async function getArchivedRosters(year) {
         return rows;
 }
 
+/**
+ * Seasons that actually have a captured ending roster (at least one team with
+ * players). Roster snapshotting began partway through the league's life, so
+ * older Yahoo seasons have no recoverable final rosters and must not be offered
+ * as selectable years.
+ */
+export async function getRosterArchiveYears() {
+        const { rows } = await query(
+                `SELECT year FROM roster_archive
+                 GROUP BY year
+                 HAVING COALESCE(SUM(jsonb_array_length(players)), 0) > 0
+                 ORDER BY year DESC`
+        );
+        return rows.map((r) => r.year);
+}
+
 /** Archived matchup scores for a season, ordered by week then matchup. */
 export async function getArchivedMatchups(year) {
         if (!Number.isFinite(year)) return [];
