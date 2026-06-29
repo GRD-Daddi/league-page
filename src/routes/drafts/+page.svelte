@@ -1,5 +1,7 @@
 <script>
         import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
+        import { page } from '$app/stores';
+        import { goto } from '$app/navigation';
         export let data;
         const { upcomingDraftData, previousDraftsData, leagueTeamManagersData, playersData, draftPickOwnership, draftPickYear } = data;
         // Pre-season phase drives which tab opens by DEFAULT, but both views' data
@@ -12,9 +14,33 @@
         const draftOrderSeason = data.draftOrderSeason ?? null;
 
         // Active view: Planning (draft order + picks-by-team + keepers) or Past
-        // Drafts (completed results). Default from the season phase, then let the
-        // owner switch manually.
-        let activeTab = isDraftPrep ? 'planning' : 'past';
+        // Drafts (completed results). A `?view=planning|past` URL param wins so the
+        // chosen tab persists across reloads and can be deep-linked/shared; with no
+        // (or an invalid) param we fall back to the season-phase default.
+        const VALID_VIEWS = ['planning', 'past'];
+
+        function viewFromUrl(url) {
+                const v = url?.searchParams?.get('view');
+                return VALID_VIEWS.includes(v) ? v : null;
+        }
+
+        let activeTab = viewFromUrl($page.url) ?? (isDraftPrep ? 'planning' : 'past');
+
+        // Keep the tab in sync when the URL changes (back/forward navigation or a
+        // freshly opened deep link). Ignore changes that don't carry a valid param
+        // so the season-phase default isn't clobbered mid-session.
+        $: {
+                const urlView = viewFromUrl($page.url);
+                if (urlView && urlView !== activeTab) activeTab = urlView;
+        }
+
+        function selectTab(tab) {
+                if (!VALID_VIEWS.includes(tab) || tab === activeTab) return;
+                activeTab = tab;
+                const url = new URL($page.url);
+                url.searchParams.set('view', tab);
+                goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+        }
 
         const pickRounds = draftPickOwnership?.rounds || 15;
         const pickTeams = [...(draftPickOwnership?.teams || [])].sort(
@@ -207,7 +233,7 @@
                                 class="draft-tab"
                                 class:active={activeTab === 'planning'}
                                 aria-selected={activeTab === 'planning'}
-                                on:click={() => (activeTab = 'planning')}
+                                on:click={() => selectTab('planning')}
                         >
                                 Planning
                         </button>
@@ -217,7 +243,7 @@
                                 class="draft-tab"
                                 class:active={activeTab === 'past'}
                                 aria-selected={activeTab === 'past'}
-                                on:click={() => (activeTab = 'past')}
+                                on:click={() => selectTab('past')}
                         >
                                 Past Drafts
                         </button>
