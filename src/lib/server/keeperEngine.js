@@ -188,9 +188,13 @@ export function evaluatePlayer({ playerKey, detail, teamKey, draftsById, txById,
  * @param {object} args.rostersMap    roster_id -> { metadata:{team_key,team_name}, players:[player_key], players_detail }
  * @param {number} args.upcomingYear  the upcoming draft year to evaluate against
  * @param {object} args.pickOwnership { rounds, teams:[{teamKey, teamName, picks[]}] }
+ * @param {Map}    [args.teamKeyRemap] maps a fallback-season roster team_key to the
+ *                 upcoming league's team_key (same owner). Yahoo issues a new league
+ *                 key every season, so a preseason fallback roster carries last
+ *                 season's keys; without this remap it never matches its picks.
  * @returns {Array} teams: [{ rosterId, teamKey, teamName, picks, players:[evalPlayer] }]
  */
-export function computeKeepers({ drafts, transactions, rostersMap, upcomingYear, pickOwnership }) {
+export function computeKeepers({ drafts, transactions, rostersMap, upcomingYear, pickOwnership, teamKeyRemap }) {
         const { draftsById, txById } = buildIndexes(drafts, transactions);
         const roundsMax = pickOwnership?.rounds || 15;
 
@@ -202,8 +206,11 @@ export function computeKeepers({ drafts, transactions, rostersMap, upcomingYear,
         const teams = [];
         for (const rosterId of Object.keys(rostersMap || {})) {
                 const r = rostersMap[rosterId];
-                const teamKey = r?.metadata?.team_key;
-                if (!teamKey) continue;
+                const rawKey = r?.metadata?.team_key;
+                if (!rawKey) continue;
+                // Resolve to the upcoming league's franchise key so pick ownership,
+                // selections, and board consumption all key off the same identity.
+                const teamKey = teamKeyRemap?.get(rawKey) || rawKey;
                 const teamPicks = picksByTeam.get(teamKey) || [];
                 const detailMap = r.players_detail || {};
 

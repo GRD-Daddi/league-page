@@ -5,6 +5,12 @@ import { getDraftPickOwnership, DRAFT_ROUNDS } from './draftPicks.js';
 import { getDraftResultsArchive, getTransactionArchive, playerIdFromKey } from './keeperArchive.js';
 import { computeKeepers } from './keeperEngine.js';
 
+// Normalize a team name for cross-season owner bridging (case/space-insensitive).
+// Returns '' for empty/missing names so they never produce a spurious match.
+function normalizeTeamName(name) {
+        return (name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 /**
  * Orchestrates the keeper engine: loads current rosters, persisted draft +
  * transaction history and the upcoming draft's pick-ownership board, runs the
@@ -62,14 +68,65 @@ export async function getKeeperState(year, yahooClient, leagueKey) {
         const requiresAuth = rostersResult === null;
         const rostersMap = rostersResult?.rosters || {};
 
-        // team_key -> manager nickname (from league users) for display.
+        // team_key -> manager nickname / team name (from the CURRENT league users) for display.
         const managerByTeam = new Map();
+        const nameByTeam = new Map();
+        // Canonical owner identity (yahoo_guid) -> the upcoming league's team_key, plus
+        // a normalized-team-name index used to bridge HIDDEN managers (no GUID).
+        const currentKeyByGuid = new Map();
+        const currentKeyByName = new Map();
+        const dupNames = new Set();
         for (const u of users || []) {
                 const tk = u?.metadata?.team_key;
-                if (tk) managerByTeam.set(tk, u?.metadata?.manager_nickname || u?.display_name || null);
+                if (!tk) continue;
+                managerByTeam.set(tk, u?.metadata?.manager_nickname || u?.display_name || null);
+                if (u?.metadata?.team_name) nameByTeam.set(tk, u.metadata.team_name);
+                const guid = u?.metadata?.yahoo_guid;
+                if (guid) currentKeyByGuid.set(guid, tk);
+                const nm = normalizeTeamName(u?.metadata?.team_name);
+                if (nm) {
+                        if (currentKeyByName.has(nm)) dupNames.add(nm);
+                        else currentKeyByName.set(nm, tk);
+                }
+        }
+        // Ambiguous (duplicated) names can't disambiguate an owner, so drop them.
+        for (const nm of dupNames) currentKeyByName.delete(nm);
+
+        // Yahoo issues a NEW league key (and reshuffles .t.N team numbers) every
+        // season, so during the preseason the engine falls back to last season's
+        // rosters whose team_keys differ from the upcoming league's. Pick ownership
+        // and selections live under the upcoming keys, so bridge each fallback roster
+        // to its upcoming-season franchise. Primary key is the owner GUID (the app's
+        // canonical cross-season identity); for hidden managers (no GUID) fall back to
+        // an unambiguous team-name match so their team isn't left broken.
+        const teamKeyRemap = new Map();
+        const claimedKeys = new Set();
+        const rosterIds = Object.keys(rostersMap || {});
+        // Pass 1: match by owner GUID.
+        for (const rid of rosterIds) {
+                const r = rostersMap[rid];
+                const rawKey = r?.metadata?.team_key;
+                const ownerGuid = r?.owner_id; // guid when visible, else that season's team_key
+                if (!rawKey) continue;
+                const currentKey = ownerGuid ? currentKeyByGuid.get(ownerGuid) : null;
+                if (!currentKey) continue;
+                claimedKeys.add(currentKey);
+                if (currentKey !== rawKey) teamKeyRemap.set(rawKey, currentKey);
+        }
+        // Pass 2: bridge the remaining (hidden-manager) rosters by unambiguous name.
+        for (const rid of rosterIds) {
+                const r = rostersMap[rid];
+                const rawKey = r?.metadata?.team_key;
+                if (!rawKey || teamKeyRemap.has(rawKey)) continue;
+                const nm = normalizeTeamName(r?.metadata?.team_name);
+                const currentKey = nm ? currentKeyByName.get(nm) : null;
+                if (currentKey && currentKey !== rawKey && !claimedKeys.has(currentKey)) {
+                        claimedKeys.add(currentKey);
+                        teamKeyRemap.set(rawKey, currentKey);
+                }
         }
 
-        const teams = computeKeepers({ drafts, transactions, rostersMap, upcomingYear, pickOwnership });
+        const teams = computeKeepers({ drafts, transactions, rostersMap, upcomingYear, pickOwnership, teamKeyRemap });
 
         // Index selections by team+player and tally per-team picks consumed by round.
         const selByTeamPlayer = new Map();
@@ -83,6 +140,9 @@ export async function getKeeperState(year, yahooClient, leagueKey) {
 
         for (const team of teams) {
                 team.manager = managerByTeam.get(team.teamKey) || null;
+                // Prefer the upcoming league's team name (rosters may come from a
+                // fallback season whose name has since changed).
+                if (nameByTeam.has(team.teamKey)) team.teamName = nameByTeam.get(team.teamKey);
                 const consumed = consumedByTeamRound.get(team.teamKey) || new Map();
                 team.selectedCount = 0;
                 team.approvedCount = 0;
