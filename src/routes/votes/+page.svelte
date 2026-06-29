@@ -36,6 +36,18 @@
 
         let activeTab = $state('open');
 
+        // Per-season collapse state on the Archive tab. The most recent season starts
+        // expanded; older ones default collapsed. Clicking a header toggles and the
+        // explicit choice is remembered (overrides the default) for the session.
+        let seasonCollapseOverride = $state({});
+        function isSeasonCollapsed(label, index) {
+                if (label in seasonCollapseOverride) return seasonCollapseOverride[label];
+                return index > 0;
+        }
+        function toggleSeason(label, index) {
+                seasonCollapseOverride[label] = !isSeasonCollapsed(label, index);
+        }
+
         // ── Propose form state ──
         let proposeOpen = $state(false);
         let newType = $state('yesno');
@@ -322,13 +334,21 @@
                                         <p>Closed and imported votes will be archived here with their final results.</p>
                                 </div>
                         {:else}
-                                {#each closedBySeason as group (group.label)}
+                                {#each closedBySeason as group, gi (group.label)}
+                                        {@const collapsed = isSeasonCollapsed(group.label, gi)}
                                         <div class="season-group">
-                                                <div class="season-head">
+                                                <button
+                                                        type="button"
+                                                        class="season-head"
+                                                        aria-expanded={!collapsed}
+                                                        onclick={() => toggleSeason(group.label, gi)}
+                                                >
+                                                        <span class="season-toggle" class:collapsed aria-hidden="true">▾</span>
                                                         <h2 class="season-title">{group.label}</h2>
                                                         <span class="season-count">{group.votes.length} vote{group.votes.length === 1 ? '' : 's'}</span>
-                                                </div>
+                                                </button>
 
+                                                {#if !collapsed}
                                                 {#each group.votes as p (p.id)}
                                                         <section class="sn-card sn-card-pad vote closed">
                                                                 <div class="vote-head">
@@ -366,6 +386,7 @@
                                                                 </div>
                                                         </section>
                                                 {/each}
+                                                {/if}
                                         </div>
                                 {/each}
                         {/if}
@@ -412,9 +433,26 @@
                 align-items: baseline;
                 gap: 12px;
                 margin: 0 0 14px;
-                padding-bottom: 8px;
+                padding: 0 0 8px;
+                border: none;
                 border-bottom: 1px solid var(--sn-border);
+                background: none;
+                width: 100%;
+                text-align: left;
+                cursor: pointer;
+                color: inherit;
+                font: inherit;
         }
+        .season-head:hover .season-title { color: var(--sn-lime); }
+        .season-head:focus-visible { outline: 2px solid var(--sn-lime); outline-offset: 2px; }
+        .season-toggle {
+                font-size: 0.85rem;
+                line-height: 1;
+                color: var(--sn-text-mute);
+                transition: transform 0.15s ease;
+                transform-origin: center;
+        }
+        .season-toggle.collapsed { transform: rotate(-90deg); }
         .season-title {
                 font-size: 1.4rem;
                 font-weight: 900;
