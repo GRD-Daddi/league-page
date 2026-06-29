@@ -591,20 +591,22 @@
     box-shadow: 0 0 44px rgba(204,255,0,0.16);
   }
 
-  .beat-ribbon {
-    display: inline-flex; align-items: center; gap: 6px;
-    margin-bottom: 12px;
-    padding: 4px 10px;
+  .beat-badge {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
     border-radius: 999px;
     background: rgba(204,255,0,0.12);
+    border: 1px solid rgba(204,255,0,0.4);
     color: #ccff00;
-    font-size: 10px; font-weight: 900; letter-spacing: 0.15em;
-    text-transform: uppercase;
+    z-index: 1;
   }
 
   .beat-tag {
-    margin-top: 12px;
-    font-size: 0.78rem; font-weight: 800; color: #ccff00; line-height: 1.35;
+    margin-top: 8px;
+    font-size: 0.72rem; font-weight: 800; color: #ccff00;
+    text-transform: uppercase; letter-spacing: 0.04em;
   }
 
   .beat-tag.hot { color: #ff6b6b; }
@@ -1158,10 +1160,15 @@
   .trophy-card.silver { border-color: rgba(203,213,225,0.35); }
   .trophy-card.bronze { border-color: rgba(216,145,90,0.35); }
 
-  .trophy-card.gold   { transform: translateY(-14px); }
+  /* Staircase (3rd → 2nd → 1st) — cards bottom-aligned via .podium-grid align-items:end */
+  .trophy-card.bronze { padding: 20px 18px; }
+  .trophy-card.silver { padding: 30px 22px; }
+  .trophy-card.gold   { padding: 40px 24px; }
 
   @media (max-width: 760px) {
-    .trophy-card.gold { transform: none; }
+    .trophy-card.bronze,
+    .trophy-card.silver,
+    .trophy-card.gold { padding: 28px 24px; }
   }
 
   .trophy-place {
@@ -1191,6 +1198,7 @@
     overflow: hidden;
   }
   .trophy-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .trophy-card.bronze .trophy-avatar { width: 60px; height: 60px; margin-bottom: 12px; }
   .trophy-card.gold .trophy-avatar { width: 88px; height: 88px; border-color: #ffd24a; }
 
   .trophy-team {
@@ -1461,13 +1469,12 @@
               </div>
               {#if podium?.podium?.length}
                 <div class="podium-grid">
-                  {#each [2, 1, 3] as place}
+                  {#each [3, 2, 1] as place}
                     {@const t = podium.podium.find((p) => p.place === place)}
                     <div class="trophy-card {PLACE_TONE[place]}{place === 1 && personToBeat ? ' is-beat' : ''}">
                       {#if place === 1 && personToBeat}
-                        <div class="beat-ribbon">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-                          Person to Beat
+                        <div class="beat-badge" title="Win it again this year and take the entire pot">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
                         </div>
                       {/if}
                       <div class="trophy-place {PLACE_TONE[place]}">{PLACE_LABELS[place]} Place</div>
@@ -1481,7 +1488,7 @@
                           <div class="trophy-meta">{t.wins}-{t.losses}{#if t.pointsFor != null} &bull; {t.pointsFor.toFixed(0)} PF{/if}</div>
                         {/if}
                         {#if place === 1 && personToBeat}
-                          <div class="beat-tag {beatBackToBack ? 'hot' : ''}">{beatBackToBack ? '🚨 Back-to-back — claim the entire pot!' : 'Win it again and take the entire pot.'}</div>
+                          <div class="beat-tag {beatBackToBack ? 'hot' : ''}">{beatBackToBack ? '🏆 Win again, claim the pot' : 'Win again, take the pot'}</div>
                         {/if}
                       {:else}
                         <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
@@ -1492,6 +1499,11 @@
                 </div>
               {:else if lastChampion?.name}
                 <div class="podium-grid">
+                  <div class="trophy-card bronze">
+                    <div class="trophy-place bronze">3rd Place</div>
+                    <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
+                    <div class="trophy-empty">Not recorded</div>
+                  </div>
                   <div class="trophy-card silver">
                     <div class="trophy-place silver">2nd Place</div>
                     <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
@@ -1499,9 +1511,8 @@
                   </div>
                   <div class="trophy-card gold{personToBeat ? ' is-beat' : ''}">
                     {#if personToBeat}
-                      <div class="beat-ribbon">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-                        Person to Beat
+                      <div class="beat-badge" title="Win it again this year and take the entire pot">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
                       </div>
                     {/if}
                     <div class="trophy-place gold">Champion</div>
@@ -1509,18 +1520,13 @@
                     <div class="trophy-team">{lastChampion.name}</div>
                     <div class="trophy-meta">{lastChampion.year} Champion</div>
                     {#if personToBeat}
-                      <div class="beat-tag {beatBackToBack ? 'hot' : ''}">{beatBackToBack ? '🚨 Back-to-back — claim the entire pot!' : 'Win it again and take the entire pot.'}</div>
+                      <div class="beat-tag {beatBackToBack ? 'hot' : ''}">{beatBackToBack ? '🏆 Win again, claim the pot' : 'Win again, take the pot'}</div>
                     {/if}
-                  </div>
-                  <div class="trophy-card bronze">
-                    <div class="trophy-place bronze">3rd Place</div>
-                    <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
-                    <div class="trophy-empty">Not recorded</div>
                   </div>
                 </div>
               {:else}
                 <div class="podium-grid">
-                  {#each [2, 1, 3] as place}
+                  {#each [3, 2, 1] as place}
                     <div class="trophy-card {PLACE_TONE[place]}">
                       <div class="trophy-place {PLACE_TONE[place]}">{place === 1 ? 'Champion' : `${PLACE_LABELS[place]} Place`}</div>
                       <div class="trophy-avatar"><span class="trophy-empty">?</span></div>
