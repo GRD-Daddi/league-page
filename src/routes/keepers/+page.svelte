@@ -1,7 +1,6 @@
 <script>
         import { enhance } from '$app/forms';
         import { KEEPER_MAX_SEASONS, WAIVER_COST_ROUND, keeperResetReasonLabel } from '$lib/utils/keeperRules.js';
-        import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
 
         export let data;
         export let form;
@@ -283,14 +282,13 @@
 
                                                 <div class="picks-overview">
                                                         <div class="picks-overview-label">Draft picks by round</div>
-                                                        <div class="draft-picks">
+                                                        <div class="picks-grid">
                                                                 {#each Array(rounds) as _, i}
                                                                         {@const count = team.picks?.[i] || 0}
-                                                                        {#if count > 0}
-                                                                                <span class="pick-chip" class:extra={count > 1 && count <= MAX_PICKS_PER_ROUND} class:over={count > MAX_PICKS_PER_ROUND} title={count > MAX_PICKS_PER_ROUND ? `Over the ${MAX_PICKS_PER_ROUND}-pick round limit` : ''}><span class="rnd">R{i + 1}</span> <span class="pick-count">×{count}</span></span>
-                                                                        {:else}
-                                                                                <span class="pick-chip traded"><span class="rnd">R{i + 1}</span> <span class="pick-count">—</span></span>
-                                                                        {/if}
+                                                                        <div class="pick-cell {count === 0 ? 'empty' : ''}" title="Round {i + 1}: {count} pick{count === 1 ? '' : 's'}">
+                                                                                <span class="pick-round">R{i + 1}</span>
+                                                                                <span class="pick-count">{count}</span>
+                                                                        </div>
                                                                 {/each}
                                                         </div>
                                                 </div>
@@ -574,45 +572,38 @@
                 color: var(--sn-text-faint);
                 margin-bottom: 10px;
         }
-        .draft-picks {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-        }
-        .pick-chip {
-                display: inline-flex;
-                align-items: center;
+        .picks-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
                 gap: 6px;
-                font-family: monospace;
-                font-size: 12px;
-                font-weight: 700;
-                color: #6b7280;
-                background: #0a0a0c;
-                border: 1px dashed #1f2937;
-                border-radius: 999px;
-                padding: 6px 12px;
         }
-        .pick-chip .rnd { color: #00f0ff; }
-        .pick-chip .pick-count { color: #e5e7eb; font-weight: 800; }
-        .pick-chip.extra {
-                border-style: solid;
-                border-color: #00f0ff;
-                background: rgba(0, 240, 255, 0.08);
+        .pick-cell {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2px;
+                padding: 6px 2px;
+                border: 1px solid var(--sn-border);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.02);
         }
-        .pick-chip.extra .pick-count { color: #00f0ff; }
-        .pick-chip.over {
-                border-style: solid;
-                border-color: #ff5050;
-                background: rgba(255, 80, 80, 0.12);
-                color: #ff8080;
+        .pick-cell .pick-round {
+                font-size: 0.62rem;
+                font-weight: 800;
+                letter-spacing: 0.04em;
+                color: var(--sn-text-faint);
         }
-        .pick-chip.over .rnd,
-        .pick-chip.over .pick-count { color: #ff8080; }
-        .pick-chip.traded {
+        .pick-cell .pick-count {
+                font-size: 0.95rem;
+                font-weight: 900;
+                color: #fff;
+        }
+        .pick-cell.empty {
                 opacity: 0.4;
         }
-        .pick-chip.traded .rnd { color: #4b5563; }
-        .pick-chip.traded .pick-count { color: #6b7280; }
+        .pick-cell.empty .pick-count {
+                color: var(--sn-text-faint);
+        }
 
         .round-groups { display: flex; flex-direction: column; gap: 16px; }
         .round-group {
