@@ -290,7 +290,7 @@
                         <h5>Recent Waivers</h5>
                 {/if}
 
-                <Pagination {perPage} total={totalTransactions} bind:page={page} target={top} scroll={false} />
+                <Pagination {perPage} total={totalTransactions} bind:page={page} target={top} scroll={false} alwaysShowTotal={true} />
                 <div class="transactions-child">
                         {#each displayTransactions as transaction (transaction.id)}
                 {#if transaction.type == "waiver"}

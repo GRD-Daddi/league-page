@@ -1,5 +1,5 @@
 <script>
-    export let total, perPage, page, target, scroll = true;
+    export let total, perPage, page, target, scroll = true, alwaysShowTotal = false;
 
     let pageLabels = [];
 
@@ -96,29 +96,31 @@
         text-align: center;
     }
 </style>
-{#if total > 0 && totPages > 1 }
-    <div class="paginationBar">
-        {#if page > 0}
-            <span class="material-icons button" onclick={() => changePage(page - 1)} role="button" tabindex="0">chevron_left</span>
-        {:else}
-            <span class="placeholder" />
-        {/if}
-        <div class="numbers">
-            {#each pageLabels as pageLabel}
-                {#if pageLabel == page + 1}
-                    <span class="selected pg">{pageLabel}</span>
-                {:else if pageLabel == "..."}
-                    <span class="pg spacer">{pageLabel}</span>
-                {:else}
-                    <span class="dest pg" onclick={() => changePage(pageLabel - 1)}>{pageLabel}</span>
-                {/if}
-            {/each}
+{#if total > 0 && (totPages > 1 || alwaysShowTotal)}
+    {#if totPages > 1}
+        <div class="paginationBar">
+            {#if page > 0}
+                <span class="material-icons button" onclick={() => changePage(page - 1)} role="button" tabindex="0">chevron_left</span>
+            {:else}
+                <span class="placeholder" />
+            {/if}
+            <div class="numbers">
+                {#each pageLabels as pageLabel}
+                    {#if pageLabel == page + 1}
+                        <span class="selected pg">{pageLabel}</span>
+                    {:else if pageLabel == "..."}
+                        <span class="pg spacer">{pageLabel}</span>
+                    {:else}
+                        <span class="dest pg" onclick={() => changePage(pageLabel - 1)}>{pageLabel}</span>
+                    {/if}
+                {/each}
+            </div>
+            {#if page < totPages - 1}
+                <span class="material-icons button" onclick={() => changePage(page + 1)} role="button" tabindex="0">chevron_right</span>
+            {:else}
+                <span class="placeholder" />
+            {/if}
         </div>
-        {#if page < totPages - 1}
-            <span class="material-icons button" onclick={() => changePage(page + 1)} role="button" tabindex="0">chevron_right</span>
-        {:else}
-            <span class="placeholder" />
-        {/if}
-    </div>
+    {/if}
     <div class="totals">{page * perPage + 1} - {page + 1 == totPages ? total : (page + 1) * perPage} of {total}</div>
 {/if}
