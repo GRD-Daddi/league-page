@@ -1,14 +1,14 @@
 <script>
-	import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
+        import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
 
-	export let move, leagueTeamManagers, players, season;
+        export let move, leagueTeamManagers, players, season;
 
-	const getAvatar = (pos, player) => {
-		if(pos == 'DEF') {
-			return `background-image: url(https://sleepercdn.com/images/team_logos/nfl/${player.toLowerCase()}.png)`;
-		}
-		return `background-image: url(https://sleepercdn.com/content/nfl/players/thumb/${player}.jpg), url(https://sleepercdn.com/images/v2/icons/player_default.webp)`;
-	}
+        const getAvatar = (pos, player) => {
+                if(pos == 'DEF') {
+                        return `background-image: url(https://sleepercdn.com/images/team_logos/nfl/${player.toLowerCase()}.png)`;
+                }
+                return `background-image: url(https://sleepercdn.com/content/nfl/players/thumb/${player}.jpg), url(https://sleepercdn.com/images/v2/icons/player_default.webp)`;
+        }
 
     let origin, dest;
 
@@ -66,24 +66,24 @@
 </script>
 
 <style>
-	.move {
-		text-align: center;
+        .move {
+                text-align: center;
         padding: 0;
         vertical-align: top;
-	}
+        }
 
-	.originalOwner {
-		color: #aaa;
-		font-style: italic;
-	}
+        .originalOwner {
+                color: #aaa;
+                font-style: italic;
+        }
 
-	.line {
-		height: 2px;
+        .line {
+                height: 2px;
         width: 50%;
         background-color: var(--aaa);
         position: absolute;
         top: 34px;
-	}
+        }
 
     .lineL {
         left: 0;
@@ -93,9 +93,9 @@
         right: 0;
     }
 
-	.indicator {
-		vertical-align: middle;
-	}
+        .indicator {
+                vertical-align: middle;
+        }
 
     .nameHolder {
         margin: 4px 0 0;
@@ -110,8 +110,10 @@
         margin: 4px 0 0;
         display: inline-flex;
         flex-direction: column;
+        align-items: center;
+        text-align: center;
         font-size: 0.8em;
-        line-height: 1em;
+        line-height: 1.2em;
     }
 
     .tradeSlot {
@@ -178,13 +180,17 @@
         background: none;
     }
 
-    .round {
-        font-size: 1em;
-        color: var(--ccc);
+    .pickIcon {
+        font-size: 1.6em;
+        color: var(--g444);
         position: absolute;
         transform: translate(-50%, -50%);
         left: 50%;
-        bottom: 0%;
+        top: 50%;
+    }
+
+    .pickNameHolder .name {
+        font-weight: 500;
     }
 
     .budget {
@@ -238,7 +244,7 @@
 </style>
 
 <tr>
-	{#each move as cell, ix}
+        {#each move as cell, ix}
         <td class="move">
             <div class="cellParent">
                 <div class="line lineL {checkL(cell, ix) ? "hidden" : ""}" />
@@ -261,21 +267,15 @@
                     </div>
                 {:else if cell && cell.pick}
                     <div class="playerSlot">
-                        <div class="avatarHolder">
-                            <div class="tradeSlot pick">
-                                <span class="round">Round</span>
-                                <span class="pickInfo">
-                                    {cell.pick.round}<span class="numEnd">{getNumEnd(cell.pick.round)}</span>
-                                </span>
-                                <i class="indicator material-icons" aria-hidden="true">add_circle</i>
-                            </div>
+                        <div class="tradeSlot pick">
+                            <i class="pickIcon material-icons" aria-hidden="true">sports_football</i>
+                            <i class="indicator material-icons" aria-hidden="true">add_circle</i>
                         </div>
                         <div class="pickNameHolder">
-                            <span class="year">{cell.pick.season}</span>
+                            <span class="name">{cell.pick.season} Round {cell.pick.round}{getNumEnd(cell.pick.round)}</span>
+                            <span class="playerInfo">Draft Pick</span>
                             {#if cell.pick.original_owner}
-                                <span class="originalOwner">{getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner, season).name}
-                                    {getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner, season).name != getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner).name ? ` (${getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner).name})` : ''}
-                                </span>
+                                <span class="originalOwner">via {getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner, season).name}{getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner, season).name != getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner).name ? ` (${getTeamFromTeamManagers(leagueTeamManagers, cell.pick.original_owner).name})` : ''}</span>
                             {/if}
                         </div>
                     </div>
@@ -306,5 +306,5 @@
                 {/if}
             </div>
         </td>
-	{/each}
+        {/each}
 </tr>
