@@ -110,16 +110,18 @@ ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_name TEXT;
 ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_recorded BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE season_records ADD COLUMN IF NOT EXISTS points_leader_paid BOOLEAN NOT NULL DEFAULT false;
 
--- Payouts-driven split. The commissioner sets 1st/2nd/3rd payouts in dollars; the
--- total payout pool is their sum, and the per-member share that feeds the pool is
--- pool_share = pool_total / members. The remainder of each buy-in
--- (buy_in - pool_share) feeds the carryover pot. pool_share is stored as the
--- per-member dollar contribution to the pool (pot_split_pct is kept in sync only
--- for legacy readers).
+-- Manual buy-in split. The commissioner enters the per-member dollars going to the
+-- payout pool (pool_share) and to the carryover pot (pot_share) by hand; both are
+-- stored exactly as entered and may not sum to the buy-in (the UI warns but still
+-- saves). pot_split_pct is kept in sync as a derived percentage for legacy readers.
 ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS pool_share NUMERIC;
 UPDATE pot_settings
 SET pool_share = buy_in_amount * ((100 - pot_split_pct) / 100.0)
 WHERE pool_share IS NULL;
+ALTER TABLE pot_settings ADD COLUMN IF NOT EXISTS pot_share NUMERIC;
+UPDATE pot_settings
+SET pot_share = GREATEST(0, buy_in_amount - pool_share)
+WHERE pot_share IS NULL;
 
 -- Payouts are entered as dollar amounts (payout_first/second/third), which are the
 -- authoritative figures for paid-tracking and history. payout_*_pct holds each

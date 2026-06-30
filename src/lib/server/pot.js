@@ -21,17 +21,19 @@ function num(value, fallback = 0) {
 }
 
 export async function getSettings() {
-        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pool_share, pot_adjustment, points_leader_amount, max_keepers FROM pot_settings WHERE id = 1');
+        const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pool_share, pot_share, pot_adjustment, points_leader_amount, max_keepers FROM pot_settings WHERE id = 1');
         const row = rows[0] || {};
         const buyIn = num(row.buy_in_amount, 150);
         const legacyPct = num(row.pot_split_pct, 50);
 
-        // pool_share (per-member dollars to the payout pool) is the authoritative
-        // driver. Fall back to the legacy percentage if a row predates it. The
-        // carryover-pot share is simply the remainder of the buy-in.
+        // pool_share and pot_share are the per-member dollar splits the commissioner
+        // enters by hand. They are stored exactly as entered and may NOT sum to the
+        // buy-in (the commissioner is warned, but the values still save). Fall back to
+        // the legacy percentage / remainder for rows that predate these columns.
         let poolShare = row.pool_share == null ? buyIn * ((100 - legacyPct) / 100) : num(row.pool_share);
-        poolShare = Math.min(buyIn, Math.max(0, poolShare));
-        const potShare = Math.max(0, buyIn - poolShare);
+        poolShare = Math.max(0, poolShare);
+        let potShare = row.pot_share == null ? Math.max(0, buyIn - poolShare) : num(row.pot_share);
+        potShare = Math.max(0, potShare);
 
         return {
                 buyIn,
