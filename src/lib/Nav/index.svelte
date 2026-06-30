@@ -11,6 +11,9 @@
         const brandLead = _brandSpace > 0 ? leagueName.slice(0, _brandSpace) : '';
         const brandTail = _brandSpace > 0 ? leagueName.slice(_brandSpace + 1) : leagueName;
 
+        const brandInitialsLead = brandLead ? brandLead.split(/\s+/).map((w) => w[0] || '').join('').toUpperCase() : '';
+        const brandInitialsTail = (brandTail[0] || '').toUpperCase();
+
         function money(n) {
                 return '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
         }
@@ -201,7 +204,7 @@
                                         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
                                 </svg>
                         </div>
-                        <span class="brand-name">{brandLead ? brandLead + ' ' : ''}<em>{brandTail}</em></span>
+                        <span class="brand-name">{brandInitialsLead}<em>{brandInitialsTail}</em></span>
                 </a>
 
                 <!-- Right: tabs + auth -->
