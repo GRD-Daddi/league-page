@@ -36,3 +36,4 @@
 - [Keeper per-team cap](keeper-max-cap.md) — pot_settings.max_keepers (default 2); cap accounting MUST use one all-selections metric (team.atLimit/totalSelected) across UI gate, save, and approval — never roster-filtered selectedCount.
 - [Keepers perf / per-viewer cache](keepers-perf-cache.md) — Keep/Remove felt frozen because use:enhance reruns load() → refetches all Yahoo data each click; fix = 60s cache scoped by session.userId (never league-key alone) + Saving… button state.
 - [Matchup drill-in player scores](matchup-detail-ondemand.md) — archive holds only team totals; per-player past scores fetched on-demand from Yahoo scoreboard via league key derived from team_key, sides matched by roster_id.
+- [Transactions Yahoo digest contract](transactions-yahoo-digest.md) — legacy tx components need digested txns + teamManagersMap + Sleeper-keyed players; past-season team names come from team_season_archive, NOT flaky live Yahoo owner fetch.
