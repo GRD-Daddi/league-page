@@ -8,10 +8,14 @@ upcoming/active season reads ~$0 until members actually pay. The homepage instea
 shows PROJECTED figures (what it WILL be once everyone pays) with a clear "Projected"
 badge, reverting to real/collected numbers once fully collected.
 
-**Expected member count** for projection comes from `season_archive.num_teams` for the
-year (league is 12 teams), falling back to the member_buyins row count. Do NOT use the
-member_buyins count alone — it's often partially populated (e.g. only 3 rows for a new
-season) and would under-project.
+**Expected member count** for projection comes from `getExpectedMembers(year)` (and
+`computePotData` MUST call it, not re-implement an inline calc). Fallback order:
+`season_archive.num_teams` for the year → most recent PRIOR season's num_teams (league
+size is stable year-to-year) → entered member_buyins count used ONLY as a floor → 12.
+Do NOT fall back to the member_buyins row count as the primary source — for an upcoming/
+active season it's partially populated (e.g. 3 of 12 rows) and under-projects. This bug
+made the nav pot pill read $2,550 instead of $3,000 because prod's 2026
+`season_archive.num_teams` was NULL, so it counted only the 3 entered buy-in rows.
 
 **Math** (settings: potShare/poolShare derived from buy_in × split %):
 - unpaidMembers = max(0, expectedMembers − paidThisYear)

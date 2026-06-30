@@ -88,15 +88,29 @@ export async function getSettings() {
 
 /**
  * Expected paying members for a season — used to convert the total payout pool to
- * a per-member share. Prefers the league's archived team count, then the number
- * of buy-in rows on file, and finally a sane default.
+ * a per-member share. Prefers the season's archived team count, then the most
+ * recent known league size, using the entered buy-in count only as a floor and
+ * finally a sane default of 12.
  */
 export async function getExpectedMembers(year) {
         const { rows } = await query('SELECT num_teams FROM season_archive WHERE year = $1', [year]);
         const fromArchive = num(rows[0]?.num_teams);
         if (fromArchive > 0) return fromArchive;
+        // The season hasn't been captured yet (normal for an upcoming/active
+        // season). League roster size is stable year-to-year, so fall back to the
+        // most recent captured team count rather than the buy-in rows entered so
+        // far — otherwise the pot/pool projection would assume only the members
+        // already keyed in will pay. The entered-row count is used only as a
+        // floor so we never project fewer than members already recorded.
+        const { rows: recent } = await query(
+                'SELECT num_teams FROM season_archive WHERE num_teams > 0 AND year < $1 ORDER BY year DESC LIMIT 1',
+                [year]
+        );
+        const fromRecent = num(recent[0]?.num_teams);
         const { rows: cnt } = await query('SELECT COUNT(*)::int AS c FROM member_buyins WHERE year = $1', [year]);
-        return cnt[0]?.c > 0 ? cnt[0].c : 12;
+        const fromBuyins = num(cnt[0]?.c);
+        const baseline = fromRecent > 0 ? fromRecent : 12;
+        return Math.max(baseline, fromBuyins);
 }
 
 /**
@@ -438,26 +452,14 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
                 (season.thirdEnabled && season.thirdPaid ? season.payoutThird : 0);
         const payoutPoolRemaining = Math.max(0, poolContributed - paidOut);
 
-        // End-of-year points-leader bonus. Every member chips in a fixed amount
-        // (settings.pointsLeaderAmount) directly to the season's points leader,
-        // separate from the carryover pot and the payout pool. The leader doesn't
-        // pay themselves, so the total they collect is amount × (members − 1).
-        const { rows: memberCountRows } = await query(
-                'SELECT COUNT(*)::int AS c FROM member_buyins WHERE year = $1',
-                [year]
-        );
-        const pointsLeaderMembers = memberCountRows[0]?.c ?? 0;
-
         // Projection for the upcoming/active season. Buy-ins are collected over
         // time, so the pool and carryover pot read $0 until members actually pay.
-        // We infer what they WILL be once everyone pays, using the league's team
-        // count as the expected member count, and flag the figures as estimates
-        // until all funds are in.
-        const { rows: teamCountRows } = await query(
-                'SELECT num_teams FROM season_archive WHERE year = $1',
-                [year]
-        );
-        const expectedMembers = num(teamCountRows[0]?.num_teams) || pointsLeaderMembers || 0;
+        // We infer what they WILL be once everyone pays, using the league's
+        // expected member count, and flag the figures as estimates until all
+        // funds are in. getExpectedMembers prefers the season's captured team
+        // count, then the most recent known league size — never the handful of
+        // buy-in rows entered so far, which would under-project the pot.
+        const expectedMembers = await getExpectedMembers(year);
         const unpaidMembers = Math.max(0, expectedMembers - paidThisYear);
         const fullyCollected = expectedMembers > 0 && paidThisYear >= expectedMembers;
         const projection = {

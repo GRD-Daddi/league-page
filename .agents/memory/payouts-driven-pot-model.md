@@ -30,5 +30,7 @@ archive, awards untouched); pct columns are display-only.
   re-clamps pool_share to the new buy-in and recomputes pot_split_pct.
 - getSettings clamps pool_share to [0, buy_in]; if payouts/member exceed buy-in the
   extra is assumed to come from the carryover pot (UI warns via poolExceedsBuyIn).
-- getExpectedMembers(year): season_archive.num_teams → member_buyins count → 12.
-  Always guard members||12 against div-by-zero.
+- getExpectedMembers(year): season_archive.num_teams(year) → most recent PRIOR season's
+  num_teams → member_buyins count as a FLOOR only → 12. NEVER use member_buyins count as
+  the primary fallback (under-projects upcoming seasons whose num_teams isn't captured yet).
+  computePotData calls this helper; don't re-add an inline calc. Guard members||12 vs div-by-zero.
