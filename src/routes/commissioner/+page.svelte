@@ -50,6 +50,15 @@
         // per-member pool/pot split is whatever the commissioner has entered by hand.
         let livePoolTotal = $derived(round2(firstAmt + secondAmt + thirdAmt));
 
+        // At-a-glance reconciliation against dues actually collected this season.
+        // Uses the live form values so the commissioner sees the impact before
+        // saving. Positive delta = split over-allocates the buy-in; negative =
+        // part of each member's dues is unallocated.
+        let paidThisYear = $derived(c.paidThisYear || 0);
+        let duesCollected = $derived(round2(paidThisYear * round2(buyIn)));
+        let allocated = $derived(round2(paidThisYear * splitTotal));
+        let reconcileDelta = $derived(round2(allocated - duesCollected));
+
         $effect(() => {
                 buyIn = c.settings.buyIn;
                 pointsLeaderAmount = c.settings.pointsLeaderAmount;
@@ -288,6 +297,30 @@
                                         </label>
                                         <SplitMismatchNote {poolShare} {potShare} {buyIn} />
                                         <p class="card-sub note">Across {expectedMembers} members: {money(poolShare * expectedMembers)} to the payout pool, {money(potShare * expectedMembers)} to the carryover pot.</p>
+
+                                        <div class="reconcile {splitMismatch ? 'off' : 'ok'}">
+                                                <div class="reconcile-head">
+                                                        <span class="reconcile-title">Dues Reconciliation</span>
+                                                        <span class="reconcile-badge {splitMismatch ? 'off' : 'ok'}">{splitMismatch ? 'Out of balance' : 'Balanced'}</span>
+                                                </div>
+                                                <div class="reconcile-rows">
+                                                        <div class="reconcile-row"><span>Dues collected ({paidThisYear} paid &times; {money(buyIn)})</span><strong>{money(duesCollected)}</strong></div>
+                                                        <div class="reconcile-row"><span>To payout pool ({paidThisYear} &times; {money(poolShare)})</span><strong>{money(round2(paidThisYear * poolShare))}</strong></div>
+                                                        <div class="reconcile-row"><span>To carryover pot ({paidThisYear} &times; {money(potShare)})</span><strong>{money(round2(paidThisYear * potShare))}</strong></div>
+                                                        <div class="reconcile-row total"><span>Allocated</span><strong>{money(allocated)}</strong></div>
+                                                        {#if splitMismatch}
+                                                                <div class="reconcile-row delta {reconcileDelta > 0 ? 'over' : 'under'}">
+                                                                        <span>{reconcileDelta > 0 ? 'Over-allocated' : 'Unallocated'}</span>
+                                                                        <strong>{reconcileDelta > 0 ? '+' : '\u2212'}{money(Math.abs(reconcileDelta))}</strong>
+                                                                </div>
+                                                        {/if}
+                                                </div>
+                                                {#if splitMismatch}
+                                                        <p class="reconcile-note">Adjust the per-member split so pool + pot equals the {money(buyIn)} buy-in, or the public pot and pool totals won't add up to dues collected.</p>
+                                                {:else}
+                                                        <p class="reconcile-note">Pool + pot equals the buy-in, so the public totals reconcile with dues collected.</p>
+                                                {/if}
+                                        </div>
                                         <label class="field">
                                                 <span>Points-leader bonus per member ($)</span>
                                                 <input type="number" name="pointsLeaderAmount" min="0" step="1" bind:value={pointsLeaderAmount} />
@@ -840,6 +873,23 @@
         .split-preview div { display: flex; flex-direction: column; }
         .split-preview strong { font-family: monospace; font-size: 1.2rem; color: #ccff00; }
         .split-preview span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; }
+
+        .reconcile { margin: 4px 0 18px; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); }
+        .reconcile.off { border-color: rgba(248,113,113,0.32); background: rgba(248,113,113,0.06); }
+        .reconcile.ok { border-color: rgba(52,211,153,0.28); background: rgba(52,211,153,0.05); }
+        .reconcile-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .reconcile-title { font-size: 0.82rem; font-weight: 600; color: #e5e7eb; text-transform: uppercase; letter-spacing: 0.08em; }
+        .reconcile-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 999px; }
+        .reconcile-badge.ok { color: #34d399; background: rgba(52,211,153,0.12); }
+        .reconcile-badge.off { color: #f87171; background: rgba(248,113,113,0.12); }
+        .reconcile-rows { display: flex; flex-direction: column; gap: 6px; }
+        .reconcile-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 0.84rem; color: #9ca3af; }
+        .reconcile-row strong { font-family: monospace; color: #e5e7eb; }
+        .reconcile-row.total { margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); color: #e5e7eb; font-weight: 600; }
+        .reconcile-row.delta.over strong { color: #f87171; }
+        .reconcile-row.delta.under strong { color: #fbbf24; }
+        .reconcile-row.delta span { color: #d1d5db; }
+        .reconcile-note { margin: 12px 0 0; font-size: 0.78rem; line-height: 1.5; color: #6b7280; }
 
         .btn {
                 display: inline-flex; align-items: center; justify-content: center;

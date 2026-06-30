@@ -20,6 +20,46 @@ function num(value, fallback = 0) {
         return Number.isFinite(n) ? n : fallback;
 }
 
+function round2(value) {
+        return Math.round((num(value) + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Reconciles the hand-entered per-member split against the buy-in. The
+ * commissioner enters pool_share and pot_share by hand and they are allowed to
+ * save even when they don't sum to the buy-in (the warning is advisory). When
+ * that happens the pool and carryover-pot totals no longer add up to the dues
+ * collected, so callers can surface `balanced: false` (and the dollar gap) on
+ * the public figures instead of silently showing numbers that don't reconcile.
+ */
+export function computeSplitReconciliation(settings, { paidThisYear = 0, expectedMembers = 0 } = {}) {
+        const buyIn = round2(settings.buyIn);
+        const poolShare = round2(settings.poolShare);
+        const potShare = round2(settings.potShare);
+        const splitTotal = round2(poolShare + potShare);
+        const perMemberDelta = round2(splitTotal - buyIn);
+        const balanced = Math.abs(perMemberDelta) < 0.005;
+        const members = Math.max(paidThisYear, 0) || Math.max(expectedMembers, 0);
+        return {
+                buyIn,
+                poolShare,
+                potShare,
+                splitTotal,
+                // Per-member gap: positive = split over-allocates the buy-in,
+                // negative = part of each buy-in is unallocated.
+                perMemberDelta,
+                balanced,
+                // Season-wide reconciliation against dues actually collected.
+                paidMembers: Math.max(paidThisYear, 0),
+                duesCollected: round2(Math.max(paidThisYear, 0) * buyIn),
+                allocated: round2(Math.max(paidThisYear, 0) * splitTotal),
+                totalDelta: round2(Math.max(paidThisYear, 0) * perMemberDelta),
+                // Projected gap at full participation (used pre-season when no dues
+                // are in yet so the warning still has a meaningful dollar figure).
+                projectedTotalDelta: round2(members * perMemberDelta)
+        };
+}
+
 export async function getSettings() {
         const { rows } = await query('SELECT buy_in_amount, pot_split_pct, pool_share, pot_share, pot_adjustment, points_leader_amount, max_keepers FROM pot_settings WHERE id = 1');
         const row = rows[0] || {};
@@ -483,6 +523,7 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
                 },
                 pointsLeader,
                 projection,
+                reconciliation: computeSplitReconciliation(settings, { paidThisYear, expectedMembers }),
                 champion: { ...championStatus, potClaimed },
                 championHistory: history
         };

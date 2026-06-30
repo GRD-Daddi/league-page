@@ -70,6 +70,15 @@
   $: personToBeat = !!(pot?.champion?.reigning && !pot?.champion?.potClaimed);
   $: beatBackToBack = !!pot?.champion?.backToBackAchieved;
 
+  // Split reconciliation. The per-member pool/pot split is entered by hand and
+  // may not add up to the buy-in. When it doesn't, the pool + pot totals can't
+  // reconcile to the dues collected, so flag it rather than show figures that
+  // silently don't add up.
+  $: reconciliation = pot?.reconciliation ?? null;
+  $: splitUnbalanced = !!reconciliation && reconciliation.balanced === false;
+  $: splitGap = reconciliation ? Math.abs(reconciliation.perMemberDelta ?? 0) : 0;
+  $: splitOverAllocated = !!reconciliation && (reconciliation.perMemberDelta ?? 0) > 0;
+
   // Permanent record of who has won (claimed) the carryover pot, newest first.
   $: potWinners = Array.isArray(data?.potWinners)
     ? [...data.potWinners].sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
@@ -623,6 +632,23 @@
     box-shadow: 0 0 44px rgba(204,255,0,0.16);
   }
   .pot-crown { flex-shrink: 0; color: #ccff00; }
+
+  .split-flag {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    width: fit-content;
+    max-width: 460px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,193,7,0.32);
+    background: rgba(255,193,7,0.1);
+    color: #ffd24a;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .split-flag svg { flex-shrink: 0; margin-top: 1px; }
 
   .trophy-card.gold.is-beat {
     border-color: rgba(204,255,0,0.55);
@@ -1616,6 +1642,15 @@
               <svg class="pot-crown" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="M5 20h14"/></svg>
               <div class="pot-amount">{money(displayPotTotal)}</div>
             </div>
+
+            {#if splitUnbalanced}
+              <div class="split-flag" role="note">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>
+                  Heads up: the pot/pool split ({money(reconciliation.poolShare)} + {money(reconciliation.potShare)} = {money(reconciliation.splitTotal)}) {splitOverAllocated ? 'exceeds' : 'falls short of'} the {money(reconciliation.buyIn)} buy-in by {money(splitGap)} per member, so these totals may not reconcile with dues collected.
+                </span>
+              </div>
+            {/if}
 
             <div class="podium-block">
               {#if podium?.podium?.length}
