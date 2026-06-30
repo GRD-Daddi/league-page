@@ -125,15 +125,11 @@
     }
     .mb-fill.home {
         left: 0;
-        background: linear-gradient(to right, rgba(204, 255, 0, 0.18), rgba(204, 255, 0, 0.04));
-        border-right: 2px solid rgba(204, 255, 0, 0.55);
-        box-shadow: inset -10px 0 14px -8px var(--sn-lime);
+        background: linear-gradient(to right, rgba(204, 255, 0, 0.16), rgba(204, 255, 0, 0));
     }
     .mb-fill.away {
         right: 0;
-        background: linear-gradient(to left, rgba(204, 255, 0, 0.18), rgba(204, 255, 0, 0.04));
-        border-left: 2px solid rgba(204, 255, 0, 0.55);
-        box-shadow: inset 10px 0 14px -8px var(--sn-lime);
+        background: linear-gradient(to left, rgba(204, 255, 0, 0.16), rgba(204, 255, 0, 0));
     }
 
     .mb-content {
@@ -191,7 +187,7 @@
     }
     .mb-sub {
         font-size: 12px;
-        color: var(--sn-text-faint);
+        color: var(--sn-text-mute);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -228,7 +224,7 @@
         font-weight: 700;
         font-size: 11px;
         letter-spacing: 0.1em;
-        color: var(--sn-text-faint);
+        color: var(--sn-text-dim);
     }
 
     .mb-hint {
@@ -241,7 +237,7 @@
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--sn-text-faint);
+        color: var(--sn-text-mute);
         transition: color 0.15s ease;
     }
     .mb:hover .mb-hint { color: var(--sn-cyan); }
