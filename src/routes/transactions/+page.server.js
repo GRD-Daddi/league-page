@@ -1,5 +1,5 @@
 import { loadLeagueData, loadLeagueTransactions, loadPlayers, getCachedLeagueData, setCachedLeagueData } from '$lib/server/dataLoaders.js';
-import { digestTransactions, buildTransactionTeamManagers } from '$lib/server/transactionDigest.js';
+import { digestTransactions, buildTransactionTeamManagers, loadArchivedTransactions } from '$lib/server/transactionDigest.js';
 import { getArchiveYears } from '$lib/server/archiveStats.js';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { enumerateLeagueSeasons } from '$lib/server/historyBackfill.js';
@@ -37,17 +37,18 @@ export async function load({ url, fetch, locals }) {
         // logged-out visitor). Unresolvable/logged-out results are never cached.
         const cacheScope = locals.session?.userId || null;
 
-        // The live season uses the configured league key; a past season is resolved
-        // to its own Yahoo league key via the multi-season enumeration helper (the
-        // same raw, token-only history recovery used elsewhere). Both are then loaded
-        // the same way — week 1 through playoffs — so past trades/waivers render with
-        // the full transaction display rather than the keeper-decomposed archive.
-        const seasonLeagueKey = isLive
-                ? leagueKey
-                : await _resolveSeasonLeagueKey(yahooClient, selectedYear, cacheScope);
-
+        // The live season changes throughout the week, so it's fetched fresh from
+        // Yahoo (week 1 through playoffs) using the configured league key. A PAST
+        // season is closed/immutable and has already been backfilled into the durable
+        // `transaction_archive`, so it's reconstructed straight from the database. This
+        // avoids the slow, rate-limit-prone live path for past seasons (a multi-season
+        // enumeration plus ~16 weekly Yahoo calls per page view, which Yahoo answers
+        // with "999 Request denied" under load — leaving every past season empty).
+        // If a past season has no archived rows, fall back to the live Yahoo fetch.
         const [rawTransactions, playersData] = await waitForAll(
-                seasonLeagueKey ? _loadAllTransactions(yahooClient, seasonLeagueKey, cacheScope, isLive ? LIVE_TX_CACHE_TTL_MS : undefined) : Promise.resolve([]),
+                isLive
+                        ? (leagueKey ? _loadAllTransactions(yahooClient, leagueKey, cacheScope, LIVE_TX_CACHE_TTL_MS) : Promise.resolve([]))
+                        : _loadPastSeasonTransactions(yahooClient, selectedYear, cacheScope),
                 loadPlayers(fetch),
         );
 
@@ -87,6 +88,19 @@ export async function load({ url, fetch, locals }) {
         if (curPage && !isNaN(curPage)) props.page = parseInt(curPage) - 1;
 
         return props;
+}
+
+// Past seasons are served from the durable transaction_archive (no live Yahoo
+// calls, so no rate-limit "999" failures and instant filter/search/paging). If a
+// year somehow has no archived rows (e.g. a season older than the backfill), fall
+// back to the original live path so nothing is silently lost.
+export async function _loadPastSeasonTransactions(yahooClient, year, cacheScope = null) {
+        const archived = await loadArchivedTransactions(year);
+        if (archived.length) return archived;
+
+        const seasonLeagueKey = await _resolveSeasonLeagueKey(yahooClient, year, cacheScope);
+        if (!seasonLeagueKey) return [];
+        return _loadAllTransactions(yahooClient, seasonLeagueKey, cacheScope);
 }
 
 // Resolves the Yahoo league key for a past season by name+year. Returns null when

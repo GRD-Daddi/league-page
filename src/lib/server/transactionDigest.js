@@ -198,6 +198,119 @@ export function digestTransactions(adapterTxns, playersData, season) {
 }
 
 /**
+ * Reconstruct adapter-shape transactions for a CLOSED season straight from the
+ * durable `transaction_archive` table, so past seasons never depend on a live,
+ * rate-limit-prone Yahoo fetch (enumerate seasons + one call per week). The
+ * archive stores one row per player movement with the original Yahoo
+ * transaction_id, type (add/drop/trade), the numeric player_key, the source
+ * (from) and destination (to) roster ids, and a millisecond timestamp — exactly
+ * enough to regroup into the same {adds, drops, type, created} adapter payload the
+ * live Yahoo adapter produces. Player names are bridged later by digestOne via the
+ * Sleeper players map (the archive intentionally stores only ids).
+ *
+ * Returns an array of adapter-shape transactions (the same shape digestTransactions
+ * consumes), or an empty array when the year has no archived rows.
+ */
+// Player-name lookup (numeric Yahoo id -> { name, pos, team }) built from the
+// durable roster archive, which stores fn/ln/pos/team keyed by Yahoo player_key.
+// Cached briefly so repeated past-season views (filter/search/paging) don't rebuild
+// it every request. This is the only Yahoo-free name source for ids Sleeper hasn't
+// tagged; players absent here AND from Sleeper render as "Unknown".
+let _nameDictCache = null;
+let _nameDictAt = 0;
+const NAME_DICT_TTL_MS = 5 * 60 * 1000;
+
+async function buildArchiveNameDict() {
+        const now = Date.now();
+        if (_nameDictCache && now - _nameDictAt < NAME_DICT_TTL_MS) return _nameDictCache;
+        const dict = {};
+        try {
+                const { rows } = await query(
+                        `SELECT DISTINCT
+                                regexp_replace(elem->>'key', '^.*\\.p\\.', '') AS pid,
+                                elem->>'fn' AS fn, elem->>'ln' AS ln,
+                                elem->>'pos' AS pos, elem->>'t' AS team
+                         FROM roster_archive, jsonb_array_elements(players::jsonb) elem
+                         WHERE players IS NOT NULL AND elem->>'key' IS NOT NULL`
+                );
+                for (const r of rows) {
+                        if (!r.pid || dict[r.pid]) continue;
+                        const name = [r.fn, r.ln].filter(Boolean).join(' ').trim();
+                        if (!name) continue;
+                        dict[r.pid] = { name, pos: r.pos || '', team: r.team || '' };
+                }
+        } catch (err) {
+                console.error('[transactionDigest] name dictionary build failed:', err?.message);
+        }
+        _nameDictCache = dict;
+        _nameDictAt = now;
+        return dict;
+}
+
+export async function loadArchivedTransactions(year) {
+        let rows;
+        try {
+                ({ rows } = await query(
+                        `SELECT transaction_id, type, player_key, from_roster_id, to_roster_id, timestamp
+                         FROM transaction_archive WHERE year = $1`,
+                        [year]
+                ));
+        } catch (err) {
+                console.error('[transactionDigest] archived transactions load failed:', err?.message);
+                return [];
+        }
+
+        // The archive stores no player names (only ids). digestOne bridges most ids to
+        // the Sleeper player map, but Yahoo ids Sleeper hasn't tagged (recent churn
+        // players, team defenses) would render as "Unknown". Hydrate a name lookup from
+        // the durable roster archive (fn/ln/pos/team keyed by Yahoo player_key) and feed
+        // it back as players_meta so digestOne's synthetic-entry fallback shows the real
+        // name instead. Names not found here AND not in Sleeper remain "Unknown".
+        const nameDict = await buildArchiveNameDict();
+
+        const byId = new Map();
+        for (const r of rows) {
+                let txn = byId.get(r.transaction_id);
+                if (!txn) {
+                        txn = {
+                                transaction_id: r.transaction_id,
+                                status: 'complete',
+                                type: 'waiver',
+                                adds: {},
+                                drops: {},
+                                players_meta: {},
+                                created: 0
+                        };
+                        byId.set(r.transaction_id, txn);
+                }
+                const pk = r.player_key;
+                if (pk != null) {
+                        const meta = nameDict[playerIdFromKey(pk)];
+                        if (meta && !txn.players_meta[pk]) txn.players_meta[pk] = meta;
+                        // A trade stores the same player on both sides (in on `to`, origin on
+                        // `from`); digestOne treats a player present in BOTH adds & drops as a
+                        // trade move. Add/drop waiver rows only ever populate one side.
+                        if (r.type === 'trade') {
+                                txn.type = 'trade';
+                                if (r.to_roster_id != null) txn.adds[pk] = r.to_roster_id;
+                                if (r.from_roster_id != null) txn.drops[pk] = r.from_roster_id;
+                        } else if (r.type === 'add') {
+                                if (r.to_roster_id != null) txn.adds[pk] = r.to_roster_id;
+                        } else if (r.type === 'drop') {
+                                if (r.from_roster_id != null) txn.drops[pk] = r.from_roster_id;
+                        }
+                }
+                const ts = Number(r.timestamp);
+                if (Number.isFinite(ts) && ts > txn.created) txn.created = ts;
+        }
+
+        for (const txn of byId.values()) {
+                if (!txn.created) txn.created = Date.now();
+        }
+        return [...byId.values()];
+}
+
+/**
  * Build the team-manager lookup the transaction components read (team name +
  * avatar) from the durable season archive. Scoped to a single season: both the
  * season-specific and "current owner" lookups resolve to the same map, so no
