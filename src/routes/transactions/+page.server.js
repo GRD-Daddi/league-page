@@ -1,4 +1,5 @@
-import { loadLeagueData, loadLeagueUsers, loadLeagueTransactions, loadPlayers, getCachedLeagueData, setCachedLeagueData } from '$lib/server/dataLoaders.js';
+import { loadLeagueData, loadLeagueTransactions, loadPlayers, getCachedLeagueData, setCachedLeagueData } from '$lib/server/dataLoaders.js';
+import { digestTransactions, buildTransactionTeamManagers } from '$lib/server/transactionDigest.js';
 import { getArchiveYears } from '$lib/server/archiveStats.js';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { enumerateLeagueSeasons } from '$lib/server/historyBackfill.js';
@@ -38,11 +39,29 @@ export async function load({ url, fetch, locals }) {
                 ? leagueKey
                 : await resolveSeasonLeagueKey(yahooClient, selectedYear, cacheScope);
 
-        const [transactions, leagueTeamManagersData, playersData] = await waitForAll(
+        const [rawTransactions, playersData] = await waitForAll(
                 seasonLeagueKey ? loadAllTransactions(yahooClient, seasonLeagueKey, cacheScope) : Promise.resolve([]),
-                seasonLeagueKey ? loadLeagueUsersAsMap(yahooClient, seasonLeagueKey, cacheScope) : Promise.resolve({}),
                 loadPlayers(fetch),
         );
+
+        // The Yahoo adapter returns raw, undigested transactions keyed by Yahoo
+        // player_key with roster ids only. Digest them into the {id, date, season,
+        // type, rosters, moves} shape the UI renders, bridging player ids to the
+        // Sleeper-keyed player map (names/avatars) and injecting synthetic entries
+        // for players Yahoo ships a name for but Sleeper doesn't map.
+        const { transactions, playersPatch } = digestTransactions(rawTransactions, playersData, selectedYear);
+
+        // Every roster a transaction touches must exist in the team-manager map, or
+        // getTeamFromTeamManagers throws mid-render. Build it from the durable season
+        // archive and backfill any roster the archive is missing.
+        const referencedRosters = [...new Set(transactions.flatMap((t) => t.rosters))];
+        const leagueTeamManagersData = await buildTransactionTeamManagers(selectedYear, referencedRosters);
+
+        // Merge the synthetic player entries so every move renders; force stale=false
+        // so the client never refetches the player map (which would drop the patch).
+        const mergedPlayersData = playersData
+                ? { ...playersData, players: { ...(playersData.players || {}), ...playersPatch }, stale: false }
+                : playersData;
 
         const props = {
                 years: yearOptions,
@@ -50,7 +69,7 @@ export async function load({ url, fetch, locals }) {
                 isLive,
                 show: 'both',
                 query: '',
-                playersData,
+                playersData: mergedPlayersData,
                 transactions,
                 leagueTeamManagersData,
                 page: 0,
@@ -113,15 +132,4 @@ async function loadAllTransactions(yahooClient, leagueKey, cacheScope = null) {
         // an auth error (loadLeagueData returned null) and must not be cached.
         if (canCache && transactions.length) setCachedLeagueData(cacheKey, transactions);
         return transactions;
-}
-
-async function loadLeagueUsersAsMap(yahooClient, leagueKey, cacheScope = null) {
-        const users = await loadLeagueUsers(yahooClient, leagueKey, cacheScope);
-        return toMap(users);
-}
-
-function toMap(rawUsers) {
-        const out = {};
-        for (const user of rawUsers || []) out[user.user_id] = user;
-        return out;
 }
