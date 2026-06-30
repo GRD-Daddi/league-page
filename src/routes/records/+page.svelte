@@ -82,7 +82,7 @@
                                                                 {:else}
                                                                 <div class="record-holder">{r.ownerName ?? r.teamName}</div>
                                                                 {/if}
-                                                                {#if r.teamName}<div class="record-team">{r.teamName}{#if r.teamBName} <span class="record-joiner">{r.joiner ?? '&'}</span> {r.teamBName}{/if}</div>{/if}
+                                                                {#if r.teamName}<div class="record-team">{r.teamName}{#if r.teamBName}{' '}<span class="record-joiner">{r.joiner ?? '&'}</span> {r.teamBName}{/if}</div>{/if}
                                                                 {#if r.detail}<div class="record-detail">{r.detail}</div>{/if}
                                                                 <div class="record-go">{GAME_KEYS.has(r.key) ? 'View matchup' : 'View standings'} &rarr;</div>
                                                         </div>
