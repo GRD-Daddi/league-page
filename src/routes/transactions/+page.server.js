@@ -7,6 +7,13 @@ import { leagueName } from '$lib/utils/leagueInfo.js';
 import { requireAuth } from '$lib/server/authGuard.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
 
+// The live season changes throughout the week (new trades/waivers), so its
+// cached transaction list gets a deliberately short, predictable TTL: long
+// enough that filter/search/paging feels instant, short enough that a freshly
+// posted move surfaces promptly. Past seasons are closed/immutable and keep the
+// default (longer) shared TTL.
+const LIVE_TX_CACHE_TTL_MS = 30_000;
+
 export async function load({ url, fetch, locals }) {
         requireAuth(locals, url);
 
@@ -40,7 +47,7 @@ export async function load({ url, fetch, locals }) {
                 : await resolveSeasonLeagueKey(yahooClient, selectedYear, cacheScope);
 
         const [rawTransactions, playersData] = await waitForAll(
-                seasonLeagueKey ? loadAllTransactions(yahooClient, seasonLeagueKey, cacheScope) : Promise.resolve([]),
+                seasonLeagueKey ? loadAllTransactions(yahooClient, seasonLeagueKey, cacheScope, isLive ? LIVE_TX_CACHE_TTL_MS : undefined) : Promise.resolve([]),
                 loadPlayers(fetch),
         );
 
@@ -109,7 +116,7 @@ export async function resolveSeasonLeagueKey(yahooClient, year, cacheScope = nul
         }
 }
 
-export async function loadAllTransactions(yahooClient, leagueKey, cacheScope = null) {
+export async function loadAllTransactions(yahooClient, leagueKey, cacheScope = null, ttlMs = undefined) {
         const canCache = !!(yahooClient && cacheScope);
         const cacheKey = `txList:${leagueKey}:${cacheScope}`;
         if (canCache) {
@@ -130,6 +137,8 @@ export async function loadAllTransactions(yahooClient, leagueKey, cacheScope = n
         const transactions = transactionWeeks.flat();
         // Cache only a non-empty result for a scoped viewer; an empty array can mean
         // an auth error (loadLeagueData returned null) and must not be cached.
-        if (canCache && transactions.length) setCachedLeagueData(cacheKey, transactions);
+        // The live season passes a short TTL so new moves surface promptly; past
+        // seasons omit it and fall back to the default (longer) shared TTL.
+        if (canCache && transactions.length) setCachedLeagueData(cacheKey, transactions, ttlMs);
         return transactions;
 }

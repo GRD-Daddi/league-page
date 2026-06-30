@@ -42,8 +42,8 @@ export function getCachedLeagueData(key) {
         return hit.value;
 }
 
-export function setCachedLeagueData(key, value) {
-        leagueCache.set(key, { value, expires: Date.now() + LEAGUE_CACHE_TTL_MS });
+export function setCachedLeagueData(key, value, ttlMs = LEAGUE_CACHE_TTL_MS) {
+        leagueCache.set(key, { value, expires: Date.now() + ttlMs });
 }
 
 export async function loadLeagueData(yahooClient = null, queryLeagueID = configuredLeagueID) {
