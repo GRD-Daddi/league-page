@@ -95,12 +95,25 @@
                 return { label, urgent: days <= 2, text: days <= 1 ? 'closes today' : `${days} days left` };
         }
 
-        // CSV import box.
+        // CSV import box. Tucked behind a subtle commissioner-only button + modal.
         let csvText = $state('');
+        let importOpen = $state(false);
         $effect(() => {
-                if (form?.success && form?.action === 'import') csvText = '';
+                if (form?.success && form?.action === 'import') {
+                        csvText = '';
+                        importOpen = false;
+                }
         });
+
+        function closeImport() {
+                importOpen = false;
+        }
+        function onKeydown(e) {
+                if (e.key === 'Escape' && importOpen) closeImport();
+        }
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 <svelte:head>
         <title>League Votes | {leagueName}</title>
@@ -315,18 +328,11 @@
                 <!-- ── ARCHIVE ── -->
                 {#if activeTab === 'archive'}
                         {#if isCommish}
-                                <section class="sn-card sn-card-pad import">
-                                        <h2 class="block-title">Import Historical Votes</h2>
-                                        <p class="block-sub">
-                                                Paste a Google Forms / spreadsheet CSV export (Timestamp, Username, then one column per
-                                                question). Each question becomes an archived vote, with options and the winner derived
-                                                from the responses.
-                                        </p>
-                                        <form method="POST" action="?/import" use:enhance>
-                                                <textarea class="sn-input mono" name="csv" rows="6" placeholder={'"Timestamp","Username","Keep keepers this year?"\n"2021/08/04 9:53 AM","you@example.com","Yes - 3 keepers"'} bind:value={csvText}></textarea>
-                                                <button class="sn-btn secondary sm" type="submit"><span>Import CSV</span></button>
-                                        </form>
-                                </section>
+                                <div class="archive-tools">
+                                        <button type="button" class="import-trigger" onclick={() => (importOpen = true)}>
+                                                <span aria-hidden="true">↥</span> Import historical votes
+                                        </button>
+                                </div>
                         {/if}
 
                         {#if closedVotes.length === 0}
@@ -395,6 +401,37 @@
         </div>
 </div>
 
+{#if importOpen && isCommish}
+        <div
+                class="modal-backdrop"
+                role="button"
+                tabindex="-1"
+                aria-label="Close importer"
+                onclick={closeImport}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') closeImport(); }}
+        ></div>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+                <div class="sn-card sn-card-pad">
+                        <div class="modal-head">
+                                <h2 class="block-title" id="import-title">Import Historical Votes</h2>
+                                <button type="button" class="modal-close" aria-label="Close" onclick={closeImport}>×</button>
+                        </div>
+                        <p class="block-sub">
+                                Paste a Google Forms / spreadsheet CSV export (Timestamp, Username, then one column per
+                                question). Each question becomes an archived vote, with options and the winner derived
+                                from the responses.
+                        </p>
+                        <form method="POST" action="?/import" use:enhance>
+                                <textarea class="sn-input mono" name="csv" rows="6" placeholder={'"Timestamp","Username","Keep keepers this year?"\n"2021/08/04 9:53 AM","you@example.com","Yes - 3 keepers"'} bind:value={csvText}></textarea>
+                                <div class="modal-actions">
+                                        <button type="button" class="sn-btn ghost sm" onclick={closeImport}><span>Cancel</span></button>
+                                        <button class="sn-btn secondary sm" type="submit"><span>Import CSV</span></button>
+                                </div>
+                        </form>
+                </div>
+        </div>
+{/if}
+
 <style>
         .banner {
                 border-radius: 10px;
@@ -426,7 +463,70 @@
         }
         .block-sub { color: var(--sn-text-dim); font-size: 0.92rem; line-height: 1.55; margin: 8px 0 0; }
 
-        .propose, .import, .vote { margin-bottom: 20px; }
+        .propose, .vote { margin-bottom: 20px; }
+
+        .archive-tools {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 16px;
+        }
+        .import-trigger {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: none;
+                border: none;
+                padding: 4px 2px;
+                font-family: inherit;
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--sn-text-mute);
+                cursor: pointer;
+                letter-spacing: 0.02em;
+                transition: color 0.15s;
+        }
+        .import-trigger:hover { color: var(--sn-lime); }
+        .import-trigger:focus-visible { outline: 2px solid var(--sn-lime); outline-offset: 3px; border-radius: 4px; }
+
+        .modal-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(2px);
+                z-index: 90;
+                border: none;
+                cursor: pointer;
+        }
+        .modal {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: min(560px, calc(100vw - 32px));
+                max-height: calc(100vh - 48px);
+                overflow-y: auto;
+                z-index: 91;
+        }
+        .modal-head {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 16px;
+        }
+        .modal-close {
+                background: none;
+                border: none;
+                color: var(--sn-text-mute);
+                font-size: 1.6rem;
+                line-height: 1;
+                cursor: pointer;
+                padding: 0 4px;
+                transition: color 0.15s;
+        }
+        .modal-close:hover { color: #fff; }
+        .modal-close:focus-visible { outline: 2px solid var(--sn-lime); outline-offset: 2px; border-radius: 4px; }
+        .modal textarea.sn-input { width: 100%; box-sizing: border-box; margin: 8px 0 0; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 
         .season-group { margin-bottom: 28px; }
         .season-head {
