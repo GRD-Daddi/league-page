@@ -94,6 +94,11 @@
     return s?.week > 0 ? `Week ${s.week}` : 'Regular Season';
   })();
 
+  // The real Yahoo league this site is connected to (only resolved once the
+  // viewer is logged in). Shown in the hero so it's clear which league's data
+  // you're looking at, separate from the generic site name.
+  $: viewingLeagueName = data?.leagueData?.name ?? null;
+
   $: podium = data?.lastSeasonPodium ?? null;
 
   // Most recent recorded champion (used as a fallback when the full podium
@@ -270,6 +275,19 @@
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
+  }
+
+  .hero-league {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin: 0 0 14px;
+  }
+
+  .hero-league span {
+    color: #00f0ff;
   }
 
   .hero-title {
@@ -1519,6 +1537,10 @@
           <span class="live-dot"></span>
           {#if isLivePhase}Live &bull; {heroBadge}{:else}{heroBadge}{/if}
         </div>
+      {/if}
+
+      {#if viewingLeagueName}
+        <p class="hero-league">Viewing <span>{viewingLeagueName}</span></p>
       {/if}
 
       <h1 class="hero-title">
