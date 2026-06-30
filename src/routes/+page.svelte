@@ -1,5 +1,5 @@
 <script>
-  import { leagueName, enableBlog } from '$lib/utils/helper';
+  import { leagueName, homepageHeroSubtitle, enableBlog } from '$lib/utils/helper';
   import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
   import { HomePost } from '$lib/components';
 
@@ -1522,13 +1522,12 @@
       {/if}
 
       <h1 class="hero-title">
-        <span class="line1">The Battle</span>
-        <span class="line2">For The North</span>
+        {#if brandLead}<span class="line1">{brandLead}</span>{/if}
+        <span class="line2">{brandTail}</span>
       </h1>
 
       <p class="hero-subtitle">
-        Welcome to the premier fantasy football league of the frozen tundra.
-        Where championships are forged in the cold and legends never die.
+        {homepageHeroSubtitle}
       </p>
 
       <div class="hero-actions">
@@ -2065,7 +2064,7 @@
         <div class="footer-logo-mark">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
         </div>
-        <span class="footer-brand-name">{#if brandLead}{brandLead} {/if}<strong>{brandTail}</strong></span>
+        <span class="footer-brand-name">{brandLead ? brandLead + ' ' : ''}<strong>{brandTail}</strong></span>
       </div>
       <ul class="footer-links">
         <li><a href="/constitution">Rules</a></li>

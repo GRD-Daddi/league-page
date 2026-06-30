@@ -1,5 +1,5 @@
 <script>
-	import { leagueName } from '$lib/utils/leagueInfo';
+        import { leagueName } from '$lib/utils/leagueInfo';
         export let data;
         $: trophyRoom = data?.trophyRoom ?? [];
         $: titleCounts = data?.titleCounts ?? [];

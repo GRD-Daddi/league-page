@@ -1,5 +1,5 @@
 <script>
-	import { leagueName } from '$lib/utils/leagueInfo';
+        import { leagueName } from '$lib/utils/leagueInfo';
         import { goto } from '$app/navigation';
 
         export let data;

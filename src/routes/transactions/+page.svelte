@@ -1,4 +1,5 @@
 <script>
+        import { leagueName } from '$lib/utils/leagueInfo';
         import { goto } from '$app/navigation';
         import { page as pageStore } from '$app/stores';
         import { TransactionsPage } from '$lib/components';
@@ -26,7 +27,7 @@
 </script>
 
 <svelte:head>
-        <title>Trades &amp; Waivers | Minnesota Slopes</title>
+        <title>Trades &amp; Waivers | {leagueName}</title>
 </svelte:head>
 
 <style>

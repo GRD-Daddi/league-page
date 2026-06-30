@@ -1,5 +1,5 @@
 <script>
-	import { leagueName } from '$lib/utils/leagueInfo';
+        import { leagueName } from '$lib/utils/leagueInfo';
         import { goto } from '$app/navigation';
         import { page } from '$app/stores';
         import { MatchupsAndBrackets } from '$lib/components';
@@ -86,7 +86,7 @@
 <div class="sn-page">
         <div class="sn-pagehead">
                 <div class="sn-pagehead-inner">
-                        <span class="sn-eyebrow">The North</span>
+                        <span class="sn-eyebrow">{leagueName}</span>
                         <h1 class="sn-pagetitle">LEAGUE <span class="accent">MATCHUPS</span></h1>
                         <p class="sn-pagesub">
                                 Every head-to-head, week by week. Browse the live season or dig through the archives.

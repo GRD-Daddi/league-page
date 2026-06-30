@@ -1,5 +1,5 @@
 <script>
-	import { leagueName } from '$lib/utils/leagueInfo';
+        import { leagueName } from '$lib/utils/leagueInfo';
         import { enhance } from '$app/forms';
         import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
 

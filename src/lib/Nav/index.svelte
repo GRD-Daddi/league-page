@@ -201,7 +201,7 @@
                                         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
                                 </svg>
                         </div>
-                        <span class="brand-name">{#if brandLead}{brandLead} {/if}<em>{brandTail}</em></span>
+                        <span class="brand-name">{brandLead ? brandLead + ' ' : ''}<em>{brandTail}</em></span>
                 </a>
 
                 <!-- Right: tabs + auth -->

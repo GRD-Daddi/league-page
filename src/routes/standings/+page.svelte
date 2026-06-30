@@ -1,4 +1,5 @@
 <script>
+        import { leagueName } from '$lib/utils/leagueInfo';
         import { goto } from '$app/navigation';
         import { page } from '$app/stores';
         import { ownerDisplayName } from '$lib/utils/ownerNames.js';
@@ -98,10 +99,10 @@
 <div class="sn-page">
         <div class="sn-pagehead">
                 <div class="sn-pagehead-inner">
-                        <span class="sn-eyebrow">The North</span>
+                        <span class="sn-eyebrow">{leagueName}</span>
                         <h1 class="sn-pagetitle">LEAGUE <span class="accent">STANDINGS</span></h1>
                         <p class="sn-pagesub">
-                                Where every team ranks in the battle for the frozen tundra. Sorted by record, broken by points.
+                                Where every team ranks across the league. Sorted by record, broken by points.
                         </p>
                 </div>
         </div>

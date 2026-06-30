@@ -1,5 +1,5 @@
 <script>
-	import { leagueName } from '$lib/utils/leagueInfo';
+        import { leagueName } from '$lib/utils/leagueInfo';
         import LinearProgress from '$lib/LinearProgress.svelte';
 
         export let data;
