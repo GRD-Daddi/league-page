@@ -2,6 +2,8 @@
         import { leagueName } from '$lib/utils/leagueInfo';
         import { enhance } from '$app/forms';
         import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
+        import { round2 } from './potSplit.js';
+        import SplitMismatchNote from './SplitMismatchNote.svelte';
 
         let { data, form } = $props();
 
@@ -22,10 +24,6 @@
         }
 
         let expectedMembers = $derived(c.projection?.expectedMembers || 12);
-
-        function round2(n) {
-                return Math.round((Number(n) || 0) * 100) / 100;
-        }
 
         // Initialise editable fields straight from the server-loaded data so they
         // render with the saved values during SSR. The $effect below keeps them in
@@ -51,8 +49,6 @@
         // Live previews. The payout pool is the sum of the place payouts. The
         // per-member pool/pot split is whatever the commissioner has entered by hand.
         let livePoolTotal = $derived(round2(firstAmt + secondAmt + thirdAmt));
-        let splitTotal = $derived(round2(poolShare + potShare));
-        let splitMismatch = $derived(splitTotal !== round2(buyIn));
 
         $effect(() => {
                 buyIn = c.settings.buyIn;
@@ -290,9 +286,7 @@
                                                 <span>Per member to carryover pot ($)</span>
                                                 <input type="number" name="potShare" min="0" step="1" bind:value={potShare} />
                                         </label>
-                                        {#if splitMismatch}
-                                                <p class="card-sub note warn">Pool {money(poolShare)} + pot {money(potShare)} = {money(splitTotal)}, which doesn't match the {money(buyIn)} buy-in.</p>
-                                        {/if}
+                                        <SplitMismatchNote {poolShare} {potShare} {buyIn} />
                                         <p class="card-sub note">Across {expectedMembers} members: {money(poolShare * expectedMembers)} to the payout pool, {money(potShare * expectedMembers)} to the carryover pot.</p>
                                         <label class="field">
                                                 <span>Points-leader bonus per member ($)</span>
@@ -846,7 +840,6 @@
         .split-preview div { display: flex; flex-direction: column; }
         .split-preview strong { font-family: monospace; font-size: 1.2rem; color: #ccff00; }
         .split-preview span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; }
-        .note.warn { color: #f87171; }
 
         .btn {
                 display: inline-flex; align-items: center; justify-content: center;
