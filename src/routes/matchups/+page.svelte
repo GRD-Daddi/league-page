@@ -2,8 +2,40 @@
         import { goto } from '$app/navigation';
         import { page } from '$app/stores';
         import { MatchupsAndBrackets } from '$lib/components';
+        import MatchupDetail from '$lib/Matchups/MatchupDetail.svelte';
 
         export let data;
+
+        let openKey = null;
+        let detailCache = {};
+        let detailStatus = {}; // key -> { loading, error }
+
+        const gameKey = (g) => `${selectedYear}-${selectedWeek}-${g.matchupId}`;
+
+        async function toggleGame(g) {
+                const key = gameKey(g);
+                if (openKey === key) {
+                        openKey = null;
+                        return;
+                }
+                openKey = key;
+                if (detailCache[key] || detailStatus[key]?.loading) return;
+                detailStatus = { ...detailStatus, [key]: { loading: true, error: null } };
+                try {
+                        const res = await fetch(
+                                `/api/matchup-detail?year=${selectedYear}&week=${selectedWeek}&matchup=${g.matchupId}`
+                        );
+                        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                        detailCache[key] = await res.json();
+                        detailCache = detailCache;
+                        detailStatus = { ...detailStatus, [key]: { loading: false, error: null } };
+                } catch (e) {
+                        detailStatus = {
+                                ...detailStatus,
+                                [key]: { loading: false, error: e.message || 'Could not load matchup detail.' }
+                        };
+                }
+        }
 
         $: isLive = data?.isLive;
         $: years = data?.years ?? [];
@@ -25,11 +57,17 @@
         $: showBrackets = activeWeek?.isPlayoffs && (champGames.length > 0 || consoGames.length > 0);
 
         function selectYear(y) {
+                openKey = null;
                 const params = new URLSearchParams($page.url.searchParams);
                 params.set('year', y);
                 params.delete('week');
                 params.delete('matchup');
                 goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
+        }
+
+        function selectWeek(w) {
+                openKey = null;
+                selectedWeek = w;
         }
 
         const fmtPts = (p) => (p == null ? '—' : Number(p).toFixed(2));
@@ -92,7 +130,7 @@
                                         <button
                                                 class="week-tab"
                                                 class:active={w.week === selectedWeek}
-                                                on:click={() => (selectedWeek = w.week)}
+                                                on:click={() => selectWeek(w.week)}
                                         >
                                                 Wk {w.week}
                                                 {#if w.isPlayoffs}<span class="po-dot" title="Playoffs"></span>{/if}
@@ -110,20 +148,39 @@
                                         <div
                                                 class="game-card"
                                                 class:highlight={queryMatchup != null && g.matchupId === queryMatchup}
+                                                class:open={openKey === gameKey(g)}
                                                 use:highlightAction={queryMatchup != null && g.matchupId === queryMatchup}
                                         >
-                                                {#each [g.home, g.away] as s, i}
-                                                        {#if s}
-                                                                {#if i === 1}<div class="vs">VS</div>{/if}
-                                                                <div class="team-row" class:winner={g.winner === s.rosterId}>
-                                                                        <div class="team-info">
-                                                                                <div class="team-owner">{s.ownerName ?? 'Unknown'}</div>
-                                                                                <div class="team-name">{s.teamName}</div>
+                                                <button
+                                                        type="button"
+                                                        class="card-toggle"
+                                                        aria-expanded={openKey === gameKey(g)}
+                                                        on:click={() => toggleGame(g)}
+                                                >
+                                                        {#each [g.home, g.away] as s, i}
+                                                                {#if s}
+                                                                        {#if i === 1}<div class="vs">VS</div>{/if}
+                                                                        <div class="team-row" class:winner={g.winner === s.rosterId}>
+                                                                                <div class="team-info">
+                                                                                        <div class="team-owner">{s.ownerName ?? 'Unknown'}</div>
+                                                                                        <div class="team-name">{s.teamName}</div>
+                                                                                </div>
+                                                                                <div class="team-pts">{fmtPts(s.points)}</div>
                                                                         </div>
-                                                                        <div class="team-pts">{fmtPts(s.points)}</div>
-                                                                </div>
+                                                                {/if}
+                                                        {/each}
+                                                        <span class="card-hint">{openKey === gameKey(g) ? 'Hide lineups ▲' : 'View lineups ▼'}</span>
+                                                </button>
+
+                                                {#if openKey === gameKey(g)}
+                                                        {#if detailCache[gameKey(g)]}
+                                                                <MatchupDetail detail={detailCache[gameKey(g)]} winner={g.winner} />
+                                                        {:else if detailStatus[gameKey(g)]?.error}
+                                                                <p class="card-status error">{detailStatus[gameKey(g)].error}</p>
+                                                        {:else}
+                                                                <p class="card-status">Loading lineups…</p>
                                                         {/if}
-                                                {/each}
+                                                {/if}
                                         </div>
                                 {/snippet}
 
@@ -293,15 +350,49 @@
                 border: 1px solid var(--sn-border);
                 border-radius: 14px;
                 padding: 16px 18px;
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
                 transition: border-color 0.15s ease, box-shadow 0.15s ease;
+                align-self: start;
         }
         .game-card.highlight {
                 border-color: var(--sn-lime);
                 box-shadow: 0 0 0 1px var(--sn-lime), 0 0 24px -8px var(--sn-lime);
         }
+        .game-card.open {
+                border-color: var(--sn-text-faint);
+        }
+        .card-toggle {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                width: 100%;
+                background: none;
+                border: none;
+                padding: 0;
+                margin: 0;
+                text-align: inherit;
+                cursor: pointer;
+                color: inherit;
+                font: inherit;
+        }
+        .card-hint {
+                margin-top: 8px;
+                text-align: center;
+                font-family: monospace;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--sn-text-faint);
+                transition: color 0.15s ease;
+        }
+        .card-toggle:hover .card-hint { color: var(--sn-cyan); }
+        .card-status {
+                margin: 12px 0 2px;
+                text-align: center;
+                font-size: 0.85rem;
+                color: var(--sn-text-faint);
+        }
+        .card-status.error { color: #f8718c; }
         .team-row {
                 display: flex;
                 align-items: center;
