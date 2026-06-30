@@ -1,4 +1,4 @@
-import { rawYahooGet } from '$lib/yahoo-adapter/yahooClient.js';
+import { rawYahooGet, withRetry } from '$lib/yahoo-adapter/yahooClient.js';
 import { getYahooLeagueRosters } from '$lib/yahoo-adapter/rosterAdapter.js';
 import { buildRosterRows } from './archive.js';
 
@@ -80,7 +80,9 @@ function rosterIdFromKey(teamKey) {
  * Returns [{ year, leagueKey, name, numTeams }] sorted oldest-first.
  */
 export async function enumerateLeagueSeasons(yahooClient, leagueName = null) {
-        const data = await rawYahooGet(`${BASE}/users;use_login=1/games;game_codes=nfl/leagues`, yahooClient);
+        const data = await withRetry(() =>
+                rawYahooGet(`${BASE}/users;use_login=1/games;game_codes=nfl/leagues`, yahooClient)
+        );
         const usersObj = data?.fantasy_content?.users;
         const userArr = collection(usersObj)?.[0]?.user || usersObj?.['0']?.user;
         if (!userArr) return [];
@@ -123,7 +125,7 @@ export async function enumerateLeagueSeasons(yahooClient, leagueName = null) {
 
 /** League header (season, name, team count, status, week bounds) from /metadata. */
 export async function fetchLeagueMeta(yahooClient, leagueKey) {
-        const data = await rawYahooGet(`${BASE}/league/${leagueKey}/metadata`, yahooClient);
+        const data = await withRetry(() => rawYahooGet(`${BASE}/league/${leagueKey}/metadata`, yahooClient));
         const league = data?.fantasy_content?.league;
         const flat = Array.isArray(league) ? Object.assign({}, ...league.filter((s) => s && typeof s === 'object')) : league || {};
         return {
@@ -141,7 +143,7 @@ export async function fetchLeagueMeta(yahooClient, leagueKey) {
 
 /** Real per-team final standings for a season, parsed from /standings. */
 export async function fetchStandings(yahooClient, leagueKey) {
-        const data = await rawYahooGet(`${BASE}/league/${leagueKey}/standings`, yahooClient);
+        const data = await withRetry(() => rawYahooGet(`${BASE}/league/${leagueKey}/standings`, yahooClient));
         const league = data?.fantasy_content?.league;
         const standingsNode = Array.isArray(league)
                 ? league.find((s) => s && s.standings)?.standings
@@ -174,7 +176,7 @@ export async function fetchStandings(yahooClient, leagueKey) {
 
 /** Real matchup sides for one week, parsed from /scoreboard;week=N. */
 export async function fetchScoreboardWeek(yahooClient, leagueKey, week) {
-        const data = await rawYahooGet(`${BASE}/league/${leagueKey}/scoreboard;week=${week}`, yahooClient);
+        const data = await withRetry(() => rawYahooGet(`${BASE}/league/${leagueKey}/scoreboard;week=${week}`, yahooClient));
         const league = data?.fantasy_content?.league;
         const scoreboard = Array.isArray(league)
                 ? league.find((s) => s && s.scoreboard)?.scoreboard

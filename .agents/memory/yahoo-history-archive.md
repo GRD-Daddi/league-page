@@ -32,6 +32,26 @@ use the offseason library helpers for historical stats.
   2023=423.l.638428, 2024=449.l.203799, 2025=461.l.744586, 2026=470.l.99366.
   Config `leagueID="nfl.l.99366"` auto-resolves to the current season (470.l.99366).
 
+# Backfill MUST go through withRetry, or it 999s in prod
+
+**Rule:** Every Yahoo GET in `historyBackfill.js` must be wrapped
+`withRetry(() => rawYahooGet(...))`, the same as every adapter (roster/matchup/
+league/draft/transaction). `rawYahooGet` only *marks* a "999 Request denied" body
+retryable (`description='rate limit'`); only `withRetry` actually backs off AND
+funnels through the global 2-slot concurrency limiter.
+
+**Why:** the backfill fans out bursts (CONCURRENCY=4 scoreboard calls/season ×
+many seasons). Calling `rawYahooGet` directly = no backoff + no concurrency cap, so
+Yahoo throttles the burst and whole seasons fail immediately with status 999. This
+is why the homepage worked in prod but the commissioner backfill failed for the
+middle seasons while dev (run without hitting the throttle) had the full archive.
+
+**How to apply:** if a prod backfill returns "Yahoo non-JSON status 999 / Request
+denied" for some seasons, first check the backfill calls are wrapped in `withRetry`,
+then just re-run it (idempotent, updates in place). There is no agent path to copy
+dev archive rows into prod — prod DB is read-only to tools and deploy syncs schema
+not data, so the deployed backfill is the ONLY writer of prod archive tables.
+
 # Triggering a backfill from the shell
 
 - The commissioner backfill form action is auth-gated (commissioner session + CSRF).
