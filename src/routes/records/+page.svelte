@@ -13,7 +13,7 @@
                 return `/standings?${p.toString()}`;
         }
 
-        let currentOnly = false;
+        let currentOnly = true;
         $: hasCurrentFlag = careers.some((c) => c.isCurrent);
         $: visibleCareers = currentOnly ? careers.filter((c) => c.isCurrent) : careers;
 
