@@ -2,7 +2,6 @@
         import { leagueName } from '$lib/utils/leagueInfo';
         import { goto } from '$app/navigation';
         import { page } from '$app/stores';
-        import { MatchupsAndBrackets } from '$lib/components';
         import MatchupDetail from '$lib/Matchups/MatchupDetail.svelte';
         import MatchupBar from '$lib/Matchups/MatchupBar.svelte';
 
@@ -47,10 +46,17 @@
         $: queryMatchup = data?.queryMatchup ?? null;
 
         let selectedWeek = null;
+        let lastYear;
         $: weeks = schedule.map((w) => w.week);
-        $: if (!isLive) {
+        $: liveWeek = data?.week != null ? Number(data.week) : null;
+        $: {
+                if (selectedYear !== lastYear) {
+                        lastYear = selectedYear;
+                        selectedWeek = null;
+                }
                 if (queryWeek != null && weeks.includes(queryWeek)) selectedWeek = queryWeek;
-                else if (selectedWeek == null || !weeks.includes(selectedWeek)) selectedWeek = weeks[0] ?? null;
+                else if (selectedWeek == null || !weeks.includes(selectedWeek))
+                        selectedWeek = isLive && liveWeek != null && weeks.includes(liveWeek) ? liveWeek : (weeks[0] ?? null);
         }
         $: activeWeek = schedule.find((w) => w.week === selectedWeek) ?? null;
 
@@ -74,7 +80,12 @@
 
         function barSide(side) {
                 if (!side) return null;
-                return { name: side.ownerName ?? side.teamName, points: side.points };
+                return {
+                        name: side.ownerName ?? side.teamName,
+                        sub: side.ownerName ? side.teamName : null,
+                        avatar: side.avatar ?? null,
+                        points: side.points
+                };
         }
 
         function barWinner(g) {
@@ -121,20 +132,14 @@
                         </div>
                 {/if}
 
-                {#if isLive}
-                        <div id="main">
-                                <MatchupsAndBrackets
-                                        queryWeek={data.queryWeek}
-                                        matchupsData={data.matchupsData}
-                                        bracketsData={data.bracketsData}
-                                        playersData={data.playersData}
-                                        leagueTeamManagersData={data.leagueTeamManagersData}
-                                />
-                        </div>
-                {:else if schedule.length === 0}
+                {#if schedule.length === 0}
                         <div class="sn-empty">
-                                <h3>No Matchups Archived</h3>
-                                <p>No archived matchups were found for {selectedYear}.</p>
+                                <h3>No Matchups {isLive ? 'Yet' : 'Archived'}</h3>
+                                <p>
+                                        {isLive
+                                                ? `The ${selectedYear} schedule isn't available yet.`
+                                                : `No archived matchups were found for ${selectedYear}.`}
+                                </p>
                         </div>
                 {:else}
                         <div class="week-tabs">
@@ -221,10 +226,6 @@
 </div>
 
 <style>
-        #main {
-                position: relative;
-                z-index: 1;
-        }
         .year-tabs {
                 display: flex;
                 flex-wrap: wrap;

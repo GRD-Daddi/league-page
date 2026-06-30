@@ -8,7 +8,6 @@ import Rosters from './Rosters/Rosters.svelte';
 import Rivalry from './Rivalry/index.svelte';
 import Transactions from './Transactions/Transactions.svelte';
 import TransactionsPage from './Transactions/TransactionsPage.svelte';
-import MatchupsAndBrackets from './Matchups/MatchupsAndBrackets.svelte';
 import Pagination from './Pagination.svelte';
 import Drafts from './Drafts/index.svelte';
 import Records from './Records/index.svelte';
@@ -31,7 +30,6 @@ export {
     TransactionsPage,
     News,
     Resources,
-    MatchupsAndBrackets,
     Pagination,
     Drafts,
     Records,

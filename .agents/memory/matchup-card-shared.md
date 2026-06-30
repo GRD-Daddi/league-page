@@ -1,29 +1,45 @@
 ---
-name: Shared matchup card (live + archived)
-description: Both /matchups seasons render one shared MatchupBar; live=team-name label, archived=owner-name label, never owner on live.
+name: Shared matchup card + unified render path (live + archived)
+description: Live and archived /matchups now render through ONE path (week-tabs + gameCard snippet → MatchupBar). Archived label=owner+team two lines; live=team name one line.
 ---
 
-# Shared matchup card
+# Shared matchup card + unified render path
 
-Live (current season) and archived (past season) `/matchups` head-to-head cards
-render through ONE shared component, `src/lib/Matchups/MatchupBar.svelte`
-(proportional cyan/lime "tug-of-war" score fill, single name line + avatar + points).
-The caller supplies the bordered card wrapper; MatchupBar's root is a borderless button.
+Live (current season) and archived (past season) `/matchups` BOTH render through the
+**same** path in `src/routes/matchups/+page.svelte`: the year/week tabs + the
+`gameCard` snippet → `src/lib/Matchups/MatchupBar.svelte` (proportional cyan/lime
+"tug-of-war" score fill, name line(s) + avatar + big points + VS + "VIEW LINEUPS ▼").
 
-**Rule:** the collapsed card shows a single name line.
-- Archived side → **owner name** (`ownerName ?? teamName`), from the DB archive.
-- Live side → **team name** (`manager.name`), from Yahoo team managers.
+**Why:** the user explicitly required live and past matchup cards to look identical.
+Previously live used a *different* render path (`MatchupsAndBrackets → MatchupWeeks →
+Matchup.svelte`), which produced a different layout. That legacy live path was removed.
 
-**Why:** live Yahoo owner/manager names are unreliable (masked as `--hidden--`
-GUIDs — see yahoo-hidden-guids.md), so owner names can only be shown for archived
-seasons where they were resolved/stored. Do NOT try to surface owner names on live
-cards. Both being single-line keeps the two seasons visually identical, which was an
-explicit user requirement (live + past must look like the same card).
+**How it's unified:** `+page.server.js` `buildLiveSchedule(matchupsData,
+teamManagersData)` maps the live Yahoo `matchupWeeks` into the SAME `schedule` shape
+that `getArchivedSchedule` (archiveStats.js) returns — `{week, isPlayoffs, games:[{
+matchupId, home, away, winner, bracket}]}`. So one template renders both. Live team
+`points` is an ARRAY → sum it; `matchupId = pair[0].matchup_id` (matches
+captureSeason/matchup_archive so live "VIEW LINEUPS" /api/matchup-detail works);
+winner = rosterId, or 'tie' ONLY if points>0, else null (no tie/winner glow on live
+0-0 offseason games).
 
-**How to apply:** if asked to change the matchup card label, keep both single-line
-and keep the live label sourced from team name, not owner. Projections only appear on
-live (games in progress); archived games are final so they pass no projection — this
-data-driven difference is intended, not a bug.
+**Label rule (data-driven, NOT a styling difference):**
+- Archived side → **two lines**: owner name (line 1, `ownerName ?? teamName`) + team
+  name (line 2 sub). `barSide` returns `{name, sub, avatar, points}`.
+- Live side → **one line**: team name only (`ownerName` is null for live), because
+  Yahoo masks live owner/manager GUIDs as `--hidden--` (see yahoo-hidden-guids.md).
+  Do NOT try to surface owner names on live cards.
 
-Brackets render `<Matchup expandOverride={true}>` → MatchupBar gets `showHint={false}`
-and `onToggle={null}` (non-interactive, cursor default). Keep that path working.
+**Deleted (do NOT reintroduce):** `MatchupsAndBrackets.svelte`, `MatchupWeeks.svelte`,
+`Brackets.svelte`, `BracketsColumn.svelte`. `Matchup.svelte` is KEPT — still used by
+`src/lib/Rivalry/index.svelte`.
+
+**Week default:** the week-select reactive resets `selectedWeek` whenever
+`selectedYear` changes (tracked via `lastYear`), then defaults live → `data.week`
+(current week) and archived → first week. Without the reset, switching from an
+archived week to the live year kept the old week if it existed in both.
+
+**Known gap:** live playoff weeks are not fetched (`loadMatchupData` only pulls weeks
+before `playoff_week_start`), so `isPlayoffs` is never true for live — current-season
+playoff brackets don't render. Acceptable while offseason; revisit if live playoffs
+must show the champ/consol split.
