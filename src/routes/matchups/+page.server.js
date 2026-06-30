@@ -1,4 +1,4 @@
-import { loadMatchupData, loadBrackets, loadLeagueUsers, loadPlayers } from '$lib/server/dataLoaders.js';
+import { loadMatchupData, loadBrackets, loadLiveTeamManagers, loadPlayers } from '$lib/server/dataLoaders.js';
 import { captureSeason } from '$lib/server/archive.js';
 import { getArchiveYears, getArchivedSchedule } from '$lib/server/archiveStats.js';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
@@ -39,7 +39,7 @@ export async function load({ url, fetch, locals }) {
         const [matchupsData, bracketsData, teamManagersData, playersData] = await waitForAll(
                 loadMatchupData(yahooClient, leagueKey),
                 loadBrackets(yahooClient, leagueKey),
-                loadLeagueUsersAsMap(yahooClient, leagueKey),
+                loadLiveTeamManagers(yahooClient, leagueKey),
                 loadPlayers(fetch),
         );
 
@@ -68,15 +68,4 @@ export async function load({ url, fetch, locals }) {
                 leagueTeamManagersData: teamManagersData,
                 playersData
         };
-}
-
-async function loadLeagueUsersAsMap(yahooClient, leagueKey) {
-        const users = await loadLeagueUsers(yahooClient, leagueKey);
-        return toMap(users);
-}
-
-function toMap(rawUsers) {
-        const out = {};
-        for (const user of rawUsers || []) out[user.user_id] = user;
-        return out;
 }

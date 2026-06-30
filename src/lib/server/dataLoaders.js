@@ -1,4 +1,4 @@
-import { leagueID as configuredLeagueID } from '$lib/utils/leagueInfo.js';
+import { leagueID as configuredLeagueID, managers as configuredManagers } from '$lib/utils/leagueInfo.js';
 import { 
         getLeagueData as getLeagueDataApi,
         getLeagueRosters as getLeagueRostersApi,
@@ -158,6 +158,92 @@ export async function loadLeagueUsers(yahooClient = null, queryLeagueID = config
                 if (isAuthError(err)) return [];
                 throw err;
         }
+}
+
+// Self-contained copies of the two pure helpers from universalFunctions.js (which
+// imports browser-only $app/navigation). getTeamData resolves a roster owner's
+// team name + avatar; getRosterManagers returns the roster's manager id list.
+function getRosterManagers(roster) {
+        const out = [];
+        if (roster?.owner_id) out.push(roster.owner_id);
+        if (Array.isArray(roster?.co_owners)) {
+                for (const coOwner of roster.co_owners) out.push(coOwner);
+        }
+        return out;
+}
+
+function getTeamData(users, ownerID) {
+        const user = users[ownerID];
+        if (user) {
+                return {
+                        avatar: user.metadata?.avatar ? user.metadata.avatar : `https://sleepercdn.com/avatars/thumbs/${user.avatar}`,
+                        name: user.metadata?.team_name ? user.metadata.team_name : user.display_name
+                };
+        }
+        return {
+                avatar: 'https://sleepercdn.com/images/v2/icons/player_default.webp',
+                name: 'Unknown Team'
+        };
+}
+
+// Apply the same per-user normalization the (browser-only) client store did:
+// fall back to display_name for user_name, override the display name with the
+// configured manager name when one is registered, and normalize the avatar to a
+// full URL so getTeamData doesn't double-prefix Yahoo's already-absolute image
+// urls with the Sleeper CDN path.
+function processLeagueUsers(rawUsers) {
+        const finalUsers = {};
+        for (const user of rawUsers || []) {
+                if (!user || user.user_id == null) continue;
+                user.user_name = user.user_name ?? user.display_name;
+                if (typeof user.avatar === 'string' && /^https?:\/\//.test(user.avatar)) {
+                        user.metadata = { ...(user.metadata || {}), avatar: user.metadata?.avatar || user.avatar };
+                }
+                finalUsers[user.user_id] = user;
+                const manager = configuredManagers.find((m) => m.managerID === user.user_id);
+                if (manager) finalUsers[user.user_id].display_name = manager.name;
+        }
+        return finalUsers;
+}
+
+// Build the `{ currentSeason, teamManagersMap, users }` structure the legacy
+// display components (Matchup, Brackets, etc.) require via the
+// getTeamFromTeamManagers family. The browser-only store helper
+// (leagueTeamManagers.js) can't run in SSR loaders, and feeding those components
+// a flat `{ user_id: user }` map makes getTeamFromTeamManagers throw the moment
+// real Yahoo data renders. This server-side builder mirrors the store's logic for
+// the current (live) season only.
+export async function loadLiveTeamManagers(yahooClient = null, queryLeagueID = configuredLeagueID) {
+        const [users, rostersResult, leagueData] = await waitForAll(
+                loadLeagueUsers(yahooClient, queryLeagueID),
+                loadLeagueRosters(yahooClient, queryLeagueID),
+                loadLeagueData(yahooClient, queryLeagueID)
+        );
+
+        // loadLeagueRosters returns { rosters: { [roster_id]: roster }, ... } (or
+        // null on an auth error), NOT a bare array.
+        const rosters = Object.values(rostersResult?.rosters || {});
+        const year = parseInt(leagueData?.season, 10);
+        const processedUsers = processLeagueUsers(users);
+        const teamManagersMap = {};
+
+        if (Number.isFinite(year)) {
+                teamManagersMap[year] = {};
+                for (const roster of rosters) {
+                        if (roster?.roster_id == null) continue;
+                        teamManagersMap[year][roster.roster_id] = {
+                                team: getTeamData(processedUsers, roster.owner_id),
+                                managers: getRosterManagers(roster),
+                                roster
+                        };
+                }
+        }
+
+        return {
+                currentSeason: Number.isFinite(year) ? year : null,
+                teamManagersMap,
+                users: processedUsers
+        };
 }
 
 export async function loadLeagueMatchups(yahooClient = null, queryLeagueID = configuredLeagueID, week) {
