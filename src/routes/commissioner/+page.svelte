@@ -2,7 +2,7 @@
         import { leagueName } from '$lib/utils/leagueInfo';
         import { enhance } from '$app/forms';
         import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
-        import { round2 } from './potSplit.js';
+        import { round2, splitTotal as computeSplitTotal, isSplitMismatch, balancedSplit } from './potSplit.js';
         import SplitMismatchNote from './SplitMismatchNote.svelte';
 
         let { data, form } = $props();
@@ -55,9 +55,22 @@
         // saving. Positive delta = split over-allocates the buy-in; negative =
         // part of each member's dues is unallocated.
         let paidThisYear = $derived(c.paidThisYear || 0);
+        let splitTotal = $derived(computeSplitTotal(poolShare, potShare));
+        let splitMismatch = $derived(isSplitMismatch(poolShare, potShare, buyIn));
         let duesCollected = $derived(round2(paidThisYear * round2(buyIn)));
         let allocated = $derived(round2(paidThisYear * splitTotal));
         let reconcileDelta = $derived(round2(allocated - duesCollected));
+
+        // One-click reconciliation: keep the per-member payout-pool share (it is
+        // tied to the place payouts the commissioner sets) and snap the carryover
+        // pot share to whatever is left of the buy-in, so pool + pot == buy-in. If
+        // the pool share alone exceeds the buy-in, clamp it down so the pot can't go
+        // negative — the split still lands exactly on the buy-in either way.
+        const balanceSplit = () => {
+                const balanced = balancedSplit(poolShare, buyIn);
+                poolShare = balanced.poolShare;
+                potShare = balanced.potShare;
+        };
 
         $effect(() => {
                 buyIn = c.settings.buyIn;
@@ -317,6 +330,7 @@
                                                 </div>
                                                 {#if splitMismatch}
                                                         <p class="reconcile-note">Adjust the per-member split so pool + pot equals the {money(buyIn)} buy-in, or the public pot and pool totals won't add up to dues collected.</p>
+                                                        <button type="button" class="btn btn-balance" onclick={balanceSplit}>Balance split &mdash; set pot to {money(round2(round2(buyIn) - poolShare))}</button>
                                                 {:else}
                                                         <p class="reconcile-note">Pool + pot equals the buy-in, so the public totals reconcile with dues collected.</p>
                                                 {/if}
@@ -902,6 +916,7 @@
         .btn.danger { background: #7000ff; color: #fff; }
         .btn.danger:hover { background: #5e00d6; box-shadow: 0 0 20px rgba(112,0,255,0.4); }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+        .btn-balance { margin-top: 12px; height: 38px; font-size: 11px; }
 
         .payout-rows { margin-top: 18px; border-top: 1px solid #1f2937; padding-top: 14px; }
         .payout-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }

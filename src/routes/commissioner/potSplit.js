@@ -20,3 +20,16 @@ export function splitTotal(poolShare, potShare) {
 export function isSplitMismatch(poolShare, potShare, buyIn) {
         return splitTotal(poolShare, potShare) !== round2(buyIn);
 }
+
+// One-click reconciliation. Keeps the per-member payout-pool share (it is tied to
+// the place payouts the commissioner enters) and snaps the carryover-pot share to
+// whatever is left of the buy-in, so pool + pot always equals the buy-in. The pool
+// share is clamped to [0, buyIn] so the pot can never go negative; the returned
+// pair therefore always reconciles exactly. Returns { poolShare, potShare }.
+export function balancedSplit(poolShare, buyIn) {
+        const target = round2(buyIn);
+        let pool = round2(poolShare);
+        if (pool < 0) pool = 0;
+        if (pool > target) pool = target;
+        return { poolShare: pool, potShare: round2(target - pool) };
+}

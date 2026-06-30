@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from 'svelte/server';
-import { round2, splitTotal, isSplitMismatch } from './potSplit.js';
+import { round2, splitTotal, isSplitMismatch, balancedSplit } from './potSplit.js';
 import SplitMismatchNote from './SplitMismatchNote.svelte';
 
 // Guards the commissioner "Pot & Payouts" buy-in split advisory warning.
@@ -88,5 +88,30 @@ describe('splitTotal / round2 helpers', () => {
                 expect(round2(1.567)).toBe(1.57);
                 expect(round2('abc')).toBe(0);
                 expect(round2(null)).toBe(0);
+        });
+});
+
+describe('balancedSplit — one-click reconciliation', () => {
+        it('keeps the pool share and snaps the pot to the remainder', () => {
+                expect(balancedSplit(40, 100)).toEqual({ poolShare: 40, potShare: 60 });
+                expect(balancedSplit(0, 100)).toEqual({ poolShare: 0, potShare: 100 });
+        });
+
+        it('always produces a split that reconciles exactly to the buy-in', () => {
+                for (const [pool, buyIn] of [[40, 100], [33, 100], [0, 25], [70, 50], [120, 100]]) {
+                        const { poolShare, potShare } = balancedSplit(pool, buyIn);
+                        expect(isSplitMismatch(poolShare, potShare, buyIn)).toBe(false);
+                        expect(splitTotal(poolShare, potShare)).toBe(round2(buyIn));
+                }
+        });
+
+        it('clamps an over-buy-in pool share so the pot never goes negative', () => {
+                expect(balancedSplit(120, 100)).toEqual({ poolShare: 100, potShare: 0 });
+                expect(balancedSplit(-10, 100)).toEqual({ poolShare: 0, potShare: 100 });
+        });
+
+        it('rounds to the cent and coerces junk entries to zero', () => {
+                expect(balancedSplit(33.333, 100)).toEqual({ poolShare: 33.33, potShare: 66.67 });
+                expect(balancedSplit('', 50)).toEqual({ poolShare: 0, potShare: 50 });
         });
 });
