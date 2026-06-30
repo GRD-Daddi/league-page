@@ -87,7 +87,7 @@ export async function load({ url, fetch, locals }) {
 // which the loader surfaces as the friendly empty state rather than an error.
 // The resolved key is cached per-viewer for a short window so repeated interactions
 // (filter/search/paging) within the same season skip the multi-season enumeration.
-async function resolveSeasonLeagueKey(yahooClient, year, cacheScope = null) {
+export async function resolveSeasonLeagueKey(yahooClient, year, cacheScope = null) {
         if (!yahooClient) return null;
         const canCache = !!cacheScope;
         const cacheKey = `txSeasonKey:${year}:${cacheScope}`;
@@ -109,7 +109,7 @@ async function resolveSeasonLeagueKey(yahooClient, year, cacheScope = null) {
         }
 }
 
-async function loadAllTransactions(yahooClient, leagueKey, cacheScope = null) {
+export async function loadAllTransactions(yahooClient, leagueKey, cacheScope = null) {
         const canCache = !!(yahooClient && cacheScope);
         const cacheKey = `txList:${leagueKey}:${cacheScope}`;
         if (canCache) {
