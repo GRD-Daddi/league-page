@@ -9,8 +9,15 @@
 
         let open = $state(false);
 
+        const teamName = $derived(
+                session?.managerInfo?.teamName ||
+                session?.managerInfo?.metadata?.team_name ||
+                session?.managerInfo?.metadata?.manager_nickname ||
+                'Manager'
+        );
+
         const teamInitials = () => {
-                const name = session?.managerInfo?.teamName || 'Manager';
+                const name = teamName;
                 const parts = name.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).filter(Boolean);
                 return (parts.slice(0, 2).map((w) => w[0]).join('') || 'M').toUpperCase();
         };
@@ -78,7 +85,7 @@
                         <div class="acct">
                                 <div class="acct-avatar">{teamInitials()}</div>
                                 <div class="acct-text">
-                                        <span class="acct-name">{session.managerInfo?.teamName || 'Manager'}</span>
+                                        <span class="acct-name">{teamName}</span>
                                         <span class="acct-sub">Signed in</span>
                                 </div>
                         </div>

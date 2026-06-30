@@ -89,9 +89,9 @@ export const tabs = [
         ]
     },
     {
-        icon: 'lightbulb',
-        label: 'Resources',
-        dest: '/resources',
-        key: 'resources',
+        icon: 'shield',
+        label: 'My Team',
+        dest: '/rosters',
+        key: 'my_team',
     },
 ];
