@@ -125,11 +125,11 @@
     }
     .mb-fill.home {
         left: 0;
-        background: linear-gradient(110deg, rgba(204, 255, 0, 0.28) 0%, rgba(204, 255, 0, 0.22) 55%, rgba(204, 255, 0, 0.18) 100%);
+        background: linear-gradient(110deg, rgba(204, 255, 0, 0.16) 0%, rgba(204, 255, 0, 0.12) 55%, rgba(204, 255, 0, 0.09) 100%);
     }
     .mb-fill.away {
         right: 0;
-        background: linear-gradient(250deg, rgba(204, 255, 0, 0.28) 0%, rgba(204, 255, 0, 0.22) 55%, rgba(204, 255, 0, 0.18) 100%);
+        background: linear-gradient(250deg, rgba(204, 255, 0, 0.16) 0%, rgba(204, 255, 0, 0.12) 55%, rgba(204, 255, 0, 0.09) 100%);
     }
 
     .mb-content {
