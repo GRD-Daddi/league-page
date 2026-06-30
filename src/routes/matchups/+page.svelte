@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         import { goto } from '$app/navigation';
         import { page } from '$app/stores';
         import { MatchupsAndBrackets } from '$lib/components';
@@ -79,7 +80,7 @@
 </script>
 
 <svelte:head>
-        <title>Matchups | Minnesota Slopes</title>
+        <title>Matchups | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">

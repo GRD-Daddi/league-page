@@ -3,8 +3,13 @@
         import NavLarge from './NavLarge.svelte';
         import AuthButton from './AuthButton.svelte';
         import { page } from '$app/state';
+        import { leagueName } from '$lib/utils/leagueInfo';
 
         let { session = { authenticated: false }, potTotal = 0 } = $props();
+
+        const _brandSpace = leagueName.lastIndexOf(' ');
+        const brandLead = _brandSpace > 0 ? leagueName.slice(0, _brandSpace) : '';
+        const brandTail = _brandSpace > 0 ? leagueName.slice(_brandSpace + 1) : leagueName;
 
         function money(n) {
                 return '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
@@ -12,7 +17,7 @@
 </script>
 
 <svelte:head>
-        <title>{!page.url.pathname[1] ? 'Home' : page.url.pathname[1].toUpperCase() + page.url.pathname.slice(2)} | Minnesota Slopes</title>
+        <title>{!page.url.pathname[1] ? 'Home' : page.url.pathname[1].toUpperCase() + page.url.pathname.slice(2)} | {leagueName}</title>
 </svelte:head>
 
 <style>
@@ -196,7 +201,7 @@
                                         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
                                 </svg>
                         </div>
-                        <span class="brand-name">Minnesota <em>Slopes</em></span>
+                        <span class="brand-name">{#if brandLead}{brandLead} {/if}<em>{brandTail}</em></span>
                 </a>
 
                 <!-- Right: tabs + auth -->

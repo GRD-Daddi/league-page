@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         import { enhance } from '$app/forms';
         import { MAX_PICKS_PER_ROUND } from '$lib/utils/draftRules.js';
 
@@ -217,7 +218,7 @@
 </script>
 
 <svelte:head>
-        <title>Commissioner | Minnesota Slopes</title>
+        <title>Commissioner | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">

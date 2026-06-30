@@ -3,7 +3,7 @@
 export const platform = "yahoo"; // 'yahoo' or 'sleeper' - which fantasy platform to use
 
 export const leagueID = "nfl.l.99366"; // Yahoo: use league key format like "nfl.l.99366" (nfl auto-converts to current season) | Sleeper: use numeric league ID
-export const leagueName = "Minnesota Slopes"; // your league name
+export const leagueName = "The League"; // your league name
 export const dues = 150; // (optional) used in template constitution page
 export const dynasty = true; // true for dynasty leagues, false for redraft and keeper
 export const enableBlog = false; // requires VITE_CONTENTFUL_ACCESS_TOKEN and VITE_CONTENTFUL_SPACE environment variables

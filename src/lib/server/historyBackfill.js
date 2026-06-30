@@ -72,7 +72,7 @@ function rosterIdFromKey(teamKey) {
 }
 
 /**
- * Every "Minnesota Slopes"-style league the logged-in user belongs to, one per
+ * Every league the logged-in user belongs to, one per
  * NFL season, newest data parsed from the raw users→games→leagues endpoint.
  * Filters by league name when one is supplied so unrelated leagues are skipped.
  * Returns [{ year, leagueKey, name, numTeams }] sorted oldest-first.

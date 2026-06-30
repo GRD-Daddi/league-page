@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         export let data;
         $: careers = data?.careers ?? [];
 
@@ -19,13 +20,13 @@
 </script>
 
 <svelte:head>
-        <title>The Managers | Minnesota Slopes</title>
+        <title>The Managers | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">
         <div class="sn-pagehead">
                 <div class="sn-pagehead-inner">
-                        <div class="sn-eyebrow">Minnesota Slopes</div>
+                        <div class="sn-eyebrow">{leagueName}</div>
                         <h1 class="sn-pagetitle">THE <span class="accent">MANAGERS</span></h1>
                         <p class="sn-pagesub">
                                 The franchises behind the dynasty. Every team's all-time résumé across league history — click in for the full story.

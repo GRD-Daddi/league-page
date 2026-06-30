@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         export let data;
         $: trophyRoom = data?.trophyRoom ?? [];
         $: titleCounts = data?.titleCounts ?? [];
@@ -10,7 +11,7 @@
 </script>
 
 <svelte:head>
-        <title>Trophy Room | Minnesota Slopes</title>
+        <title>Trophy Room | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">
@@ -20,7 +21,7 @@
                         <h1 class="sn-pagetitle">TROPHY <span class="accent">ROOM</span></h1>
                         <p class="sn-pagesub">
                                 Every banner, every trophy, every bragging right. The legends of the
-                                Minnesota Slopes, immortalized season by season.
+                                {leagueName}, immortalized season by season.
                         </p>
                 </div>
         </div>

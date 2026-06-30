@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
 	export let data;
 	$: owner = data?.owner ?? null;
 	$: ownerName = data?.ownerName ?? owner;
@@ -31,7 +32,7 @@
 </script>
 
 <svelte:head>
-	<title>{ownerName ? `${ownerName} | ` : ""}Manager Profile | Minnesota Slopes</title>
+	<title>{ownerName ? `${ownerName} | ` : ""}Manager Profile | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">

@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         import { enhance } from '$app/forms';
 
         let { data, form } = $props();
@@ -102,7 +103,7 @@
 </script>
 
 <svelte:head>
-        <title>League Votes | Minnesota Slopes</title>
+        <title>League Votes | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">

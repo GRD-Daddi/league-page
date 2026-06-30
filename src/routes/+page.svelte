@@ -5,6 +5,10 @@
 
   export let data;
 
+  const _brandSpace = leagueName.lastIndexOf(' ');
+  const brandLead = _brandSpace > 0 ? leagueName.slice(0, _brandSpace) : '';
+  const brandTail = _brandSpace > 0 ? leagueName.slice(_brandSpace + 1) : leagueName;
+
   function getStandings(rosters, users) {
     if (!rosters) return [];
     return Object.values(rosters)
@@ -2061,14 +2065,14 @@
         <div class="footer-logo-mark">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
         </div>
-        <span class="footer-brand-name">Minnesota <strong>Slopes</strong></span>
+        <span class="footer-brand-name">{#if brandLead}{brandLead} {/if}<strong>{brandTail}</strong></span>
       </div>
       <ul class="footer-links">
         <li><a href="/constitution">Rules</a></li>
         <li><a href="/records">History</a></li>
         <li><a href="/managers">Managers</a></li>
       </ul>
-      <p class="footer-copy">© {new Date().getFullYear()} Minnesota Slopes FF. All rights reserved.</p>
+      <p class="footer-copy">© {new Date().getFullYear()} {leagueName}. All rights reserved.</p>
     </div>
   </footer>
 

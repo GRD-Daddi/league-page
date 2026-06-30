@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         import { goto } from '$app/navigation';
 
         export let data;
@@ -61,7 +62,7 @@
 </script>
 
 <svelte:head>
-        <title>Rivalry Week | Minnesota Slopes</title>
+        <title>Rivalry Week | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">

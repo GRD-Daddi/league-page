@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         export let data;
         $: records = data?.records ?? [];
         $: titleCounts = data?.titleCounts ?? [];
@@ -46,7 +47,7 @@
 </script>
 
 <svelte:head>
-        <title>League Records | Minnesota Slopes</title>
+        <title>League Records | {leagueName}</title>
 </svelte:head>
 
 <div class="sn-page">

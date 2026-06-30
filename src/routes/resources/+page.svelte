@@ -1,4 +1,5 @@
 <script>
+	import { leagueName } from '$lib/utils/leagueInfo';
         import LinearProgress from '$lib/LinearProgress.svelte';
 
         export let data;
@@ -13,7 +14,7 @@
                 },
                 {
                         name: 'Yahoo Fantasy',
-                        desc: 'Manage your Minnesota Slopes team on Yahoo.',
+                        desc: `Manage your ${leagueName} team on Yahoo.`,
                         url: 'https://football.fantasysports.yahoo.com/',
                         accent: 'purple'
                 },
@@ -47,7 +48,7 @@
 <div class="sn-page">
         <div class="sn-pagehead">
                 <div class="sn-pagehead-inner">
-                        <div class="sn-eyebrow">Minnesota Slopes</div>
+                        <div class="sn-eyebrow">{leagueName}</div>
                         <h1 class="sn-pagetitle">LEAGUE <span class="accent">RESOURCES</span></h1>
                         <p class="sn-pagesub">
                                 Everything you need to dominate your draft and run your roster — plus the latest fantasy
