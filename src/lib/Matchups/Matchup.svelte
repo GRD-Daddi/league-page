@@ -1,6 +1,7 @@
 <script>
     import {round} from '$lib/utils/helper'
-	import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
+        import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
+    import MatchupBar from './MatchupBar.svelte';
 
     export let matchup, players, active, ix, displayWeek, expandOverride=false, matchupWeek, leagueTeamManagers, year;
 
@@ -114,139 +115,69 @@
 <style>
     .matchup {
         width: 95%;
-        max-width: 600px;
-        margin: 10px auto;
+        max-width: 720px;
+        margin: 14px auto;
     }
 
-    .header {
-        display: flex;
-        justify-content: space-between;
-        position: relative;
-        border: 1px solid #bbb;
-        border-radius: 10px;
-        opacity: 0.8;
-        cursor: pointer;
-		transition: opacity 0.5s;
+    .mcard {
+        background: var(--sn-surface);
+        border: 1px solid var(--sn-border);
+        border-radius: 14px;
         overflow: hidden;
+        transition: border-color 0.15s ease;
     }
+    .mcard:hover { border-color: var(--sn-text-faint); }
 
-    .header:hover {
-        opacity: 1;
-    }
-
-    .opponent {
-        display: flex;
-        align-items: center;
-        width: 46%;
-        padding: 5px 2%;
-        top: 0;
-        z-index: 2;
-    }
-
-    .divider {
-        position: absolute;
-        z-index: 3;
-        transform: translateX(-50%);
-        top: 0;
-        left: 50%;
-        height: 100%;
-        width: 15px;
-    }
-
-    .home {
-        justify-content: flex-start;
-        left: 0;
-        text-align: left;
-        background-color: #485566;
-    }
-
-    :global(.homeGlow) {
-        box-shadow: 0 0 6px 4px #3279cf;
-        background-color: #00316b !important;
-    }
-
-    .away {
-        justify-content: flex-end;
-        right: 0;
-        text-align: right;
-        background-color: #8b6969;
-    }
-
-    :global(.awayGlow) {
-        box-shadow: 0 0 6px 4px #d15454;
-        background-color: #920505 !important;
-    }
-
-    .name {
-        margin: 0 5px;
-        font-size: 1em;
-        line-height: 1.1em;
-        flex-grow: 1;
-        word-break: break-word;
-        color: #fff;
-        font-style: italic;
-    }
-
-	.avatar {
-		vertical-align: middle;
-		border-radius: 50%;
-		height: 35px;
-		width: 35px;
-		margin: 0;
-		border: 0.25px solid #777;
-        background-color: #eee;
-	}
-
-	.playerAvatar {
+        .playerAvatar {
         position: relative;
-		vertical-align: middle;
-		height: 45px;
-		width: 45px;
-		background-position: center;
-		background-repeat: no-repeat;
-		background-size: auto 45px;
-	}
-	.pos {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 8px;
+                vertical-align: middle;
+                height: 45px;
+                width: 45px;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: auto 45px;
+        }
+        .pos {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
         max-width: 32px;
         min-width: 32px;
-		height: 32px;
-	}
+                height: 32px;
+        }
 
-	.QB {
-		background-color: var(--QB);
-	}
+        .QB {
+                background-color: var(--QB);
+        }
 
-	.WR {
-		background-color: var(--WR);
-	}
+        .WR {
+                background-color: var(--WR);
+        }
 
-	.RB {
-		background-color: var(--RB);
-	}
+        .RB {
+                background-color: var(--RB);
+        }
 
-	.TE {
-		background-color: var(--TE);
-	}
+        .TE {
+                background-color: var(--TE);
+        }
 
-	.FLEX {
-		background: linear-gradient(to right, var(--WR), var(--WR) 33.33%, var(--RB) 33.33%, var(--RB) 66.66%, var(--TE) 66.66%);
-	}
+        .FLEX {
+                background: linear-gradient(to right, var(--WR), var(--WR) 33.33%, var(--RB) 33.33%, var(--RB) 66.66%, var(--TE) 66.66%);
+        }
 
-	.WRRB {
-		background: linear-gradient(to right, var(--WR), var(--WR) 50%, var(--RB) 50%);
-	}
+        .WRRB {
+                background: linear-gradient(to right, var(--WR), var(--WR) 50%, var(--RB) 50%);
+        }
 
-	.K {
-		background-color: var(--K);
-	}
+        .K {
+                background-color: var(--K);
+        }
 
-	.DEF {
-		background-color: var(--DEF);
-	}
+        .DEF {
+                background-color: var(--DEF);
+        }
 
     .DL, .DE, .DT {
         background-color: var(--DL);
@@ -272,7 +203,7 @@
         border-left: 1px solid #bbb;
         border-right: 1px solid #bbb;
         border-bottom: 1px solid #bbb;
-		transition: max-height 0.4s;
+                transition: max-height 0.4s;
     }
 
     .line {
@@ -336,12 +267,6 @@
     }
 
     @media (max-width: 500px) {
-        .name {
-            font-size: 0.8em;
-        }
-        .totalPoints {
-            font-size: 0.8em;
-        }
         .nameHolder {
             font-size: 0.8em;
         }
@@ -351,12 +276,6 @@
     }
 
     @media (max-width: 410px) {
-        .name {
-            font-size: 0.7em;
-        }
-        .totalPoints {
-            font-size: 0.7em;
-        }
         .nameHolder {
             font-size: 0.7em;
         }
@@ -365,14 +284,6 @@
         }
     }
 
-    @media (max-width: 360px) {
-        .name {
-            font-size: 0.5em;
-        }
-        .totalPoints {
-            font-size: 0.5em;
-        }
-    }
 
     .dividerLine {
         display: block;
@@ -411,21 +322,6 @@
 
     .nameHolderL {
         justify-content: flex-start;
-        text-align: left;
-    }
-
-    .totalPoints {
-        line-height: 1.1em;
-        color: #fff;
-    }
-
-    .totalPointsR {
-        margin-right: 0.1em;
-        text-align: right;
-    }
-
-    .totalPointsL {
-        margin-left: 0.1em;
         text-align: left;
     }
 
@@ -481,18 +377,15 @@
 </style>
 
 <div class="matchup">
-    <div class="header" onclick={() => expandClose()} bind:this={el} >
-        <div class="opponent home{winning == "home" ? " homeGlow" : ""}">
-            <img class="avatar" src={home.manager.avatar} alt="home team avatar" />
-            <div class="name">{home.manager.name}</div>
-            <div class="totalPoints totalPointsR">{round(homePointsTotal)}<div class="totalProjection">{round(homeProjectionTotal)}</div></div>
-        </div>
-        <img class="divider" src="/{winning}Divider.jpg" alt="divider" />
-        <div class="opponent away{winning == "away" ? " awayGlow" : ""}">
-            <div class="totalPoints totalPointsL">{round(awayPointsTotal)}<div class="totalProjection">{round(awayProjectionTotal)}</div></div>
-            <div class="name" >{away.manager.name}</div>
-            <img class="avatar" src={away.manager.avatar} alt="away team avatar" />
-        </div>
+    <div class="mcard" bind:this={el}>
+        <MatchupBar
+            home={{ name: home.manager.name, avatar: home.manager.avatar, points: homePointsTotal, projection: homeProjectionTotal }}
+            away={{ name: away.manager.name, avatar: away.manager.avatar, points: awayPointsTotal, projection: awayProjectionTotal }}
+            winner={winning === "tied" ? "tie" : winning}
+            expanded={active == ix}
+            showHint={!expandOverride}
+            onToggle={expandOverride ? null : () => expandClose()}
+        />
     </div>
 
     <div class="rosters" style="max-height: {active == ix ? calcHeight() + "px" : "0"}; {active != ix ? "border: none" : ""};">

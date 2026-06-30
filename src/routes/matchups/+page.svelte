@@ -4,6 +4,7 @@
         import { page } from '$app/stores';
         import { MatchupsAndBrackets } from '$lib/components';
         import MatchupDetail from '$lib/Matchups/MatchupDetail.svelte';
+        import MatchupBar from '$lib/Matchups/MatchupBar.svelte';
 
         export let data;
 
@@ -71,18 +72,19 @@
                 selectedWeek = w;
         }
 
-        const fmtPts = (p) => (p == null ? '—' : Number(p).toFixed(2));
-
-        function initials(name) {
-                if (!name) return '?';
-                const parts = String(name).trim().split(/\s+/).filter(Boolean);
-                if (!parts.length) return '?';
-                const first = parts[0][0] ?? '';
-                const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
-                return (first + last).toUpperCase() || '?';
+        function barSide(side) {
+                if (!side) return null;
+                return { name: side.ownerName ?? side.teamName, points: side.points };
         }
 
-        function highlightAction(node, isMatch) {
+        function barWinner(g) {
+                if (g.winner === 'tie') return 'tie';
+                if (g.home && g.winner === g.home.rosterId) return 'home';
+                if (g.away && g.winner === g.away.rosterId) return 'away';
+                return null;
+        }
+
+                function highlightAction(node, isMatch) {
                 if (isMatch) setTimeout(() => node.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120);
                 return {};
         }
@@ -161,49 +163,13 @@
                                                 class:open={openKey === gameKey(g)}
                                                 use:highlightAction={queryMatchup != null && g.matchupId === queryMatchup}
                                         >
-                                                <button
-                                                        type="button"
-                                                        class="bar-toggle"
-                                                        aria-expanded={openKey === gameKey(g)}
-                                                        on:click={() => toggleGame(g)}
-                                                >
-                                                        <div class="bar-main" class:solo={!g.home || !g.away}>
-                                                                {#if g.home}
-                                                                        <div
-                                                                                class="side home"
-                                                                                class:winner={g.winner === g.home.rosterId}
-                                                                                class:loser={g.winner != null && g.winner !== 'tie' && g.winner !== g.home.rosterId}
-                                                                        >
-                                                                                <div class="avatar">{initials(g.home.ownerName)}</div>
-                                                                                <div class="side-info">
-                                                                                        <div class="owner">{g.home.ownerName ?? 'Unknown'}</div>
-                                                                                        <div class="team">{g.home.teamName ?? ''}</div>
-                                                                                </div>
-                                                                                <div class="pts">{fmtPts(g.home.points)}</div>
-                                                                        </div>
-                                                                {/if}
-
-                                                                {#if g.home && g.away}
-                                                                        <div class="divider">VS</div>
-                                                                {/if}
-
-                                                                {#if g.away}
-                                                                        <div
-                                                                                class="side away"
-                                                                                class:winner={g.winner === g.away.rosterId}
-                                                                                class:loser={g.winner != null && g.winner !== 'tie' && g.winner !== g.away.rosterId}
-                                                                        >
-                                                                                <div class="pts">{fmtPts(g.away.points)}</div>
-                                                                                <div class="side-info">
-                                                                                        <div class="owner">{g.away.ownerName ?? 'Unknown'}</div>
-                                                                                        <div class="team">{g.away.teamName ?? ''}</div>
-                                                                                </div>
-                                                                                <div class="avatar">{initials(g.away.ownerName)}</div>
-                                                                        </div>
-                                                                {/if}
-                                                        </div>
-                                                        <span class="card-hint">{openKey === gameKey(g) ? 'Hide lineups ▲' : 'View lineups ▼'}</span>
-                                                </button>
+                                                <MatchupBar
+                                                        home={barSide(g.home)}
+                                                        away={barSide(g.away)}
+                                                        winner={barWinner(g)}
+                                                        expanded={openKey === gameKey(g)}
+                                                        onToggle={() => toggleGame(g)}
+                                                />
 
                                                 {#if openKey === gameKey(g)}
                                                         <div class="bar-detail">
@@ -394,108 +360,6 @@
                 box-shadow: 0 0 0 1px var(--sn-lime), 0 0 24px -8px var(--sn-lime);
         }
         .matchup-bar.open { border-color: var(--sn-text-faint); }
-        .bar-toggle {
-                display: flex;
-                flex-direction: column;
-                width: 100%;
-                background: none;
-                border: none;
-                padding: 0;
-                margin: 0;
-                text-align: inherit;
-                cursor: pointer;
-                color: inherit;
-                font: inherit;
-        }
-        .bar-main {
-                display: flex;
-                align-items: stretch;
-        }
-        .bar-main.solo .side { justify-content: space-between; }
-        .side {
-                flex: 1 1 0;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 14px 16px;
-                min-width: 0;
-                transition: background 0.15s ease;
-        }
-        .side.home { justify-content: flex-start; }
-        .side.away { justify-content: flex-end; text-align: right; }
-        .avatar {
-                flex: none;
-                width: 38px;
-                height: 38px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: var(--sn-surface-3);
-                border: 1px solid var(--sn-border);
-                color: var(--sn-text-dim);
-                font-family: monospace;
-                font-weight: 800;
-                font-size: 0.85rem;
-        }
-        .side-info { min-width: 0; flex: 1 1 auto; }
-        .side.away .side-info { text-align: right; }
-        .owner {
-                font-weight: 800;
-                color: var(--sn-text-dim);
-                font-size: 0.95rem;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-        }
-        .team {
-                font-size: 12px;
-                color: var(--sn-text-faint);
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-        }
-        .pts {
-                flex: none;
-                font-family: monospace;
-                font-weight: 900;
-                font-size: 1.35rem;
-                color: var(--sn-text-mute);
-        }
-        .divider {
-                flex: none;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0 8px;
-                font-family: monospace;
-                font-weight: 700;
-                font-size: 11px;
-                letter-spacing: 0.1em;
-                color: var(--sn-text-faint);
-                background: var(--sn-surface-2);
-                border-left: 1px solid var(--sn-border);
-                border-right: 1px solid var(--sn-border);
-        }
-        .side.winner .owner { color: #fff; }
-        .side.winner .pts { color: var(--sn-lime); }
-        .side.winner .avatar { border-color: var(--sn-lime); color: var(--sn-lime); }
-        .side.loser .owner,
-        .side.loser .pts { color: var(--sn-text-faint); }
-        .bar-toggle:hover .owner { color: #fff; }
-
-        .card-hint {
-                padding: 6px 0 12px;
-                text-align: center;
-                font-family: monospace;
-                font-size: 10px;
-                font-weight: 700;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
-                color: var(--sn-text-faint);
-                transition: color 0.15s ease;
-        }
-        .bar-toggle:hover .card-hint { color: var(--sn-cyan); }
         .bar-detail {
                 padding: 4px 16px 16px;
                 border-top: 1px solid var(--sn-border);
@@ -509,9 +373,6 @@
         .card-status.error { color: #f8718c; }
 
         @media (max-width: 560px) {
-                .avatar { display: none; }
-                .side { padding: 11px 12px; gap: 8px; }
-                .owner { font-size: 0.85rem; }
-                .pts { font-size: 1.1rem; }
+                .bar-detail { padding: 4px 10px 12px; }
         }
 </style>
