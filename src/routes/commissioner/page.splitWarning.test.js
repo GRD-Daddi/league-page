@@ -86,3 +86,70 @@ describe('Commissioner page — buy-in split warning wiring', () => {
                 expect(renderPage({ buyIn: 100, poolShare: 50, potShare: 40 })).toContain(WARNING_MARKER);
         });
 });
+
+// Guard for the commissioner "Dues Reconciliation" summary block.
+//
+// This block once silently broke: the template referenced `splitMismatch` and
+// `splitTotal` that were never declared in the script, so Svelte 5 compiled it
+// without error (build passed) but the badge was permanently stuck on "Balanced"
+// and Allocated rendered as $0 (paidThisYear * <imported fn> === NaN). These
+// tests server-render the REAL +page.svelte and assert the badge text actually
+// flips and the Allocated figure reflects real numbers — so a future refactor
+// that drops or miswires those derived values fails loudly instead of silently.
+
+// Pull the badge label straight out of the rendered HTML.
+function reconcileBadge(html) {
+        const m = html.match(/class="reconcile-badge[^"]*"[^>]*>([^<]+)</);
+        return m ? m[1].trim() : null;
+}
+
+// Pull the Allocated figure from its own row (so we never accidentally match
+// the same dollar amount appearing elsewhere on the page).
+function allocatedFigure(html) {
+        const m = html.match(/Allocated<\/span><strong[^>]*>([^<]+)</);
+        return m ? m[1].trim() : null;
+}
+
+describe('Commissioner page — dues reconciliation badge', () => {
+        // makeData() always reports 3 paid members this year, so the Allocated figure
+        // is 3 × the per-member split total.
+        it('shows "Balanced" with a real allocated figure when pool + pot equals the buy-in', () => {
+                const html = renderPage({ buyIn: 100, poolShare: 50, potShare: 50 });
+                expect(reconcileBadge(html)).toBe('Balanced');
+                expect(html).not.toContain('Out of balance');
+                // 3 paid members × ($50 pool + $50 pot) = $300
+                expect(allocatedFigure(html)).toBe('$300');
+                expect(allocatedFigure(html)).not.toBe('$0');
+        });
+
+        it('flips to "Out of balance" when pool + pot is under the buy-in', () => {
+                const html = renderPage({ buyIn: 100, poolShare: 40, potShare: 40 });
+                expect(reconcileBadge(html)).toBe('Out of balance');
+                // 3 paid members × ($40 + $40) = $240
+                expect(allocatedFigure(html)).toBe('$240');
+                expect(html).toContain('Unallocated');
+        });
+
+        it('flips to "Out of balance" when pool + pot is over the buy-in', () => {
+                const html = renderPage({ buyIn: 100, poolShare: 60, potShare: 60 });
+                expect(reconcileBadge(html)).toBe('Out of balance');
+                // 3 paid members × ($60 + $60) = $360
+                expect(allocatedFigure(html)).toBe('$360');
+                expect(html).toContain('Over-allocated');
+        });
+
+        // The exact regression: the Allocated figure must never collapse to $0 for a
+        // paid-members scenario (that was the NaN-from-undeclared-`splitTotal` symptom).
+        it('never renders the allocated figure as $0 for a paid-members scenario', () => {
+                for (const split of [
+                        { buyIn: 100, poolShare: 50, potShare: 50 },
+                        { buyIn: 100, poolShare: 40, potShare: 40 },
+                        { buyIn: 100, poolShare: 60, potShare: 60 }
+                ]) {
+                        const figure = allocatedFigure(renderPage(split));
+                        expect(figure).not.toBeNull();
+                        expect(figure).not.toBe('$0');
+                        expect(figure).not.toContain('NaN');
+                }
+        });
+});
