@@ -7,13 +7,6 @@
 
         let { session = { authenticated: false }, potTotal = 0 } = $props();
 
-        const _brandSpace = leagueName.lastIndexOf(' ');
-        const brandLead = _brandSpace > 0 ? leagueName.slice(0, _brandSpace) : '';
-        const brandTail = _brandSpace > 0 ? leagueName.slice(_brandSpace + 1) : leagueName;
-
-        const brandInitialsLead = brandLead ? brandLead.split(/\s+/).map((w) => w[0] || '').join('').toUpperCase() : '';
-        const brandInitialsTail = (brandTail[0] || '').toUpperCase();
-
         function money(n) {
                 return '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
         }
@@ -68,25 +61,6 @@
 
         .brand-mark svg {
                 transform: skewX(10deg);
-        }
-
-        .brand-name {
-                font-weight: 900;
-                font-size: 1.25rem;
-                letter-spacing: -0.03em;
-                text-transform: uppercase;
-                font-style: italic;
-                color: #fff;
-                background: linear-gradient(to right, #fff, #9ca3af);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-        }
-
-        .brand-name em {
-                font-style: inherit;
-                -webkit-text-fill-color: #00f0ff;
-                color: #00f0ff;
         }
 
         /* Right side */
@@ -204,7 +178,6 @@
                                         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
                                 </svg>
                         </div>
-                        <span class="brand-name">{brandInitialsLead}<em>{brandInitialsTail}</em></span>
                 </a>
 
                 <!-- Right: tabs + auth -->
