@@ -427,10 +427,15 @@ export async function computePotData(year = getCurrentSeasonYear(), yahooClient 
                 payoutPoolProjected: Math.max(0, expectedMembers * settings.poolShare - paidOut),
                 potTotalProjected: Math.max(0, potTotal + unpaidMembers * settings.potShare)
         };
-        const pointsLeaderContributors = Math.max(0, pointsLeaderMembers - 1);
+        // The bonus is collected from every other member at full league
+        // participation, so its headline total must project from the expected
+        // member count (same source as the pool/pot projection) rather than the
+        // buy-in rows recorded so far. Otherwise an upcoming/active season with
+        // only a few buy-ins entered would understate the bonus.
+        const pointsLeaderContributors = Math.max(0, expectedMembers - 1);
         const pointsLeader = {
                 amount: settings.pointsLeaderAmount,
-                members: pointsLeaderMembers,
+                members: expectedMembers,
                 contributors: pointsLeaderContributors,
                 total: settings.pointsLeaderAmount * pointsLeaderContributors,
                 name: season.pointsLeaderName,
