@@ -6,7 +6,9 @@
         import { getLeagueTransactions, loadPlayers } from '$lib/utils/helper';
         import WaiverTransaction from './WaiverTransaction.svelte';
 
-        export let show, playersInfo, query, queryPage, transactions, stale, perPage, postUpdate=false, leagueTeamManagers;
+        export let show, playersInfo, query, queryPage, transactions, stale, perPage, postUpdate=false, leagueTeamManagers, year=null;
+
+        const yearParam = year != null ? `year=${year}&` : '';
         const oldQuery = query;
         let page = queryPage || 0;
 
@@ -72,7 +74,7 @@
                 }
                 displayTransactions = setQuery(query, filteredTransactions);
                 if(postUpdate) {
-            goto(`/transactions?show=${show}&query=${query}&page=${page+1}`, {noscroll: true,  keepfocus: true});
+            goto(`/transactions?${yearParam}show=${show}&query=${query}&page=${page+1}`, {noscroll: true,  keepfocus: true});
                 }
         }
 
@@ -93,7 +95,7 @@
                 if(query.trim() == oldQuery) return;
                 page = 0;
                 if(postUpdate) {
-            const dest = `/transactions?show=${show}&query=${query.trim()}&page=${page+1}`;
+            const dest = `/transactions?${yearParam}show=${show}&query=${query.trim()}&page=${page+1}`;
             debounce(dest);
                 }
         }
@@ -101,7 +103,7 @@
         const clearSearch = () => {
                 query = "";
                 if(postUpdate) {
-                        goto(`/transactions?show=${show}&query=&page=${page+1}`, {noscroll: true,  keepfocus: true});
+                        goto(`/transactions?${yearParam}show=${show}&query=&page=${page+1}`, {noscroll: true,  keepfocus: true});
                 }
         }
         
