@@ -32,7 +32,7 @@ const isAuthError = (err) => err?.message?.includes('missing user token') || err
 const LEAGUE_CACHE_TTL_MS = 60_000;
 const leagueCache = new Map(); // key -> { value, expires }
 
-function getCachedLeagueData(key) {
+export function getCachedLeagueData(key) {
         const hit = leagueCache.get(key);
         if (!hit) return undefined;
         if (hit.expires <= Date.now()) {
@@ -42,7 +42,7 @@ function getCachedLeagueData(key) {
         return hit.value;
 }
 
-function setCachedLeagueData(key, value) {
+export function setCachedLeagueData(key, value) {
         leagueCache.set(key, { value, expires: Date.now() + LEAGUE_CACHE_TTL_MS });
 }
 

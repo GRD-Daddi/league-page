@@ -1,4 +1,4 @@
-import { loadLeagueData, loadLeagueUsers, loadLeagueTransactions, loadPlayers } from '$lib/server/dataLoaders.js';
+import { loadLeagueData, loadLeagueUsers, loadLeagueTransactions, loadPlayers, getCachedLeagueData, setCachedLeagueData } from '$lib/server/dataLoaders.js';
 import { getArchiveYears } from '$lib/server/archiveStats.js';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { enumerateLeagueSeasons } from '$lib/server/historyBackfill.js';
@@ -21,6 +21,14 @@ export async function load({ url, fetch, locals }) {
         const isLive = selectedYear === currentYear;
         const yearOptions = years.map((y) => ({ year: y.year, status: y.status }));
 
+        // Filter/search/paging on /transactions navigate and re-run this loader, so
+        // every interaction within a past season would otherwise re-run the slow
+        // multi-season Yahoo enumeration plus a full week-by-week transaction fetch.
+        // Mirror the keepers cache: short-lived, OPT-IN, scoped to THIS viewer's
+        // session id so one member's payload is never served to another (or to a
+        // logged-out visitor). Unresolvable/logged-out results are never cached.
+        const cacheScope = locals.session?.userId || null;
+
         // The live season uses the configured league key; a past season is resolved
         // to its own Yahoo league key via the multi-season enumeration helper (the
         // same raw, token-only history recovery used elsewhere). Both are then loaded
@@ -28,11 +36,11 @@ export async function load({ url, fetch, locals }) {
         // the full transaction display rather than the keeper-decomposed archive.
         const seasonLeagueKey = isLive
                 ? leagueKey
-                : await resolveSeasonLeagueKey(yahooClient, selectedYear);
+                : await resolveSeasonLeagueKey(yahooClient, selectedYear, cacheScope);
 
         const [transactions, leagueTeamManagersData, playersData] = await waitForAll(
-                seasonLeagueKey ? loadAllTransactions(yahooClient, seasonLeagueKey) : Promise.resolve([]),
-                seasonLeagueKey ? loadLeagueUsersAsMap(yahooClient, seasonLeagueKey) : Promise.resolve({}),
+                seasonLeagueKey ? loadAllTransactions(yahooClient, seasonLeagueKey, cacheScope) : Promise.resolve([]),
+                seasonLeagueKey ? loadLeagueUsersAsMap(yahooClient, seasonLeagueKey, cacheScope) : Promise.resolve({}),
                 loadPlayers(fetch),
         );
 
@@ -58,19 +66,38 @@ export async function load({ url, fetch, locals }) {
 // Resolves the Yahoo league key for a past season by name+year. Returns null when
 // it can't be determined (e.g. logged-out, or the season predates the account),
 // which the loader surfaces as the friendly empty state rather than an error.
-async function resolveSeasonLeagueKey(yahooClient, year) {
+// The resolved key is cached per-viewer for a short window so repeated interactions
+// (filter/search/paging) within the same season skip the multi-season enumeration.
+async function resolveSeasonLeagueKey(yahooClient, year, cacheScope = null) {
         if (!yahooClient) return null;
+        const canCache = !!cacheScope;
+        const cacheKey = `txSeasonKey:${year}:${cacheScope}`;
+        if (canCache) {
+                const cached = getCachedLeagueData(cacheKey);
+                if (cached !== undefined) return cached;
+        }
         try {
                 const seasons = await enumerateLeagueSeasons(yahooClient, leagueName);
                 const match = seasons.find((s) => s.year === year);
-                return match?.leagueKey ?? null;
+                const resolved = match?.leagueKey ?? null;
+                // Only cache a genuine hit; a null (unresolvable / logged-out) result is
+                // never cached so it can't mask a later successful resolution.
+                if (canCache && resolved) setCachedLeagueData(cacheKey, resolved);
+                return resolved;
         } catch (err) {
                 console.error('[transactions] season league key lookup failed:', err.message);
                 return null;
         }
 }
 
-async function loadAllTransactions(yahooClient, leagueKey) {
+async function loadAllTransactions(yahooClient, leagueKey, cacheScope = null) {
+        const canCache = !!(yahooClient && cacheScope);
+        const cacheKey = `txList:${leagueKey}:${cacheScope}`;
+        if (canCache) {
+                const cached = getCachedLeagueData(cacheKey);
+                if (cached !== undefined) return cached;
+        }
+
         const leagueData = await loadLeagueData(yahooClient, leagueKey);
         if (!leagueData) return [];
 
@@ -81,11 +108,15 @@ async function loadAllTransactions(yahooClient, leagueKey) {
         }
 
         const transactionWeeks = await waitForAll(...transactionPromises);
-        return transactionWeeks.flat();
+        const transactions = transactionWeeks.flat();
+        // Cache only a non-empty result for a scoped viewer; an empty array can mean
+        // an auth error (loadLeagueData returned null) and must not be cached.
+        if (canCache && transactions.length) setCachedLeagueData(cacheKey, transactions);
+        return transactions;
 }
 
-async function loadLeagueUsersAsMap(yahooClient, leagueKey) {
-        const users = await loadLeagueUsers(yahooClient, leagueKey);
+async function loadLeagueUsersAsMap(yahooClient, leagueKey, cacheScope = null) {
+        const users = await loadLeagueUsers(yahooClient, leagueKey, cacheScope);
         return toMap(users);
 }
 
