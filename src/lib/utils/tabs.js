@@ -8,6 +8,12 @@ export const tabs = [
         key: 'home',
     },
     {
+        icon: 'shield',
+        label: 'My Team',
+        dest: '/my-team',
+        key: 'my_team',
+    },
+    {
         icon: 'sports',
         label: 'Matchups',
         dest: '/matchups',
@@ -87,11 +93,5 @@ export const tabs = [
                 dest: `https://football.fantasysports.yahoo.com/f1/${String(leagueID).split('.').pop()}`,
             },
         ]
-    },
-    {
-        icon: 'shield',
-        label: 'My Team',
-        dest: '/rosters',
-        key: 'my_team',
     },
 ];
