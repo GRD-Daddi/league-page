@@ -7,8 +7,16 @@ description: Live and archived /matchups now render through ONE path (week-tabs 
 
 Live (current season) and archived (past season) `/matchups` BOTH render through the
 **same** path in `src/routes/matchups/+page.svelte`: the year/week tabs + the
-`gameCard` snippet → `src/lib/Matchups/MatchupBar.svelte` (proportional cyan/lime
-"tug-of-war" score fill, name line(s) + avatar + big points + VS + "VIEW LINEUPS ▼").
+`gameCard` snippet → `src/lib/Matchups/MatchupBar.svelte` (name line(s) + avatar +
+big points + VS + "VIEW LINEUPS ▼").
+
+**Winner highlight (one signal, gold):** there is NO two-color tug-of-war. Only the
+WINNER's side gets a single gold (`--sn-gold`) fill anchored to that side, width =
+winner's score share (hp/total or ap/total, always ≥50%), with a bright leading edge
+(border + inset glow) marking where the points land. Winner's avatar/points go gold,
+name white; loser dims. Tie / null winner (live 0-0) → no fill, both neutral.
+**Why:** close matchups were unreadable when both sides glowed cyan vs lime — the user
+asked for one obvious winner cue. Don't reintroduce per-side cyan/lime win colors.
 
 **Why:** the user explicitly required live and past matchup cards to look identical.
 Previously live used a *different* render path (`MatchupsAndBrackets → MatchupWeeks →

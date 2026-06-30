@@ -28,11 +28,10 @@
 
 <button type="button" class="mb" class:expanded class:static={!onToggle} aria-expanded={onToggle ? expanded : null} on:click={trigger}>
     <div class="mb-track">
-        {#if home}
-            <div class="mb-fill home" class:win={winner === 'home'} style="width:{homePct}%"></div>
-        {/if}
-        {#if away}
-            <div class="mb-fill away" class:win={winner === 'away'} style="width:{awayPct}%"></div>
+        {#if home && away && winner === 'home'}
+            <div class="mb-fill home" style="width:{homePct}%"></div>
+        {:else if home && away && winner === 'away'}
+            <div class="mb-fill away" style="width:{awayPct}%"></div>
         {/if}
     </div>
 
@@ -110,31 +109,31 @@
     }
     .mb.static { cursor: default; }
 
-    /* proportional "tug of war" score fills */
     .mb-track {
         position: absolute;
         inset: 0;
-        display: flex;
         pointer-events: none;
         z-index: 0;
     }
+    /* single gold fill on the winner's side; its length = winning score share,
+       and the bright leading edge marks where the points land */
     .mb-fill {
-        height: 100%;
+        position: absolute;
+        top: 0;
+        bottom: 0;
         transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .mb-fill.home {
-        background: linear-gradient(to right, rgba(0, 240, 255, 0.20), rgba(0, 240, 255, 0.03));
+        left: 0;
+        background: linear-gradient(to right, rgba(255, 210, 63, 0.26), rgba(255, 210, 63, 0.04));
+        border-right: 2px solid rgba(255, 210, 63, 0.8);
+        box-shadow: inset -10px 0 20px -10px var(--sn-gold);
     }
     .mb-fill.away {
-        background: linear-gradient(to left, rgba(204, 255, 0, 0.20), rgba(204, 255, 0, 0.03));
-    }
-    .mb-fill.home.win {
-        background: linear-gradient(to right, rgba(0, 240, 255, 0.32), rgba(0, 240, 255, 0.08));
-        box-shadow: inset -2px 0 14px -2px var(--sn-cyan);
-    }
-    .mb-fill.away.win {
-        background: linear-gradient(to left, rgba(204, 255, 0, 0.32), rgba(204, 255, 0, 0.08));
-        box-shadow: inset 2px 0 14px -2px var(--sn-lime);
+        right: 0;
+        background: linear-gradient(to left, rgba(255, 210, 63, 0.26), rgba(255, 210, 63, 0.04));
+        border-left: 2px solid rgba(255, 210, 63, 0.8);
+        box-shadow: inset 10px 0 20px -10px var(--sn-gold);
     }
 
     .mb-content {
@@ -173,15 +172,10 @@
         font-size: 0.85rem;
     }
     .mb-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .mb-side.home.win .mb-avatar {
-        border-color: var(--sn-cyan);
-        color: var(--sn-cyan);
-        box-shadow: 0 0 10px -2px var(--sn-cyan);
-    }
-    .mb-side.away.win .mb-avatar {
-        border-color: var(--sn-lime);
-        color: var(--sn-lime);
-        box-shadow: 0 0 10px -2px var(--sn-lime);
+    .mb-side.win .mb-avatar {
+        border-color: var(--sn-gold);
+        color: var(--sn-gold);
+        box-shadow: 0 0 12px -2px var(--sn-gold);
     }
 
     .mb-info { min-width: 0; flex: 1 1 auto; }
@@ -218,8 +212,7 @@
         color: var(--sn-text-mute);
     }
     .mb-side.home .mb-pts { align-items: flex-start; }
-    .mb-side.home.win .mb-pts { color: var(--sn-cyan); }
-    .mb-side.away.win .mb-pts { color: var(--sn-lime); }
+    .mb-side.win .mb-pts { color: var(--sn-gold); }
     .mb-proj {
         font-size: 0.55em;
         font-weight: 700;
