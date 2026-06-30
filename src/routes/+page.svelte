@@ -643,8 +643,9 @@
 
   .beat-tag {
     margin-top: 8px;
-    font-size: 0.72rem; font-weight: 800; color: #ccff00;
-    text-transform: uppercase; letter-spacing: 0.04em;
+    font-size: 0.6rem; font-weight: 800; color: #ccff00;
+    text-transform: uppercase; letter-spacing: 0.01em;
+    white-space: nowrap;
   }
 
   .beat-tag.hot { color: #ff6b6b; }
