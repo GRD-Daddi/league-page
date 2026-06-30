@@ -1,9 +1,9 @@
 <script>
-	import { gotoManager } from '$lib/utils/helper';
-	import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
-	import TransactionMove from './TransactionMove.svelte';
+        import { gotoManager } from '$lib/utils/helper';
+        import { getTeamFromTeamManagers } from '$lib/utils/helperFunctions/universalFunctions';
+        import TransactionMove from './TransactionMove.svelte';
 
-	export let transaction, players, leagueTeamManagers;
+        export let transaction, players, leagueTeamManagers;
 </script>
 
 <style>
@@ -51,9 +51,9 @@
         text-align: center;
         padding: 0.7em 0 1em;
         background-color: var(--fff);
-        border-radius: 0 0 0 40px;
+        border-radius: 0 0 40px 40px;
         border-left: 2px solid var(--blueOne);
-        border-right: 1px solid var(--ddd);
+        border-right: 2px solid var(--blueOne);
         margin-bottom: 3em;
     }
 
@@ -73,7 +73,7 @@
         background-color: var(--fff);
         border-top: 2px solid var(--blueOne);
         border-left: 2px solid var(--blueOne);
-        border-right: 1px solid var(--ddd);
+        border-right: 2px solid var(--blueOne);
     }
 
     .holder {
