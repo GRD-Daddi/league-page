@@ -3,6 +3,7 @@ import { digestTransactions, buildTransactionTeamManagers, loadArchivedTransacti
 import { getArchiveYears } from '$lib/server/archiveStats.js';
 import { getCurrentSeasonYear } from '$lib/server/pot.js';
 import { enumerateLeagueSeasons } from '$lib/server/historyBackfill.js';
+import { getTradedPicksByTransaction } from '$lib/yahoo-adapter/transactionAdapter.js';
 import { leagueName } from '$lib/utils/leagueInfo.js';
 import { requireAuth } from '$lib/server/authGuard.js';
 import { waitForAll } from '$lib/utils/helperFunctions/multiPromise';
@@ -96,11 +97,51 @@ export async function load({ url, fetch, locals }) {
 // back to the original live path so nothing is silently lost.
 export async function _loadPastSeasonTransactions(yahooClient, year, cacheScope = null) {
         const archived = await loadArchivedTransactions(year);
-        if (archived.length) return archived;
+        if (archived.length) {
+                await _attachTradedPicks(archived, yahooClient, cacheScope);
+                return archived;
+        }
 
         const seasonLeagueKey = await _resolveSeasonLeagueKey(yahooClient, year, cacheScope);
         if (!seasonLeagueKey) return [];
         return _loadAllTransactions(yahooClient, seasonLeagueKey, cacheScope);
+}
+
+// Past-season trades are reconstructed from the archive, which stored player
+// movement only — Yahoo never persisted the traded DRAFT PICKS into it. Re-attach
+// them from Yahoo's trades endpoint (a single, cached request per season, with the
+// league key derived from the league id embedded in any archived transaction id)
+// so a pick-for-player or pick-for-pick deal shows its picks. Best-effort: any
+// failure (logged out, rate-limited) leaves the player side intact rather than
+// breaking the page, and is cached per viewer so paging/search never refetch it.
+export async function _attachTradedPicks(transactions, yahooClient, cacheScope = null) {
+        if (!yahooClient) return;
+        const trade = transactions.find(
+                (t) => t && t.type === 'trade' && typeof t.transaction_id === 'string'
+        );
+        if (!trade) return;
+        const leagueKey = trade.transaction_id.replace(/\.tr\.\d+$/, '');
+        if (!/\.l\./.test(leagueKey)) return;
+
+        try {
+                let picksByTx;
+                const cacheKey = `txPicks:${leagueKey}:${cacheScope || 'anon'}`;
+                if (cacheScope) {
+                        const cached = getCachedLeagueData(cacheKey);
+                        if (cached !== undefined) picksByTx = cached;
+                }
+                if (!picksByTx) {
+                        picksByTx = await getTradedPicksByTransaction(leagueKey, yahooClient);
+                        if (cacheScope && picksByTx && picksByTx.size) setCachedLeagueData(cacheKey, picksByTx);
+                }
+                if (!picksByTx || !picksByTx.size) return;
+                for (const txn of transactions) {
+                        const picks = picksByTx.get(txn.transaction_id);
+                        if (picks && picks.length) txn.draft_picks = picks;
+                }
+        } catch (err) {
+                console.error('[transactions] traded pick enrichment failed:', err?.message);
+        }
 }
 
 // Resolves the Yahoo league key for a past season by name+year. Returns null when

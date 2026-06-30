@@ -251,7 +251,7 @@ export async function loadArchivedTransactions(year) {
         let rows;
         try {
                 ({ rows } = await query(
-                        `SELECT transaction_id, type, player_key, from_roster_id, to_roster_id, timestamp
+                        `SELECT transaction_id, type, player_key, player_name, from_roster_id, to_roster_id, timestamp
                          FROM transaction_archive WHERE year = $1`,
                         [year]
                 ));
@@ -285,7 +285,18 @@ export async function loadArchivedTransactions(year) {
                 }
                 const pk = r.player_key;
                 if (pk != null) {
-                        const meta = nameDict[playerIdFromKey(pk)];
+                        const pid = playerIdFromKey(pk);
+                        // Name priority: the roster archive (full name + pos/team) wins;
+                        // then the durable player_name column (backfilled from the public
+                        // id crosswalk — names only); then a generic "Defense" label for
+                        // unresolved team-defense ids (Yahoo DEF ids are >= 99000), so a
+                        // streamed defense reads "Defense" instead of "Unknown".
+                        let meta = nameDict[pid];
+                        if (!meta) {
+                                const nm = (r.player_name || '').trim();
+                                if (nm) meta = { name: nm, pos: '', team: '' };
+                                else if (Number(pid) >= 99000) meta = { name: 'Defense', pos: 'DEF', team: '' };
+                        }
                         if (meta && !txn.players_meta[pk]) txn.players_meta[pk] = meta;
                         // A trade stores the same player on both sides (in on `to`, origin on
                         // `from`); digestOne treats a player present in BOTH adds & drops as a

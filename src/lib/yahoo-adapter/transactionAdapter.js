@@ -25,7 +25,7 @@ export async function getYahooLeagueTransactions(leagueKey, week = null, yahooCl
 // key, in Sleeper's draft_picks shape. Yahoo does not stamp a draft season on a
 // traded pick, so we approximate it with the YEAR the trade happened (picks are
 // almost always dealt for an upcoming draft) — purely for display.
-async function getTradedPicksByTransaction(leagueKey, yf) {
+export async function getTradedPicksByTransaction(leagueKey, yf) {
         const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/transactions;types=trade`;
         const raw = await withRetry(() => rawYahooGet(url, yf));
 

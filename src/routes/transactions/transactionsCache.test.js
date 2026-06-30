@@ -16,10 +16,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const enumerateLeagueSeasons = vi.fn();
 const loadLeagueData = vi.fn();
 const loadLeagueTransactions = vi.fn();
+const getTradedPicks = vi.fn();
 
 vi.mock('$lib/server/historyBackfill.js', () => ({
         enumerateLeagueSeasons: (...args) => enumerateLeagueSeasons(...args)
 }));
+
+// Keep every real adapter export (dataLoaders imports several of them) and stub
+// only the traded-pick fetcher so we can drive it without hitting Yahoo.
+vi.mock('$lib/yahoo-adapter/transactionAdapter.js', async () => {
+        const actual = await vi.importActual('$lib/yahoo-adapter/transactionAdapter.js');
+        return { ...actual, getTradedPicksByTransaction: (...args) => getTradedPicks(...args) };
+});
 
 vi.mock('$lib/server/dataLoaders.js', async () => {
         const actual = await vi.importActual('$lib/server/dataLoaders.js');
@@ -30,7 +38,7 @@ vi.mock('$lib/server/dataLoaders.js', async () => {
         };
 });
 
-const { _resolveSeasonLeagueKey, _loadAllTransactions } = await import('./+page.server.js');
+const { _resolveSeasonLeagueKey, _loadAllTransactions, _attachTradedPicks } = await import('./+page.server.js');
 
 // A fake authenticated client — the functions only check truthiness.
 const client = { authed: true };
@@ -157,5 +165,61 @@ describe('_loadAllTransactions caching boundary', () => {
                 // userA's repeat is still a cache hit.
                 await _loadAllTransactions(client, 'nfl.l.shared', 'userA');
                 expect(loadLeagueData).toHaveBeenCalledTimes(2);
+        });
+});
+
+// Past-season trades are reconstructed from the archive (player movement only).
+// _attachTradedPicks re-hydrates the traded DRAFT PICKS from Yahoo, keyed by the
+// league id embedded in the archived transaction id. It must: skip cleanly when
+// logged out / no trades present, attach picks only to the matching transaction,
+// and never throw when the Yahoo call fails.
+describe('_attachTradedPicks', () => {
+        it('does nothing (and never calls Yahoo) when there is no yahooClient', async () => {
+                const txns = [{ transaction_id: '461.l.744586.tr.1', type: 'trade' }];
+                await _attachTradedPicks(txns, null, 'userP');
+                expect(getTradedPicks).not.toHaveBeenCalled();
+                expect(txns[0].draft_picks).toBeUndefined();
+        });
+
+        it('does nothing when there is no trade row to derive a league key from', async () => {
+                const txns = [{ transaction_id: '461.l.744586.tr.5', type: 'waiver' }];
+                await _attachTradedPicks(txns, client, 'userP');
+                expect(getTradedPicks).not.toHaveBeenCalled();
+                expect(txns[0].draft_picks).toBeUndefined();
+        });
+
+        it('derives the league key from the transaction id and attaches picks to the matching trade only', async () => {
+                const picks = [{ season: '2025', round: 2, roster_id: 3, owner_id: 7, previous_owner_id: 3 }];
+                getTradedPicks.mockResolvedValue(new Map([['461.l.uniq1.tr.9', picks]]));
+
+                const txns = [
+                        { transaction_id: '461.l.uniq1.tr.9', type: 'trade' },
+                        { transaction_id: '461.l.uniq1.tr.4', type: 'trade' }
+                ];
+                await _attachTradedPicks(txns, client, 'userPicks1');
+
+                // League key is the transaction id with the trailing `.tr.N` stripped.
+                expect(getTradedPicks).toHaveBeenCalledWith('461.l.uniq1', client);
+                expect(txns[0].draft_picks).toEqual(picks);
+                expect(txns[1].draft_picks).toBeUndefined();
+        });
+
+        it('caches the pick map per viewer so paging/search never refetch it', async () => {
+                getTradedPicks.mockResolvedValue(new Map([['461.l.uniq2.tr.1', [{ round: 1 }]]]));
+
+                const make = () => [{ transaction_id: '461.l.uniq2.tr.1', type: 'trade' }];
+                await _attachTradedPicks(make(), client, 'userPicks2');
+                await _attachTradedPicks(make(), client, 'userPicks2');
+
+                // Second call served from the per-viewer cache → Yahoo hit only once.
+                expect(getTradedPicks).toHaveBeenCalledTimes(1);
+        });
+
+        it('never throws and leaves the player side intact when the Yahoo call fails', async () => {
+                getTradedPicks.mockRejectedValue(new Error('999 Request denied'));
+
+                const txns = [{ transaction_id: '461.l.uniq3.tr.1', type: 'trade' }];
+                await expect(_attachTradedPicks(txns, client, 'userPicks3')).resolves.toBeUndefined();
+                expect(txns[0].draft_picks).toBeUndefined();
         });
 });
