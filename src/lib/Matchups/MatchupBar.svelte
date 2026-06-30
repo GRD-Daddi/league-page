@@ -125,11 +125,11 @@
     }
     .mb-fill.home {
         left: 0;
-        background: linear-gradient(to right, rgba(204, 255, 0, 0.16), rgba(204, 255, 0, 0));
+        background: linear-gradient(to right, rgba(204, 255, 0, 0.04) 0%, rgba(204, 255, 0, 0.1) 55%, rgba(204, 255, 0, 0.28) 100%);
     }
     .mb-fill.away {
         right: 0;
-        background: linear-gradient(to left, rgba(204, 255, 0, 0.16), rgba(204, 255, 0, 0));
+        background: linear-gradient(to left, rgba(204, 255, 0, 0.04) 0%, rgba(204, 255, 0, 0.1) 55%, rgba(204, 255, 0, 0.28) 100%);
     }
 
     .mb-content {
