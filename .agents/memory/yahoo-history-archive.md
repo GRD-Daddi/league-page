@@ -40,3 +40,24 @@ use the offseason library helpers for historical stats.
 - Before a full re-backfill, wipe ONLY the pure-archive tables (season_archive,
   team_season_archive, matchup_archive, roster_archive) to clear stale zero/garbage
   rows. NEVER truncate `season_records` (holds pot/payout + manual champions).
+
+# Historical rosters are part of the backfill
+
+**Rule:** Past-season rosters (the rosters-page year toggle) are populated by the
+SAME backfill, not a raw REST fetcher. `fetchSeasonArchiveData` calls
+`fetchSeasonRosters` → `getYahooLeagueRosters(leagueKey, client)` (the high-level
+adapter) → `buildRosterRows` (shared mapper in archive.js, also used by the live
+`captureSeason`) → `snapshotRosters`. Keep both paths on `buildRosterRows` so the
+archived shape stays identical to what the rosters page reads.
+
+**Why:** unlike standings/scoreboard (raw `rawYahooGet`), the roster adapter already
+has per-team failure handling + offseason team-enumeration fallbacks, and the
+authenticated client's `api()` override routes its GETs through the crash-safe path —
+so reusing it is safe and avoids duplicating roster parsing. A finished past league
+key returns that season's final-week roster.
+
+**How to apply:** the rosters toggle only lists a past year once `roster_archive` has
+rows with players for it (`getRosterArchiveYears`). Older Yahoo seasons stay hidden
+until a backfill runs; if Yahoo no longer returns a season's rosters, that year just
+stays hidden (no fabricated data). snapshotRosters is idempotent (won't overwrite a
+populated squad with an empty fetch).

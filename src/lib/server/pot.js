@@ -1,7 +1,7 @@
 import { query } from './db.js';
 import { ownerDisplayName } from '../utils/ownerNames.js';
 import { loadLeagueData, loadLeagueRosters } from './dataLoaders.js';
-import { getArchivedChampions, snapshotPodium, snapshotSeasonHeader, snapshotStandings, snapshotMatchups } from './archive.js';
+import { getArchivedChampions, snapshotPodium, snapshotSeasonHeader, snapshotStandings, snapshotMatchups, snapshotRosters } from './archive.js';
 import { enumerateLeagueSeasons, fetchLeagueMeta, fetchSeasonArchiveData } from './historyBackfill.js';
 import { previousLeagueKeys } from '$lib/utils/leagueInfo.js';
 
@@ -606,7 +606,7 @@ export async function backfillArchive(yahooClient = null, leagueKey = null) {
         const seasons = [];
         for (const s of seasonList) {
                 try {
-                        const { meta, standings, sides } = await fetchSeasonArchiveData(yahooClient, s.leagueKey);
+                        const { meta, standings, sides, rosters } = await fetchSeasonArchiveData(yahooClient, s.leagueKey);
                         const year = Number.isFinite(meta.season) ? meta.season : s.year;
                         if (!Number.isFinite(year)) {
                                 seasons.push({ leagueKey: s.leagueKey, ok: false, error: 'Could not resolve season year.' });
@@ -621,6 +621,7 @@ export async function backfillArchive(yahooClient = null, leagueKey = null) {
                         });
                         await snapshotStandings(year, standings);
                         if (sides.length) await snapshotMatchups(year, sides);
+                        if (rosters?.length) await snapshotRosters(year, rosters);
 
                         // Champion + podium from REAL final standings, but only for a finished
                         // season — an in-progress season's ranks aren't final yet.

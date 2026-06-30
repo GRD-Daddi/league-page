@@ -193,6 +193,44 @@ export async function snapshotStandings(year, teams) {
 }
 
 /**
+ * Maps loaded Sleeper-format rosters (the shape every roster adapter emits) into
+ * the compact roster-archive row shape `snapshotRosters` stores. Shared by the
+ * live season capture (captureSeason) and the historical backfill so both write
+ * an identical archived shape — exactly what the rosters page reads back. Teams
+ * without a real Yahoo team_key are skipped rather than fabricated.
+ */
+export function buildRosterRows(rosters) {
+        if (!Array.isArray(rosters)) return [];
+        const rows = [];
+        for (const r of rosters) {
+                const teamKey = r?.metadata?.team_key || null;
+                if (!teamKey) continue;
+                const detail = r?.players_detail || {};
+                const starterSet = new Set(r?.starters || []);
+                const players = (r?.players || []).map((key) => {
+                        const d = detail[key] || {};
+                        return {
+                                key,
+                                fn: d.fn ?? null,
+                                ln: d.ln ?? null,
+                                pos: d.pos ?? null,
+                                t: d.t ?? null,
+                                img: d.img ?? null,
+                                starter: starterSet.has(key)
+                        };
+                });
+                rows.push({
+                        teamKey,
+                        rosterId: r?.roster_id,
+                        teamName: r?.metadata?.team_name || null,
+                        logoUrl: r?.metadata?.team_logo || null,
+                        players
+                });
+        }
+        return rows;
+}
+
+/**
  * Persists each team's final roster (player detail array). Only overwrites the
  * stored players when the incoming roster actually has players, so an empty
  * pre-draft fetch never wipes a previously-captured squad.
@@ -295,7 +333,6 @@ export async function captureSeason(year, { leagueData = null, rostersResult = n
         const idToTeam = new Map();
 
         const standings = [];
-        const rosterRows = [];
         for (const r of rosters) {
                 const teamKey = r?.metadata?.team_key || null;
                 const teamName = r?.metadata?.team_name || null;
@@ -316,32 +353,10 @@ export async function captureSeason(year, { leagueData = null, rostersResult = n
                         pointsFor: r?.settings?.fpts,
                         pointsAgainst: r?.settings?.fpts_against
                 });
-
-                const detail = r?.players_detail || {};
-                const starterSet = new Set(r?.starters || []);
-                const players = (r?.players || []).map((key) => {
-                        const d = detail[key] || {};
-                        return {
-                                key,
-                                fn: d.fn ?? null,
-                                ln: d.ln ?? null,
-                                pos: d.pos ?? null,
-                                t: d.t ?? null,
-                                img: d.img ?? null,
-                                starter: starterSet.has(key)
-                        };
-                });
-                rosterRows.push({
-                        teamKey,
-                        rosterId: r?.roster_id,
-                        teamName,
-                        logoUrl: r?.metadata?.team_logo || null,
-                        players
-                });
         }
 
         await snapshotStandings(year, standings);
-        await snapshotRosters(year, rosterRows);
+        await snapshotRosters(year, buildRosterRows(rosters));
 
         if (Array.isArray(matchupWeeks) && matchupWeeks.length) {
                 const sides = [];
